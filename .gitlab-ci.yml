@@ -1,0 +1,12 @@
+image: "python:3.5"
+
+before_script:
+  - python -V
+
+stages:
+  - test
+
+test_compilation:
+  stage: test
+  script:
+    - echo "Running tests"
