@@ -79,10 +79,11 @@ char        = '\'' (ascii_without_esc_sequences | '\' escape_sequence) '\''
 id          = alpha ('_' alphaNum)*
 
 
-
-What is different?
-Operators are now names
-ActArgs, FTypes, FArgs are not recursive anymore
+TODO
+op mag niet //+ zijn
+en ook niet =
+en ook niet */
+en ook niet /*
 
 '\''
 "\""
