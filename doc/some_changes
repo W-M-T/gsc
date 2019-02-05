@@ -1,0 +1,88 @@
+SPL         = Decl+
+
+Decl        = VarDecl
+            | FunDecl
+            | TypeSyn
+            | OpDecl
+
+VarDecl     = ('var' | Type) id '=' Exp ';'
+
+FunDecl     = id '(' [FArgs] ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
+
+OpDecl      = 'prefix' op '(' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
+            |  ('infixl' | 'infixr') digit+ op '(' id ',' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
+
+TypeSyn     = 'type' id '=' Type
+
+FunType     = [FTypes] '->' RetType
+
+FTypes      = Type+
+
+RetType     = Type
+            | 'Void'
+
+Type        = BasicType
+            | '(' Type ',' Type ')'
+            | '[' Type ']'
+            | id
+
+BasicType   = 'Int'
+            = 'Bool'
+            = 'Char'
+
+FArgs       = id (',' id)*
+
+Stmt        = 'if' '(' Exp ')' '{' Stmt* '}' ('elif' '(' Exp ')' '{' Stmt* '}')* ['else' '{' Stmt* '}']
+            | 'while' '(' Exp ')' '{' Stmt* '}'
+            | 'for' '(' [ForStmt] Exp ';' Exp ')' '{' Stmt* '}'
+            | ActStmt ';'
+            | 'return' [Exp] ';'
+
+ForStmt     = [ActStmt] ';'
+
+ActStmt     = Ass 
+            | FunCall
+
+Ass         = id Field '=' Exp
+
+Exp         = ConvExp 
+            | ConvExp (op ConvExp)+
+
+ConvExp     = id Field
+            | op Exp
+            | int
+            | char
+            | string
+            | 'False'
+            | 'True'
+            | '(' Exp ')'
+            | FunCall
+            | []
+
+Field       = [('.' 'hd' | '.' 'tl' | '.' 'fst' | '.' 'snd' ) Field]
+
+FunCall     = id '(' [ActArgs] ')'
+
+ActArgs     = Exp (',' Exp)*
+
+op          = opChar+
+
+opChar      = '!' | '#' | '$' | '%' | '&' | '*' | '+' | '/' | '<' | '=' | '>' | '?'
+            | '@' | '\' | '^' | '|' | '-' | '~' | ',' | ':'
+
+int         = ['-'] | digit+
+
+string      = '"' (ascii_without_esc_sequences | '\' escape_sequence)* '"'
+
+char        = '\'' (ascii_without_esc_sequences | '\' escape_sequence) '\''
+
+id          = alpha ('_' alphaNum)*
+
+
+
+What is different?
+Operators are now names
+ActArgs, FTypes, FArgs are not recursive anymore
+
+'\''
+"\""
