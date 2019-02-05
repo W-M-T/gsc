@@ -59,7 +59,7 @@ ConvExp     = id Field
             | FunCall
             | []
 
-Field       = [('.' 'hd' | '.' 'tl' | '.' 'fst' | '.' 'snd' ) Field]
+Field       = [('.hd' | '.tl' | '.fst' | '.snd' ) Field]
 
 FunCall     = id '(' [ActArgs] ')'
 
@@ -70,7 +70,7 @@ op          = opChar+
 opChar      = '!' | '#' | '$' | '%' | '&' | '*' | '+' | '/' | '<' | '=' | '>' | '?'
             | '@' | '\' | '^' | '|' | '-' | '~' | ',' | ':'
 
-int         = ['-'] | digit+
+int         = digit+
 
 string      = '"' (ascii_without_esc_sequences | '\' escape_sequence)* '"'
 

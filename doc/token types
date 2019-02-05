@@ -1,0 +1,46 @@
+keywords:
+    var
+    if
+    elif
+    else
+    while
+    for
+    return
+    prefix
+    infixl
+    infixr
+    type
+
+value literals:
+    True
+    False
+
+type literals:
+    Void
+    Int
+    Bool
+    Char
+
+symbols:
+    (
+    )
+    {
+    }
+    ;
+    ::
+    =
+    ->
+    ,
+    [
+    ]
+
+accessors:
+    .hd
+    .tl
+    .fst
+    .snd
+
+
+identifier
+
+op_identifier
