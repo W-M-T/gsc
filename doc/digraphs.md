@@ -10,6 +10,6 @@ Supported escape sequences
 | \r | carriage return |
 | \t | horizontal tab |
 | \v | vertical tab |
-| \\ | backspace |
-| \' | single quote |
-| \" | double quotes |
+| \\\\ | backspace |
+| \\' | single quote |
+| \\" | double quotes |
