@@ -44,13 +44,13 @@ ACCESSORS = {
 REG_ID  = re.compile("[a-z][a-z_]*")
 REG_OP  = re.compile("[!#$%&*+/<=>?@\\^|:,~-]+")
 REG_INT = re.compile("\\d+")
-# regex for string and char? Or handle differently?
-
+REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[\"\'])+\"")# needs to be tested
+REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[\"\'])\'")# needs to be tested
+# String and char regexes still missing legal digraph patterns (i.e. no \t char, but \ char followed by t char is allowed)
 
 def tokenize(filename):
     FLAG_STRING         = False
     FLAG_CHAR           = False
-    FLAG_SINGLE_COMMENT = False # Not necessary, just discard current line from here
     FLAG_MULTI_COMMENT  = False
     FLAG_TYPE_CONTEXT   = False
 
