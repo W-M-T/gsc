@@ -44,8 +44,8 @@ ACCESSORS = {
 REG_ID  = re.compile("[a-z][a-z_]*")
 REG_OP  = re.compile("[!#$%&*+/<=>?@\\^|:,~-]+")
 REG_INT = re.compile("\\d+")
-REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[\"\'])+\"")# needs to be tested
-REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[\"\'])\'")# needs to be tested
+REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[0abfnrtv\\\"\'])+\"")# needs to be tested
+REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[0abfnrtv\\\"\'])\'")# needs to be tested
 # String and char regexes still missing legal digraph patterns (i.e. no \t char, but \ char followed by t char is allowed)
 
 def tokenize(filename):
