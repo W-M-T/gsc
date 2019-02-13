@@ -28,9 +28,12 @@ class TOKEN(IntEnum): # auto() for python >3.5
     CURL_CLOSE    = 23
     BRACK_OPEN    = 24
     BRACK_CLOSE   = 25
-    ACCESSOR      = 26
-    IDENTIFIER    = 27
-    OP_IDENTIFIER = 28
+    SEMICOLON     = 26
+    TYPE_SIG      = 27
+    ASSIGNMENT    = 28
+    ARROW         = 29
+    TYPE_COMMA    = 30
+    ACCESSOR      = 31
 
 
 class Token():
@@ -39,12 +42,20 @@ class Token():
         self.typ = typ
         self.val = val
 
+    def __str__(self):
+        return "<{} @{}{}>".format(self.typ.name, self.pos, ", " + self.val if self.val is not None else "")
+
+    def mini_str(self):
+        return "<{}>".format(self.typ.name)
+
 
 class Position():
     def __init__(self, line = 1, col = 1):
         self.line = line
         self.col  = col
 
+    def __repr__(self):
+        return "line {} :col {}".format(self.line, self.col)
 
 class Node():
     def __init__(self, pos, token, children):
