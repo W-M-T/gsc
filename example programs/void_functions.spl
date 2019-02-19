@@ -1,0 +1,11 @@
+foo (a, b) :: Void Void -> Void {    
+}
+
+bar ( ) :: -> Void {
+}
+
+
+
+main ( ) :: -> Void {
+    foo(bar(), bar())
+}

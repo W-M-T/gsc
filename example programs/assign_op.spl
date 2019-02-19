@@ -1,0 +1,8 @@
+infixl 3 = (a, b) :: Char Char -> Char {
+    return b;
+}
+
+main ( ) :: -> Void {
+    var x = 'a' == '\n' == '\\';
+    print(x);
+}
