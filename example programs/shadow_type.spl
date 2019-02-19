@@ -1,2 +1,0 @@
-type Char = Int
-Type Int = Bool

@@ -34,13 +34,15 @@ VALUES = {
     "False" : TOKEN.BOOL,
     "[]"    : TOKEN.EMPTY_LIST
 }
+'''
 TYPES = {
     "Void" : TOKEN.TYPE_KEYWORD,
     "Int"  : TOKEN.TYPE_KEYWORD,
     "Bool" : TOKEN.TYPE_KEYWORD,
     "Char" : TOKEN.TYPE_KEYWORD
 }
-COMBINED_KEYWORDS = {**KEYWORDS, **VALUES, **TYPES}
+'''
+COMBINED_KEYWORDS = {**KEYWORDS, **VALUES}
 KEYWORD_LIST = list(COMBINED_KEYWORDS.keys())
 
 SYMBOLS = {
@@ -71,6 +73,7 @@ COMMENT_END    = "*/"
 # Regexes (need to be checked)
 
 REG_ID  = re.compile("[a-z][a-zA-Z0-9_]*") #Seperate regex for Type names? (Forcing first capital)
+REG_TYP = re.compile("[A-Z][a-zA-Z0-9_]*")
 REG_OP  = re.compile("[!#$%&*+/<=>?@\\^|:,~-]+")
 REG_INT = re.compile("\\d+")
 REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\\\'\"]|\\\\[0abfnrtv\\\\\"\'])+\"")# needs to be tested
@@ -115,6 +118,12 @@ def prefix_identifier(string):
         rest = string[len(found_id):]
         if REG_KEY_END.match(rest): # Should always happen?
             return (True, rest, TOKEN.IDENTIFIER, found_id)
+    tempmatch = REG_TYP.match(string)
+    if tempmatch:
+        found_id = tempmatch.group(0)
+        rest = string[len(found_id):]
+        if REG_KEY_END.match(rest): # Should always happen?
+            return (True, rest, TOKEN.TYPE_IDENTIFIER, found_id)
     return (False, None, None, None)
 
 def prefix_op_identifier(string):
@@ -202,6 +211,8 @@ def tokenize(filename):
                     if found:
                         yield(Token(pos.copy(), temptoken, None))
                         FLAG_SKIPPED_WHITESPACE = False
+                        if temptoken == TOKEN.CURL_OPEN: # End of type signature
+                            FLAG_TYPE_CONTEXT = False
                         # Modify string
                         curdata = strippeddata
                         continue
@@ -271,7 +282,7 @@ def tokenize(filename):
 
 if __name__ == "__main__":
     cur = None
-    for t in tokenize("./example programs/p1_example.spl"):
+    for t in tokenize("./example programs/type_ops.spl"):
         if cur is None:
             cur = t.pos.line
         if t.pos.line != cur:
