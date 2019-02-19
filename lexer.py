@@ -6,6 +6,14 @@ import re
 
 from util import TOKEN, Token, Position
 
+'''
+TODO
+Keuze maken over generieke tokens met specifieke value tov specifieke tokens
+Geen Type-keywords, maar alphabetische (beginnende met hoofdletter) typenamen voor bij typesynonymen
+Weet dat het over type-ids gaat binnen type-context. Anders gewone id.
+Vergeet ook niet de lowercase type-ids voor generics
+'''
+
 # Constants
 
 KEYWORDS = {
@@ -27,12 +35,13 @@ VALUES = {
     "[]"    : TOKEN.EMPTY_LIST
 }
 TYPES = {
-    "Void" : TOKEN.TYPE_VOID,
-    "Int"  : TOKEN.TYPE_INT,
-    "Bool" : TOKEN.TYPE_BOOL,
-    "Char" : TOKEN.TYPE_CHAR
+    "Void" : TOKEN.TYPE_KEYWORD,
+    "Int"  : TOKEN.TYPE_KEYWORD,
+    "Bool" : TOKEN.TYPE_KEYWORD,
+    "Char" : TOKEN.TYPE_KEYWORD
 }
 COMBINED_KEYWORDS = {**KEYWORDS, **VALUES, **TYPES}
+KEYWORD_LIST = list(COMBINED_KEYWORDS.keys())
 
 SYMBOLS = {
     "("  : TOKEN.PAR_OPEN,
@@ -61,11 +70,16 @@ COMMENT_END    = "*/"
 
 # Regexes (need to be checked)
 
-REG_ID  = re.compile("[a-z][a-z_]*")
+REG_ID  = re.compile("[a-z][a-zA-Z0-9_]*") #Seperate regex for Type names? (Forcing first capital)
 REG_OP  = re.compile("[!#$%&*+/<=>?@\\^|:,~-]+")
 REG_INT = re.compile("\\d+")
-REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[0abfnrtv\\\"\'])+\"")# needs to be tested
-REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\\\[0abfnrtv\\\"\'])\'")# needs to be tested
+REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\\\'\"]|\\\\[0abfnrtv\\\\\"\'])+\"")# needs to be tested
+REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\\\'\"]|\\\\[0abfnrtv\\\\\"\'])\'")# needs to be tested
+
+'''
+REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])+\"")# needs to be tested
+REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])\'")# needs to be tested
+'''
 
 REG_KEY_END = re.compile("[^a-zA-Z0-9]|$")
 
@@ -73,14 +87,75 @@ REG_KEY_END = re.compile("[^a-zA-Z0-9]|$")
 # Choice: Accessors cannot be preceded by whitespace
 # Choice: Comments are whitespace
 
+
+def prefix_strip(string, prefix):
+    if string.startswith(prefix):
+        return (True, string[len(prefix):])
+    else:
+        return (False, None)
+
+def prefix_keyword(string):
+    for keyword in KEYWORD_LIST:
+        found, strippeddata = prefix_strip(string, keyword)
+        if found and REG_KEY_END.match(strippeddata):
+            return (True, strippeddata, COMBINED_KEYWORDS[keyword])
+    return (False, None, None)
+
+def prefix_symbol(string):
+    for symbol in SYMBOLS:
+        found, strippeddata = prefix_strip(string, symbol)
+        if found:
+            return (True, strippeddata, SYMBOLS[symbol])
+    return (False, None, None)
+
+def prefix_identifier(string):
+    tempmatch = REG_ID.match(string)
+    if tempmatch:
+        found_id = tempmatch.group(0)
+        rest = string[len(found_id):]
+        if REG_KEY_END.match(rest): # Should always happen?
+            return (True, rest, TOKEN.IDENTIFIER, found_id)
+    return (False, None, None, None)
+
+def prefix_op_identifier(string):
+    tempmatch = REG_OP.match(string)
+    if tempmatch:
+        found_id = tempmatch.group(0)
+        rest = string[len(found_id):]
+        return (True, rest, TOKEN.OP_IDENTIFIER, found_id)
+    return (False, None, None, None)
+
+def prefix_val_literal(string): # TODO improve this code
+    tempmatch = REG_INT.match(string)
+    if tempmatch:
+        found_id = tempmatch.group(0)
+        rest = string[len(found_id):]
+        return (True, rest, TOKEN.INT, int(found_id)) # TODO: consider whether this can produce errors
+    tempmatch = REG_STR.match(string)
+    if tempmatch:
+        found_id = tempmatch.group(0)
+        rest = string[len(found_id):]
+        return (True, rest, TOKEN.STRING, found_id) 
+    tempmatch = REG_CHR.match(string)
+    if tempmatch:
+        found_id = tempmatch.group(0)
+        rest = string[len(found_id):]
+        return (True, rest, TOKEN.CHAR, found_id)
+    return (False, None, None, None)
+
+def prefix_accessor(string):
+    for keyword in ACCESSORS:
+        found, strippeddata = prefix_strip(string, keyword)
+        if found:
+            return (True, strippeddata, TOKEN.ACCESSOR, keyword)
+    return (False, None, None)
+
 def tokenize(filename):
     FLAG_SKIPPED_WHITESPACE = True
     FLAG_MULTI_COMMENT      = False
     FLAG_TYPE_CONTEXT       = False
 
-    pos = Position() # Is it not a problem if this were to get passed by reference?
-
-    yield(Token(pos, TOKEN.TYPE_VOID, "Hello world"))
+    pos = Position()
 
     with open(filename, "r") as infile:
         curdata = ""
@@ -90,54 +165,122 @@ def tokenize(filename):
             FLAG_SKIPPED_WHITESPACE = True # Newline is considered whitespace
 
             while len(curdata) > 0:
-                pos.col = len(line) - len(curdata)
+                pos.col = len(line) - len(curdata) + 1
 
-                # Test for whitespace
-                if False:
-                    curdata = curdata.lstrip()
-                    FLAG_SKIPPED_WHITESPACE = True
-                    continue
+                if not FLAG_MULTI_COMMENT: # Not currently in a multiline comment
+                    # Test for whitespace
+                    if curdata[0].isspace():
+                        curdata = curdata.lstrip()
+                        FLAG_SKIPPED_WHITESPACE = True
+                        continue
 
-                # Test for single comment
-                if False:
-                    FLAG_SKIPPED_WHITESPACE = True
-                    break
+                    # Test for single comment
+                    if curdata.startswith(COMMENT_SINGLE):
+                        FLAG_SKIPPED_WHITESPACE = True
+                        break # We can discard the entire line from here on
 
-                # Test for multiline start
-                if False:
-                    FLAG_SKIPPED_WHITESPACE = True
-                    FLAG_MULTI_COMMENT = True
-                    # Modify string
-                    continue
+                    # Test for multiline comment start
+                    found, strippeddata = prefix_strip(curdata, COMMENT_START)
+                    if found:
+                        FLAG_SKIPPED_WHITESPACE = True
+                        FLAG_MULTI_COMMENT = True
+                        # Modify string
+                        curdata = strippeddata
+                        continue
 
-                # Test for multiline end
-                if False:
-                    FLAG_SKIPPED_WHITESPACE = True
-                    FLAG_MULTI_COMMENT = False
-                    #Modify string
-                    continue
+                    # Test for keyword tokens
+                    found, strippeddata, temptoken = prefix_keyword(curdata)
+                    if found:
+                        yield(Token(pos.copy(), temptoken, None))
+                        FLAG_SKIPPED_WHITESPACE = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
 
-                # Test for keyword tokens
-                if False:
-                    tempmatch = ""
-                    temptoken = COMBINED_KEYWORDS[tempmatch]
-                    yield(Token(deepcopy(pos), temptoken, None))
-                    FLAG_SKIPPED_WHITESPACE = False
-                    continue
+                    # Test for symbols
+                    found, strippeddata, temptoken = prefix_symbol(curdata)
+                    if found:
+                        yield(Token(pos.copy(), temptoken, None))
+                        FLAG_SKIPPED_WHITESPACE = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
+
+                    # Test for identifiers
+                    # TODO: handle the difference between type names and var names
+                    found, strippeddata, temptoken, val = prefix_identifier(curdata)
+                    if found:
+                        yield(Token(pos.copy(), temptoken, val))
+                        FLAG_SKIPPED_WHITESPACE = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
+
+                    # Test for operator identifiers
+                    found, strippeddata, temptoken, val = prefix_op_identifier(curdata)
+                    if found:
+                        yield(Token(pos.copy(), TOKEN.OP_IDENTIFIER, val))
+                        FLAG_SKIPPED_WHITESPACE = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
+
+                    # Test for value literal
+                    found, strippeddata, temptoken, val = prefix_val_literal(curdata)
+                    if found:
+                        yield(Token(pos.copy(), temptoken, val))
+                        FLAG_SKIPPED_WHITESPACE = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
+
+                    if not FLAG_SKIPPED_WHITESPACE:
+                        found, strippeddata, temptoken, val = prefix_accessor(curdata)
+                        if found:
+                            yield(Token(pos.copy(), temptoken, val))
+                            FLAG_SKIPPED_WHITESPACE = False
+                            # Modify data
+                            curdata = strippeddata
+                            continue
+
+
+
+                else:
+                    # Test for multiline comment end
+                    found, strippeddata = prefix_strip(curdata, COMMENT_END)
+                    if found:
+                        FLAG_SKIPPED_WHITESPACE = True
+                        FLAG_MULTI_COMMENT = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
+                    else: # Maybe skip to */ if it exists?
+                        curdata = curdata[1:]
+                        continue
+
+                
 
                 # (TODO Distinguish between type / assignment context in logic)
 
-
-                return
+                print("Unhandled data:\n\t{}".format(curdata.rstrip()))
+                break
 
             pos.line += 1
 
 
 
 if __name__ == "__main__":
-    for t in tokenize("./example programs/debug.spl"):
-        print(t, end=" ")
-    print()
+    cur = None
+    for t in tokenize("./example programs/p1_example.spl"):
+        if cur is None:
+            cur = t.pos.line
+        if t.pos.line != cur:
+            print()
+            cur = t.pos.line
+            print(" " * (t.pos.col-1), end="")
+        print(t.pretty(), end=" ")
+
+    print("\nEND")
     '''
     for t in tokenize("./example programs/p1_example.spl"):
         print(t.typ, end=" ")
