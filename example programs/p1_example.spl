@@ -6,7 +6,7 @@ facR ( n ) :: Int -> Int {
     if ( n < 2 ) {
         return 1;
     } else {
-        return n * facR ( n − 1 );
+        return n * facR ( n - 1 );
     }
 }
 
@@ -15,7 +15,7 @@ facI ( n ) :: Int -> Int {
     var r = 1;
     while ( n > 1 ) {
         r = r * n;
-        n = n − 1;
+        n = n - 1;
     }
     return r;
 }
@@ -72,7 +72,7 @@ reverse ( list ) :: [t] -> [t] {
 }
 
 // Absolute value in one line
-abs ( n ) :: Int -> Int { if (n < 0) { return −n; } else { return n ; } }
+abs ( n ) :: Int -> Int { if (n < 0) { return -n; } else { return n ; } }
 
 // make a copy of a tuple with swapped elements
 swapCopy ( pair ) :: (a, b) -> (b, a) {
@@ -80,7 +80,7 @@ swapCopy ( pair ) :: (a, b) -> (b, a) {
 }
 
 // swap the elements in a tuple
-swap ( tuple ) : : (a , a) -> (a , a) {
+swap ( tuple ) :: (a , a) -> (a , a) {
     var tmp = tuple.fst;
     tuple.fst = tuple.snd;
     tuple.snd = tmp;
@@ -88,7 +88,7 @@ swap ( tuple ) : : (a , a) -> (a , a) {
 }
 
 // list append
-append ( l1, l2 ) : : [t] [t] -> [t] {
+append ( l1, l2 ) :: [t] [t] -> [t] {
     if ( isEmpty ( l1 ) ) {
         return l2;
     } else {
