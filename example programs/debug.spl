@@ -1,0 +1,23 @@
+// Hello test
+if True ; hello.tl
+
+list//this is a comment
+.tl
+/* this is a bunch of garbage */hey
+
+"hey" "how" "are" 'y' '\1'
+'\\'
+'\\n'
+'\\\n'
+'\'
+"hey
+ "
+
+ "\\"
+ "\"
+ "'"
+ "\'"
+ "\n"
+ " " "
+ " " " "
+ "\n"
