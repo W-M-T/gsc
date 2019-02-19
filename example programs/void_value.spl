@@ -1,0 +1,12 @@
+/*
+    Should probably return an error?
+    How to handle the void return when this is used in an assignment?
+*/
+void_prod () :: -> Void {
+}
+
+
+main ( ) :: -> Void {
+    var x = void_prod()
+    print(x);
+}

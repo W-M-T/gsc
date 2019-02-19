@@ -1,0 +1,8 @@
+/*
+    Should probably return an error.
+    If you want to consume another amount of args than 2 you should probably define a function or prefix op,
+    just for readability.
+*/
+infixl 2 %% (a, b, c) :: Int Int Int -> Int {
+    return a * b * c;
+}

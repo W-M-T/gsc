@@ -1,0 +1,4 @@
+/*
+    True is a keyword so this should not lex?
+*/
+type True = Bool

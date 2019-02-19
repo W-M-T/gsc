@@ -1,0 +1,5 @@
+/*
+    Should return an error because Char and Int are builtin and should not be able to be shadowed
+*/
+type Char = Int
+Type Int = Bool

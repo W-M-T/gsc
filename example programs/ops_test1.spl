@@ -1,0 +1,14 @@
+/*
+    Should just work: operator identifiers are greedily constructed.
+    -- is always -- and never a - followed by a -.
+*/
+infixl 2 -- (a, b) :: Int Int -> Int {
+    return a * b;
+}
+
+main ( ) :: -> Void {
+    var x = 2--3;
+    var y = 2- -3;
+    print(x);
+    print(y);
+}

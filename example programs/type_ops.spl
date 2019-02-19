@@ -1,3 +1,6 @@
+/*
+    Should return an error because -> and :: are language constructs for type definitions and considered reserved.
+*/
 infixl 3 -> (a, b) :: Char Char -> Char {
     return b;
 }
@@ -13,7 +16,8 @@ infixr 5 :: (a, b) :: Int Int -> Int {
 
 main ( ) :: -> Void {
     var x = 'a' -> '\n';
-    print(x);
     var y = 2 :: 3;
+    print(x);
     print ( y );
+    print("HELLO WORLD")
 }

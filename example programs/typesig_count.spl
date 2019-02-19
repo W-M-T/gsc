@@ -1,0 +1,7 @@
+/*
+    Should return an error.
+    The type signature does not match the parameter count.
+*/
+foo (a, b) :: Char -> Char {
+    return a;
+}

@@ -1,0 +1,10 @@
+/*
+    Should probably return an error? ',' is a builtin function for a b -> (a,b).
+*/
+infixl 3 , (a,b) :: Char Char -> Char {
+    return b;
+}
+
+main () :: -> Void {
+    print ('a','b')
+}

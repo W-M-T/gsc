@@ -1,0 +1,8 @@
+/*
+    Should return an error
+*/
+type A = B
+type B = C
+type C = D
+type D = E
+type E = A

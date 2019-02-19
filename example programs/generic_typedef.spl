@@ -1,1 +1,6 @@
+/*
+    Should this be legal?
+    Typevar t can never be "assigned", but this definition may still make sense?
+    At least watch out to not match this t with other ts in the same context as "Generic" 
+*/
 type Generic = [t]

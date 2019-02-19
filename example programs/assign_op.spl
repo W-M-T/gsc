@@ -1,3 +1,6 @@
+/*
+    Should return error, = is not an allowed operator identifier
+*/
 infixl 3 = (a, b) :: Char Char -> Char {
     return b;
 }

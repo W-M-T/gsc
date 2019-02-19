@@ -1,1 +1,5 @@
+/*
+    A bit pointless.
+    Should return an error?
+*/
 type Inf = Inf

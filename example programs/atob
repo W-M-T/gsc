@@ -1,0 +1,24 @@
+/*
+    How to handle cases like this?
+    It may not be necessary to allow functions to have the same name (provided they have different type signature).
+    An option would be to replace the + for Char with some other operator.
+*/
+atob (x) :: Bool -> Char {
+    return 'a';
+}
+
+atob (x) :: Bool -> Int {
+    return 1;
+}
+
+btoc (x) :: Char -> Bool {
+    return False;
+}
+
+btoc (x) :: Int -> Bool {
+    return True;
+}
+
+main () :: -> Void {
+    print(btoc(atob(True)))
+}

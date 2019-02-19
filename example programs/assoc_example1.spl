@@ -1,3 +1,6 @@
+/*
+    Should return 0
+*/
 main ( ) :: -> Void {
     return 3 - 2 - 1 == 0;
 }

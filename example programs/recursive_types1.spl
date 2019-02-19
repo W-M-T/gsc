@@ -1,1 +1,7 @@
+/*
+    Should terminate.
+    Probably also produce an error?
+    This is not a construct for algebraic datatypes so there is no convergence.
+    The languae is also not lazy.
+*/
 type Rec = [Rec]

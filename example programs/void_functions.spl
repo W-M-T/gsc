@@ -1,3 +1,7 @@
+/*
+    Should return an error.
+    Void cannot be an input type.
+*/
 foo (a, b) :: Void Void -> Void {    
 }
 
