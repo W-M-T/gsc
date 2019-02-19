@@ -1,0 +1,19 @@
+infixl 3 -> (a, b) :: Char Char -> Char {
+    return b;
+}
+
+infixr 5 :: (a, b) :: Int Int -> Int {
+    if (b <= 0) {
+        return a;
+    }
+    else {
+        return (a+2) :: (b-1);
+    }
+}
+
+main ( ) :: -> Void {
+    var x = 'a' -> '\n';
+    print(x);
+    var y = 2 :: 3;
+    print ( y );
+}
