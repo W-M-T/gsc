@@ -1,0 +1,33 @@
+BUILTIN TYPES:
+Char
+Int
+Bool
+Void
+
+BUILTIN INFIX OPS:
++
+-
+*
+/
+%
+==
+<
+>
+<=
+>=
+!=
+&&
+||
+:
+
+BUILTIN PREFIX OPS:
+!
+-
+
+ILLEGAL OP IDENTIFIERS:
+->
+::
+=
+*/
+
+(implicitly also //+ and /*)

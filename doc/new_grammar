@@ -12,7 +12,7 @@ FunDecl     = id '(' [FArgs] ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
 OpDecl      = 'prefix' op '(' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
             |  ('infixl' | 'infixr') digit+ op '(' id ',' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
 
-TypeSyn     = 'type' id '=' Type
+TypeSyn     = 'type' type_id '=' Type
 
 FunType     = [FTypes] '->' RetType
 
@@ -24,7 +24,7 @@ RetType     = Type
 Type        = BasicType
             | '(' Type ',' Type ')'
             | '[' Type ']'
-            | id
+            | type_id
 
 BasicType   = 'Int'
             = 'Bool'
@@ -72,18 +72,10 @@ opChar      = '!' | '#' | '$' | '%' | '&' | '*' | '+' | '/' | '<' | '=' | '>' | 
 
 int         = digit+
 
-string      = '"' (ascii_without_esc_sequences | '\' escape_sequence)* '"'
+string      = '"' (ascii_without_esc_sequences | '\' escape_sequence_char)* '"'
 
-char        = '\'' (ascii_without_esc_sequences | '\' escape_sequence) '\''
+char        = '\'' (ascii_without_esc_sequences | '\' escape_sequence_char) '\''
 
-id          = alpha ('_' alphaNum)*
+id          = alpha ('_' | alphaNum)*
 
-
-TODO
-op mag niet //+ zijn
-en ook niet =
-en ook niet */
-en ook niet /*
-
-'\''
-"\""
+type_id      = upperalpha ('_' | alphaNum)*
