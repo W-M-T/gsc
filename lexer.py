@@ -58,7 +58,7 @@ COMMENT_END    = "*/"
 
 REG_ID  = re.compile("[a-z][a-zA-Z0-9_]*")
 REG_TYP = re.compile("[A-Z][a-zA-Z0-9_]*")
-REG_OP  = re.compile("[!#$%&*+/<=>?@\\^|:,~-]+")
+REG_OP  = re.compile("[!#$%&*+/<=>?@\\\\^|:,~-]+")
 REG_INT = re.compile("\\d+")
 REG_STR = re.compile("\"([^\0\a\b\f\n\r\t\v\\\\\'\"]|\\\\[0abfnrtv\\\\\"\'])+\"")# needs to be tested
 REG_CHR = re.compile("\'([^\0\a\b\f\n\r\t\v\\\\\'\"]|\\\\[0abfnrtv\\\\\"\'])\'")# needs to be tested
