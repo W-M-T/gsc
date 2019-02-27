@@ -26,14 +26,10 @@ class TOKEN(IntEnum): # auto() for python >3.5
     BRACK_OPEN      = 21
     BRACK_CLOSE     = 22
     SEMICOLON       = 23
-    TYPE_SIG        = 24
-    ASSIGNMENT      = 25
-    ARROW           = 26
-    TYPE_COMMA      = 27
-    ACCESSOR        = 28
-    IDENTIFIER      = 29
-    OP_IDENTIFIER   = 30
-    TYPE_IDENTIFIER = 31
+    ACCESSOR        = 24
+    IDENTIFIER      = 25
+    OP_IDENTIFIER   = 26
+    TYPE_IDENTIFIER = 27
 
 PRETTY_TOKEN = {
     TOKEN.VAR             : (lambda x  : "var"),
@@ -59,10 +55,6 @@ PRETTY_TOKEN = {
     TOKEN.BRACK_OPEN      : (lambda x  : "["),
     TOKEN.BRACK_CLOSE     : (lambda x  : "]"),
     TOKEN.SEMICOLON       : (lambda x  : ";"),
-    TOKEN.TYPE_SIG        : (lambda x  : "(TYPE)::"),
-    TOKEN.ASSIGNMENT      : (lambda x  : "="),
-    TOKEN.ARROW           : (lambda x  : "(TYPE)->"),
-    TOKEN.TYPE_COMMA      : (lambda x  : "(TYPE),"),
     TOKEN.ACCESSOR        : (lambda x  : x.val),
     TOKEN.IDENTIFIER      : (lambda x  : "(ID){}".format(x.val)),
     TOKEN.OP_IDENTIFIER   : (lambda x  : "(OP){}".format(x.val)),
@@ -76,7 +68,7 @@ class Token():
         self.val = val
 
     def __str__(self):
-        return "<{} @{}{}>".format(self.typ.name, self.pos, ", " + self.val if self.val is not None else "")
+        return "<{} @{}{}>".format(self.typ.name, self.pos, ", " + str(self.val) if self.val is not None else "")
 
     def mini_str(self):
         return "<{}>".format(self.typ.name)

@@ -6,3 +6,4 @@ type B = C
 type C = D
 type D = E
 type E = A
+

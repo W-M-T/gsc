@@ -6,6 +6,11 @@ import re
 
 from util import TOKEN, Token, Position
 
+'''
+TODO
+Operators with a prefix of a key-symbol (= -> ',' []) are parsed as that symbol
+'''
+
 # Constants
 
 KEYWORDS = {
@@ -21,15 +26,18 @@ KEYWORDS = {
     "infixr" : TOKEN.INFIXR,
     "type"   : TOKEN.TYPESYN
 }
-VALUES = {
+BOOLS = {
     "True"  : TOKEN.BOOL,
-    "False" : TOKEN.BOOL,
+    "False" : TOKEN.BOOL
+}
+VALUES = {
+    **BOOLS,
     "[]"    : TOKEN.EMPTY_LIST
 }
 COMBINED_KEYWORDS = {**KEYWORDS, **VALUES}
 KEYWORD_LIST = list(COMBINED_KEYWORDS.keys())
 
-SYMBOLS = {
+SCOPING_SYMBOLS = {
     "("  : TOKEN.PAR_OPEN,
     ")"  : TOKEN.PAR_CLOSE,
     "{"  : TOKEN.CURL_OPEN,
@@ -37,10 +45,6 @@ SYMBOLS = {
     "["  : TOKEN.BRACK_OPEN,
     "]"  : TOKEN.BRACK_CLOSE,
     ";"  : TOKEN.SEMICOLON,
-    "::" : TOKEN.TYPE_SIG,
-    "="  : TOKEN.ASSIGNMENT,
-    "->" : TOKEN.ARROW,
-    ","  : TOKEN.TYPE_COMMA
 
 }
 ACCESSORS = {
@@ -69,6 +73,9 @@ REG_KEY_END = re.compile("[^a-zA-Z0-9]|$")
 # Choice: Accessors cannot be preceded by whitespace
 # Choice: Comments are whitespace
 
+# Choice: Keywords cannot be used for identifiers
+# Choice: Symbols with meaning in syntax (->, ::, ',', =) are reserved
+
 
 def prefix_strip(string, prefix):
     if string.startswith(prefix):
@@ -80,14 +87,17 @@ def prefix_keyword(string):
     for keyword in KEYWORD_LIST:
         found, strippeddata = prefix_strip(string, keyword)
         if found and REG_KEY_END.match(strippeddata):
-            return (True, strippeddata, COMBINED_KEYWORDS[keyword])
-    return (False, None, None)
+            if keyword in BOOLS:
+                return (True, strippeddata, COMBINED_KEYWORDS[keyword], keyword == "True")
+            else:
+                return (True, strippeddata, COMBINED_KEYWORDS[keyword], None)
+    return (False, None, None, None)
 
 def prefix_symbol(string):
-    for symbol in SYMBOLS:
+    for symbol in SCOPING_SYMBOLS:
         found, strippeddata = prefix_strip(string, symbol)
         if found:
-            return (True, strippeddata, SYMBOLS[symbol])
+            return (True, strippeddata, SCOPING_SYMBOLS[symbol])
     return (False, None, None)
 
 def prefix_identifier(string):
@@ -177,9 +187,9 @@ def tokenize(filename):
                         continue
 
                     # Test for keyword tokens
-                    found, strippeddata, temptoken = prefix_keyword(curdata)
+                    found, strippeddata, temptoken, val = prefix_keyword(curdata)
                     if found:
-                        yield(Token(pos.copy(), temptoken, None))
+                        yield(Token(pos.copy(), temptoken, val))
                         FLAG_SKIPPED_WHITESPACE = False
                         # Modify string
                         curdata = strippeddata
@@ -261,6 +271,7 @@ def tokenize(filename):
 
 if __name__ == "__main__":
     cur = None
+    
     for t in tokenize("./example programs/p1_example.spl"):
         if cur is None:
             cur = t.pos.line
@@ -269,8 +280,14 @@ if __name__ == "__main__":
             cur = t.pos.line
             print(" " * (t.pos.col-1), end="")
         print(t.pretty(), end=" ")
+    
+
+    '''
+    for t in tokenize("./example programs/p1_example.spl"):
+        print(t, end=" ")
 
     print("\nEND")
+    '''
     '''
     for t in tokenize("./example programs/p1_example.spl"):
         print(t.typ, end=" ")
