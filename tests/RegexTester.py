@@ -14,6 +14,9 @@ class RegexTester(unittest.TestCase):
     Test the regexes that are used to match the tokens.
     """
 
+    disallowed = ['\0','\a','\b','\f','\n','\r','\t','\v','\\','\"','\'']
+    allowed = ['\\0', '\\a', '\\b', '\\f', '\\n', '\\r', '\\t', '\\v', '\\\\', '\\\'', '\\\"']
+
     def compare(self, regex, value, msg):
         r = regex.match(value)
         self.assertIsNotNone(r, msg % value)
@@ -25,9 +28,8 @@ class RegexTester(unittest.TestCase):
         Test regex that is used to match chars
         """
 
-        for c in string.printable[:-2] + '\0\a\b\f\v':
+        for c in self.allowed + list(filter(lambda x: x not in self.disallowed, string.printable)):
             with self.subTest():
-                print(repr(c))
                 self.compare(REG_CHR, "'" + str(c) + "'", "Character %s was not matched")
 
     def test_identifier_regex(self):
@@ -59,7 +61,7 @@ class RegexTester(unittest.TestCase):
         negative numbers, 0 and positive numbers and numbers consisting
         of multiple digits.
         """
-        for i in range(0, 11):
+        for i in range(0, 1000):
             with self.subTest():
                 self.compare(REG_INT, str(i), "Integer %s was not matched")
 
@@ -67,7 +69,25 @@ class RegexTester(unittest.TestCase):
         """
         Test regex that is used to match strings
         """
-        pass
+        strings = [
+            "Dit is een test string\n met meerdere regels"
+            "\t ik hou van tabs \t en verticale \v tabs"
+            "Geen idee wat deze characters doen \a\b0asgd34"
+            "Ik ram op mijn toegwgetr530524315254235\agre442hrw5034952-9554yjgi(*&^%$#@!"
+            "\\"
+            "",
+            "\\f\r\'"
+            ]
+
+        for s in strings:
+            for k in range(0, len(s)):
+                # Check if current single letter character is allowed 
+                if s[k] not in list(filter(lambda x: x not in self.disallowed, string.printable)) or s[k] == '\\':
+                    if s[k] == '\\':
+                        # Check if current character is an escape sequence
+                        self.assertIn(s [k:k+1], allowed, "Character %s is not a valid escape sequence", s[k:k+1])
+                    else:               
+                        self.assertEqual(s[k], '\\', "Character %s is not allowed and is not an escape character" % s[k])
 
 
 if __name__ == '__main__':
