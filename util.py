@@ -18,7 +18,7 @@ class TOKEN(IntEnum): # auto() for python >3.5
     EMPTY_LIST      = 13
     CHAR            = 14
     INT             = 15
-    TYPE_KEYWORD    = 16
+    STRING          = 16
     PAR_OPEN        = 17
     PAR_CLOSE       = 18
     CURL_OPEN       = 19
@@ -33,8 +33,7 @@ class TOKEN(IntEnum): # auto() for python >3.5
     ACCESSOR        = 28
     IDENTIFIER      = 29
     OP_IDENTIFIER   = 30
-    STRING          = 31
-    TYPE_IDENTIFIER = 32
+    TYPE_IDENTIFIER = 31
 
 PRETTY_TOKEN = {
     TOKEN.VAR             : (lambda x  : "var"),
@@ -52,7 +51,7 @@ PRETTY_TOKEN = {
     TOKEN.EMPTY_LIST      : (lambda x  : "[]"),
     TOKEN.CHAR            : (lambda x  : "(CHAR){}".format(x.val)),
     TOKEN.INT             : (lambda x  : x.val),
-    TOKEN.TYPE_KEYWORD    : (lambda x  : x.val),
+    TOKEN.STRING          : (lambda x  : "(STRING){}".format(x.val)),
     TOKEN.PAR_OPEN        : (lambda x  : "("),
     TOKEN.PAR_CLOSE       : (lambda x  : ")"),
     TOKEN.CURL_OPEN       : (lambda x  : "{"),
@@ -67,7 +66,6 @@ PRETTY_TOKEN = {
     TOKEN.ACCESSOR        : (lambda x  : x.val),
     TOKEN.IDENTIFIER      : (lambda x  : "(ID){}".format(x.val)),
     TOKEN.OP_IDENTIFIER   : (lambda x  : "(OP){}".format(x.val)),
-    TOKEN.STRING          : (lambda x  : "(STRING){}".format(x.val)),
     TOKEN.TYPE_IDENTIFIER : (lambda x  : x.val)
 }
 
