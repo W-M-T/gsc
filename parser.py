@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-
+from util import pointToPosition, Position
 
 '''
 Zaken als +, -, :, / etc zijn built-in methodes
@@ -30,4 +30,8 @@ if __name__ == "__main__":
 
     with open(args.infile, "r") as infile:
         tokenstream = tokenize(infile)
-        print(tokenstream.__next__())
+        tokenlist = list(tokenstream)
+        import random
+        randtoken = random.choice(tokenlist)
+        print(randtoken)
+        print(pointToPosition(infile, randtoken.pos))
