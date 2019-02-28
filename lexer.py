@@ -4,7 +4,7 @@ import time
 import sys
 import re
 
-from util import TOKEN, Token, Position
+from util import TOKEN, Token, Position, pointToLine
 '''
 TODO
 Refactor tokenize along repeating pattern to improve readability
@@ -254,7 +254,7 @@ def tokenize(inputstream):
                     curdata = curdata[1:]
                     continue
 
-            print("Unhandled data:\n\t{}".format(curdata.rstrip()), file=sys.stderr)
+            sys.stderr.write("Unhandled data:\n{}\n".format(pointToLine(line, pos)))
             '''
             TODO
             Decide when to halt execution
@@ -282,10 +282,10 @@ if __name__ == "__main__":
             if cur is None:
                 cur = t.pos.line
             if t.pos.line != cur:
-                print()
+                #print()
                 cur = t.pos.line
-                print(" " * (t.pos.col-1), end="")
-            print(t.pretty(), end=" ")
+                #print(" " * (t.pos.col-1), end="")
+            #print(t.pretty(), end=" ")
     
 
         print("\nEND")

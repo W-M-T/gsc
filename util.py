@@ -109,10 +109,13 @@ def pointToPosition(instream, position): # Could be made O(1) instead of O(n) wi
 
     for _ in range(position.line - 1):
         instream.readline()
-    line = instream.readline().rstrip()
+    line = instream.readline()
+    return pointToLine(line)
+
+def pointToLine(string, position):
     output = "line {}, col {}\n{}\n{}".format(
         position.line,
         position.col,
-        line,
+        string.rstrip(),
         " " * (position.col - 1) + "^")
     return output
