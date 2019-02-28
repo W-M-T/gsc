@@ -55,10 +55,10 @@ PRETTY_TOKEN = {
     TOKEN.BRACK_OPEN      : (lambda x  : "["),
     TOKEN.BRACK_CLOSE     : (lambda x  : "]"),
     TOKEN.SEMICOLON       : (lambda x  : ";"),
-    TOKEN.ACCESSOR        : (lambda x  : x.val),
+    TOKEN.ACCESSOR        : (lambda x  : "(ACC){}".format(x.val)),
     TOKEN.IDENTIFIER      : (lambda x  : "(ID){}".format(x.val)),
     TOKEN.OP_IDENTIFIER   : (lambda x  : "(OP){}".format(x.val)),
-    TOKEN.TYPE_IDENTIFIER : (lambda x  : x.val)
+    TOKEN.TYPE_IDENTIFIER : (lambda x  : "(TYPE){}".format(x.val))
 }
 
 class Token():

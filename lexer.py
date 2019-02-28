@@ -270,9 +270,14 @@ def tokenize(filename):
 
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+    argparser = ArgumentParser(description="SPL Lexer")
+    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
+    args = argparser.parse_args()
+
     cur = None
     
-    for t in tokenize("./example programs/p1_example.spl"):
+    for t in tokenize(args.infile):
         if cur is None:
             cur = t.pos.line
         if t.pos.line != cur:
