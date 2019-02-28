@@ -5,6 +5,10 @@ import sys
 import re
 
 from util import TOKEN, Token, Position
+'''
+TODO
+Refactor tokenize along repeating pattern to improve readability
+'''
 
 # Constants
 
@@ -69,7 +73,7 @@ REG_KEY_END = re.compile("[^a-zA-Z0-9]|$")
 # Choice: Comments are whitespace
 
 # Choice: Keywords cannot be used for identifiers
-# Choice: Symbols with meaning in syntax (->, ::, ',', =) are reserved
+# Choice: Symbols with meaning in syntax (->, ::, ',', =) are reserved for clarity
 
 
 def prefix_strip(string, prefix):
@@ -143,120 +147,118 @@ def prefix_accessor(string):
             return (True, strippeddata, TOKEN.ACCESSOR, keyword)
     return (False, None, None)
 
-def tokenize(filename):
+def tokenize(inputstream):
     FLAG_SKIPPED_WHITESPACE = True
     FLAG_MULTI_COMMENT      = False
-    FLAG_TYPE_CONTEXT       = False
 
     pos = Position()
 
-    with open(filename, "r") as infile:
-        curdata = ""
-        for line in infile:
-            curdata = line
 
-            FLAG_SKIPPED_WHITESPACE = True # Newline is considered whitespace
+    curdata = ""
+    for line in inputstream:
+        curdata = line
 
-            while len(curdata) > 0:
-                pos.col = len(line) - len(curdata) + 1
+        FLAG_SKIPPED_WHITESPACE = True # Newline is considered whitespace
 
-                if not FLAG_MULTI_COMMENT: # Not currently in a multiline comment
-                    # Test for whitespace
-                    if curdata[0].isspace():
-                        curdata = curdata.lstrip()
-                        FLAG_SKIPPED_WHITESPACE = True
-                        continue
+        while len(curdata) > 0:
+            pos.col = len(line) - len(curdata) + 1
 
-                    # Test for single comment
-                    if curdata.startswith(COMMENT_SINGLE):
-                        FLAG_SKIPPED_WHITESPACE = True
-                        break # We can discard the entire line from here on
+            if not FLAG_MULTI_COMMENT: # Not currently in a multiline comment
+                # Test for whitespace
+                if curdata[0].isspace():
+                    curdata = curdata.lstrip()
+                    FLAG_SKIPPED_WHITESPACE = True
+                    continue
 
-                    # Test for multiline comment start
-                    found, strippeddata = prefix_strip(curdata, COMMENT_START)
-                    if found:
-                        FLAG_SKIPPED_WHITESPACE = True
-                        FLAG_MULTI_COMMENT = True
-                        # Modify string
-                        curdata = strippeddata
-                        continue
+                # Test for single comment
+                if curdata.startswith(COMMENT_SINGLE):
+                    FLAG_SKIPPED_WHITESPACE = True
+                    break # We can discard the entire line from here on
 
-                    # Test for keyword tokens
-                    found, strippeddata, temptoken, val = prefix_keyword(curdata)
+                # Test for multiline comment start
+                found, strippeddata = prefix_strip(curdata, COMMENT_START)
+                if found:
+                    FLAG_SKIPPED_WHITESPACE = True
+                    FLAG_MULTI_COMMENT = True
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+
+                # Test for keyword tokens
+                found, strippeddata, temptoken, val = prefix_keyword(curdata)
+                if found:
+                    yield(Token(pos.copy(), temptoken, val))
+                    FLAG_SKIPPED_WHITESPACE = False
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+
+                # Test for symbols
+                found, strippeddata, temptoken = prefix_symbol(curdata)
+                if found:
+                    yield(Token(pos.copy(), temptoken, None))
+                    FLAG_SKIPPED_WHITESPACE = False
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+
+                # Test for identifiers
+                # TODO: handle the difference between type names and var names
+                found, strippeddata, temptoken, val = prefix_identifier(curdata)
+                if found:
+                    yield(Token(pos.copy(), temptoken, val))
+                    FLAG_SKIPPED_WHITESPACE = False
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+
+                # Test for operator identifiers
+                found, strippeddata, temptoken, val = prefix_op_identifier(curdata)
+                if found:
+                    yield(Token(pos.copy(), TOKEN.OP_IDENTIFIER, val))
+                    FLAG_SKIPPED_WHITESPACE = False
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+
+                # Test for value literal
+                found, strippeddata, temptoken, val = prefix_val_literal(curdata)
+                if found:
+                    yield(Token(pos.copy(), temptoken, val))
+                    FLAG_SKIPPED_WHITESPACE = False
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+
+                if not FLAG_SKIPPED_WHITESPACE:
+                    found, strippeddata, temptoken, val = prefix_accessor(curdata)
                     if found:
                         yield(Token(pos.copy(), temptoken, val))
                         FLAG_SKIPPED_WHITESPACE = False
-                        # Modify string
+                        # Modify data
                         curdata = strippeddata
                         continue
 
-                    # Test for symbols
-                    found, strippeddata, temptoken = prefix_symbol(curdata)
-                    if found:
-                        yield(Token(pos.copy(), temptoken, None))
-                        FLAG_SKIPPED_WHITESPACE = False
-                        if temptoken == TOKEN.CURL_OPEN: # End of type signature
-                            FLAG_TYPE_CONTEXT = False
-                        # Modify string
-                        curdata = strippeddata
-                        continue
-
-                    # Test for identifiers
-                    # TODO: handle the difference between type names and var names
-                    found, strippeddata, temptoken, val = prefix_identifier(curdata)
-                    if found:
-                        yield(Token(pos.copy(), temptoken, val))
-                        FLAG_SKIPPED_WHITESPACE = False
-                        # Modify string
-                        curdata = strippeddata
-                        continue
-
-                    # Test for operator identifiers
-                    found, strippeddata, temptoken, val = prefix_op_identifier(curdata)
-                    if found:
-                        yield(Token(pos.copy(), TOKEN.OP_IDENTIFIER, val))
-                        FLAG_SKIPPED_WHITESPACE = False
-                        # Modify string
-                        curdata = strippeddata
-                        continue
-
-                    # Test for value literal
-                    found, strippeddata, temptoken, val = prefix_val_literal(curdata)
-                    if found:
-                        yield(Token(pos.copy(), temptoken, val))
-                        FLAG_SKIPPED_WHITESPACE = False
-                        # Modify string
-                        curdata = strippeddata
-                        continue
-
-                    if not FLAG_SKIPPED_WHITESPACE:
-                        found, strippeddata, temptoken, val = prefix_accessor(curdata)
-                        if found:
-                            yield(Token(pos.copy(), temptoken, val))
-                            FLAG_SKIPPED_WHITESPACE = False
-                            # Modify data
-                            curdata = strippeddata
-                            continue
 
 
+            else:
+                # Test for multiline comment end
+                found, strippeddata = prefix_strip(curdata, COMMENT_END)
+                if found:
+                    FLAG_SKIPPED_WHITESPACE = True
+                    FLAG_MULTI_COMMENT = False
+                    # Modify string
+                    curdata = strippeddata
+                    continue
+                else: # Maybe skip to */ if it exists?
+                    curdata = curdata[1:]
+                    continue
 
-                else:
-                    # Test for multiline comment end
-                    found, strippeddata = prefix_strip(curdata, COMMENT_END)
-                    if found:
-                        FLAG_SKIPPED_WHITESPACE = True
-                        FLAG_MULTI_COMMENT = False
-                        # Modify string
-                        curdata = strippeddata
-                        continue
-                    else: # Maybe skip to */ if it exists?
-                        curdata = curdata[1:]
-                        continue
+            print("Unhandled data:\n\t{}".format(curdata.rstrip()), file=sys.stderr)
+            # TODO Decide whether to crash or not
+            break
 
-                print("Unhandled data:\n\t{}".format(curdata.rstrip()))
-                break
-
-            pos.line += 1
+        pos.line += 1
 
 
 
@@ -266,28 +268,18 @@ if __name__ == "__main__":
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     args = argparser.parse_args()
 
-    cur = None
-    
-    for t in tokenize(args.infile):
-        if cur is None:
-            cur = t.pos.line
-        if t.pos.line != cur:
-            print()
-            cur = t.pos.line
-            print(" " * (t.pos.col-1), end="")
-        print(t.pretty(), end=" ")
+    with open(args.infile, "r") as infile:
+
+        cur = None
+        
+        for t in tokenize(infile):
+            if cur is None:
+                cur = t.pos.line
+            if t.pos.line != cur:
+                print()
+                cur = t.pos.line
+                print(" " * (t.pos.col-1), end="")
+            print(t.pretty(), end=" ")
     
 
-    '''
-    for t in tokenize("./example programs/p1_example.spl"):
-        print(t, end=" ")
-
-    print("\nEND")
-    '''
-    '''
-    for t in tokenize("./example programs/p1_example.spl"):
-        print(t.typ, end=" ")
-        sys.stdout.flush()
-        time.sleep(0.1)
-    print("end")
-    '''
+        print("\nEND")

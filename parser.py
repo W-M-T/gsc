@@ -2,21 +2,13 @@
 
 
 
-
 '''
 Zaken als +, -, :, / etc zijn built-in methodes
 String is een built-in typesynoniem
 
-TODO
-Verplaats datastructuren naar een apart bestand
 '''
 
 '''
-Lexer heeft string flag
-single line comment flag
-multiline comment flag
-type-of-waarde-context flag (voor -> en , en []), geactiveerd via ::
-
 consumeert keywords als deze niet door iets alfabetisch gevolgd worden
 
 =-teken wordt gewoon gelext als assignment -> dus geen geldige operatornaam
@@ -29,3 +21,13 @@ oftewel //* en /* geen geldige operatornamen
 '''
 
 
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+    from lexer import tokenize
+    argparser = ArgumentParser(description="SPL Lexer")
+    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
+    args = argparser.parse_args()
+
+    with open(args.infile, "r") as infile:
+        tokenstream = tokenize(infile)
+        print(tokenstream.__next__())
