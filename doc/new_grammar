@@ -76,6 +76,12 @@ string      = '"' (ascii_without_esc_sequences | '\' escape_sequence_char)* '"'
 
 char        = '\'' (ascii_without_esc_sequences | '\' escape_sequence_char) '\''
 
-id          = alpha ('_' | alphaNum)*
+id          = loweralpha ('_' | alphaNum)*
 
-type_id      = upperalpha ('_' | alphaNum)*
+type_id     = upperalpha ('_' | alphaNum)*
+
+loweralpha  = a..z
+
+upperalpha  = A..Z
+
+alphaNum    = a..z | A..Z | 0..9
