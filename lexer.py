@@ -6,11 +6,6 @@ import re
 
 from util import TOKEN, Token, Position
 
-'''
-TODO
-Operators with a prefix of a key-symbol (= -> ',' []) are parsed as that symbol
-'''
-
 # Constants
 
 KEYWORDS = {
@@ -257,10 +252,6 @@ def tokenize(filename):
                     else: # Maybe skip to */ if it exists?
                         curdata = curdata[1:]
                         continue
-
-                
-
-                # (TODO Distinguish between type / assignment context in logic)
 
                 print("Unhandled data:\n\t{}".format(curdata.rstrip()))
                 break
