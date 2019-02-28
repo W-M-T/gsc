@@ -255,7 +255,13 @@ def tokenize(inputstream):
                     continue
 
             print("Unhandled data:\n\t{}".format(curdata.rstrip()), file=sys.stderr)
-            # TODO Decide whether to crash or not
+            '''
+            TODO
+            Decide when to halt execution
+            Error recovery (while still not compiling) would be desired
+            It is already pretty easy to recover to next line by just setting a flag here and halting after the loop
+            but we would ideally also recover inside the same line.
+            '''
             break
 
         pos.line += 1
@@ -283,3 +289,9 @@ if __name__ == "__main__":
     
 
         print("\nEND")
+        '''
+        infile.seek(0,0)
+        import json
+        with open(args.infile+".json", "w") as outfile:
+            outfile.write(json.dumps(list(tokenize(infile)), default = lambda o: o.__dict__, sort_keys=True, indent=4))
+        '''
