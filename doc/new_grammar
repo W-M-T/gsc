@@ -34,11 +34,9 @@ FArgs       = id (',' id)*
 
 Stmt        = 'if' '(' Exp ')' '{' Stmt* '}' ('elif' '(' Exp ')' '{' Stmt* '}')* ['else' '{' Stmt* '}']
             | 'while' '(' Exp ')' '{' Stmt* '}'
-            | 'for' '(' [ForStmt] Exp ';' Exp ')' '{' Stmt* '}'
+            | 'for' '(' [ActStmt] ';' Exp ';' Exp ')' '{' Stmt* '}'
             | ActStmt ';'
             | 'return' [Exp] ';'
-
-ForStmt     = [ActStmt] ';'
 
 ActStmt     = Ass 
             | FunCall
