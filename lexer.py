@@ -254,7 +254,7 @@ def tokenize(inputstream):
                     curdata = curdata[1:]
                     continue
 
-            sys.stderr.write("Unhandled data:\n{}\n".format(pointToLine(line, pos)))
+            sys.stderr.write("Lexing error:\n{}\nInvalid syntax\n\n".format(pointToLine(line, pos)))
             '''
             TODO
             Decide when to halt execution
