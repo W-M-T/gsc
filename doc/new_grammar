@@ -10,7 +10,7 @@ VarDecl     = ('var' | Type) id '=' Exp ';'
 FunDecl     = id '(' [FArgs] ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
 
 OpDecl      = 'prefix' op '(' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
-            |  ('infixl' | 'infixr') digit+ op '(' id ',' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
+            |  ('infixl' | 'infixr') int op '(' id ',' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
 
 TypeSyn     = 'type' type_id '=' Type
 
@@ -34,7 +34,7 @@ FArgs       = id (',' id)*
 
 Stmt        = 'if' '(' Exp ')' '{' Stmt* '}' ('elif' '(' Exp ')' '{' Stmt* '}')* ['else' '{' Stmt* '}']
             | 'while' '(' Exp ')' '{' Stmt* '}'
-            | 'for' '(' [ActStmt] ';' Exp ';' Exp ')' '{' Stmt* '}'
+            | 'for' '(' [ActStmt] ';' Exp ';' ActStmt ')' '{' Stmt* '}'
             | ActStmt ';'
             | 'return' [Exp] ';'
 
@@ -43,8 +43,7 @@ ActStmt     = Ass
 
 Ass         = id Field '=' Exp
 
-Exp         = ConvExp 
-            | ConvExp (op ConvExp)+
+Exp         = ConvExp (op ConvExp)*
 
 ConvExp     = id Field
             | op Exp

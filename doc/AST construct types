@@ -1,0 +1,56 @@
+SPL
+    list of VarDecl, FunDecl, TypeSyns
+
+VarDecl
+    optional type, identifier, expression
+
+FunDecl
+    kind (infix op, prefix op or function), identifier, list of identifiers, optional FunType, list of VarDecl, list of Stmt
+
+TypeSyns
+    type identifier, type
+
+Type (replace with tri-or everywhere?)
+    real type (type_identifier or TupleType or ListType)
+
+TupleType
+    Type, Type
+
+ListType
+    Type
+
+Stmt
+    IfElse or
+    Loop (TBD) or
+    ActStmt or
+    Return
+
+IfElse
+    list of (Expr, Stmt*) (last one can have None Expr)
+
+Loop
+    #TBD
+
+ActStmt (maybe factor out just like type)
+    Assignment or FunCall
+
+Return
+    Expr
+
+Assignment
+    identifier, Expr #TODO consider accessors
+
+FunCall
+    identifier, list of Expr
+
+DeferedExpr
+    list of terms and ops
+
+ParsedExpr
+    Literal
+    Identifier
+    Funcall on list of ParsedExpr
+
+
+
+#TODO decide what to do with accessors: function calls or not?

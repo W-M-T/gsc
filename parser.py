@@ -24,7 +24,7 @@ oftewel //* en /* geen geldige operatornamen
 Top-down parser
 Leftmost derivation
 Non-ambigue grammatica
-Geen left-recursion
+Convergente left-recursion
 LL(1) (1 token lookahead)
 
 Eindige recursie-diepte dmv stack.
