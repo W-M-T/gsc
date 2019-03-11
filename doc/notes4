@@ -1,0 +1,12 @@
+var a = (2,(3,3))
+var b = a.snd
+
+var list1 = 1 : 2 : 3 : []
+
+var list2 = list1.tl.tl 
+#(3 : [])
+
+list1.snd = []
+#list1 = 1 : []
+#list2 = 3 : []
+#lost pointer = 2 : 3 : []

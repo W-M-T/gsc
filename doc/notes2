@@ -1,0 +1,16 @@
+Functie-shadowing overweging
+
+
+f(g(x))
+
+
+f:: a -> b
+f:: a -> c
+g:: b -> d
+g:: c -> d
+
+f(g(x) :: b)
+
+óf
+
+:+: ipv + voor chars oid

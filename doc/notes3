@@ -1,0 +1,8 @@
+def f :: -> (Int, Int)
+    return (2,2)
+
+
+def main :: -> Void
+    var result = f()
+    return result.snd
+    #return f().snd
