@@ -203,7 +203,6 @@ def tokenize(inputstream):
                     continue
 
                 # Test for identifiers
-                # TODO: handle the difference between type names and var names
                 found, strippeddata, temptoken, val = prefix_identifier(curdata)
                 if found:
                     yield(Token(pos.copy(), temptoken, val))
@@ -282,10 +281,10 @@ if __name__ == "__main__":
             if cur is None:
                 cur = t.pos.line
             if t.pos.line != cur:
-                #print()
+                print()
                 cur = t.pos.line
-                #print(" " * (t.pos.col-1), end="")
-            #print(t.pretty(), end=" ")
+                print(" " * (t.pos.col-1), end="")
+            print(t.pretty(), end=" ")
     
 
         print("\nEND")
