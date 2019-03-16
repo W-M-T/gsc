@@ -19,8 +19,6 @@ class RegexTester(unittest.TestCase):
 
     def compare(self, regex, value, msg):
         r = regex.match(value)
-        if regex == REG_STR:
-            print(REG_STR)
         self.assertIsNotNone(r, msg % value)
         if r is not None:
             self.assertEqual(value, r.group(0))

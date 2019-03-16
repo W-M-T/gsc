@@ -1,13 +1,14 @@
 image: "python:3.5"
 
 before_script:
-  - python -V
+  - python3 -V
 
 stages:
   - test
 
 test_regex:
   stage: test
-  script:
-    - ./tests/RegexTester.py
+  script: 
+    - cd tests/ 
+    - python3 RegexTester.py
   allow_failure: true
