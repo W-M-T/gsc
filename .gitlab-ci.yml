@@ -6,7 +6,8 @@ before_script:
 stages:
   - test
 
-test_compilation:
+test_regex:
   stage: test
   script:
-    - echo "Running tests"
+    - ./tests/RegexTester.py
+  allow_failure: true

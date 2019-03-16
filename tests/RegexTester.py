@@ -19,6 +19,8 @@ class RegexTester(unittest.TestCase):
 
     def compare(self, regex, value, msg):
         r = regex.match(value)
+        if regex == REG_STR:
+            print(REG_STR)
         self.assertIsNotNone(r, msg % value)
         if r is not None:
             self.assertEqual(value, r.group(0))
@@ -27,7 +29,6 @@ class RegexTester(unittest.TestCase):
         """
         Test regex that is used to match chars
         """
-
         for c in self.allowed + list(filter(lambda x: x not in self.disallowed, string.printable)):
             with self.subTest():
                 self.compare(REG_CHR, "'" + str(c) + "'", "Character %s was not matched")
@@ -70,24 +71,18 @@ class RegexTester(unittest.TestCase):
         Test regex that is used to match strings
         """
         strings = [
-            "Dit is een test string\n met meerdere regels"
-            "\t ik hou van tabs \t en verticale \v tabs"
-            "Geen idee wat deze characters doen \a\b0asgd34"
-            "Ik ram op mijn toegwgetr530524315254235\agre442hrw5034952-9554yjgi(*&^%$#@!"
-            "\\"
+            "Dit is een test string\n met meerdere regels",
+            "\t ik hou van tabs \t en verticale \v tabs",
+            "Geen idee wat deze characters doen \a\b0asgd34",
+            "Ik ram op mijn toegwgetr530524315254235\agre442hrw5034952-9554yjgi(*&^%$#@!",
+            "\\",
             "",
             "\\f\r\'"
-            ]
+        ]
 
         for s in strings:
-            for k in range(0, len(s)):
-                # Check if current single letter character is allowed 
-                if s[k] not in list(filter(lambda x: x not in self.disallowed, string.printable)) or s[k] == '\\':
-                    if s[k] == '\\':
-                        # Check if current character is an escape sequence
-                        self.assertIn(s [k:k+1], allowed, "Character %s is not a valid escape sequence", s[k:k+1])
-                    else:               
-                        self.assertEqual(s[k], '\\', "Character %s is not allowed and is not an escape character" % s[k])
+            with self.subTest():
+                self.compare(REG_STR, s, "String %s was not matched")
 
 
 if __name__ == '__main__':
