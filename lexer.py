@@ -150,6 +150,7 @@ def prefix_accessor(string):
 def tokenize(inputstream):
     FLAG_SKIPPED_WHITESPACE = True
     FLAG_MULTI_COMMENT      = False
+    ERRORS_OCCURED          = False
 
     pos = Position()
 
@@ -254,6 +255,7 @@ def tokenize(inputstream):
                     continue
 
             sys.stderr.write("Lexing error:\n{}\nInvalid syntax\n\n".format(pointToLine(line, pos)))
+            ERRORS_OCCURED = True
             '''
             TODO
             Decide when to halt execution
@@ -264,6 +266,9 @@ def tokenize(inputstream):
             break
 
         pos.line += 1
+
+    if ERRORS_OCCURED:
+        exit(1)
 
 
 

@@ -12,3 +12,10 @@ test_regex:
     - cd tests/ 
     - python3 RegexTester.py
   allow_failure: true
+
+test_lexer:
+    stage: test
+    script: 
+      - cd tests/
+      - ./LexerTester.sh
+    allow_failure: true
