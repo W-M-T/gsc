@@ -68,7 +68,7 @@ def syntaxnode(typename, *field_names, module=None):
 
     # Modify function metadata to help with introspection and debugging
 
-    for method in (__init__, __iter__, __repr__ ):
+    for method in (__new__, __init__, __iter__, __repr__ ):
         method.__qualname__ = '{}.{}'.format(typename, method.__name__)
 
     # Build-up the class namespace dictionary
@@ -113,3 +113,6 @@ if __name__ == "__main__":
         Token(None, TOKEN.TYPE_IDENTIFIER, "Char"),
         Token(None, TOKEN.BRACK_CLOSE, None)
     ]
+    TupleType = syntaxnode("TupleType", "first", "second")
+    testtuple = TupleType(first = 1, second = 2)
+    print(testtuple.second)
