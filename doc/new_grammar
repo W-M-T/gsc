@@ -1,9 +1,17 @@
-SPL         = Decl+
+SPL         = ImportDecl* Decl+
 
 Decl        = VarDecl
             | FunDecl
             | TypeSyn
             | OpDecl
+
+ImportDecl  = from ImportName import ImportList
+
+ImportList  = '*' | ImportName+
+
+ImportName  = AnyId [as AnyId]
+
+AnyId       = id | type_id
 
 VarDecl     = ('var' | Type) id '=' Exp ';'
 
