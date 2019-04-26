@@ -1,0 +1,8 @@
+/*
+    Give a lexing error.
+	Try to recover after this error to give multiple lexing errors before halting.
+*/
+😀
+var a = 1;
+😀
+var b = 2; 😀 var c = 3; 😀
