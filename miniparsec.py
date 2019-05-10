@@ -102,6 +102,11 @@ def syntaxnode(typename, *field_names, module=None):
 
 
 
+class AST:
+    #SPL = syntaxnode("SPL", )
+    pass
+
+
 
 if __name__ == "__main__":
     from util import Position, TOKEN, Token, Node

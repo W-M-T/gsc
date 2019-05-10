@@ -102,6 +102,25 @@ class Tok():
         return self.val.name
 
 
+def rule_iter(node, func):
+    result = []
+    if type(node) == dict:
+        result.extend([i for s in map(lambda x: rule_iter(x, func), node.values())for i in s])
+    elif type(node) in [List, Choice]:
+        if not type(node.val) == list:
+            raise Exception("Expected a list in the rule, instead got {} ({})".format(node.val, type(node.val)))
+        result.extend([i for s in map(lambda x: rule_iter(x, func), node.val) for i in s] )
+    elif type(node) in [Many, Many1, Maybe, Rule]:
+        result.extend(rule_iter(node.val, func))
+    elif type(node) in [str, Tok]:
+        result.extend(func(node))
+    else:
+        raise Exception("Unexpected value: {}".format(node))
+    return result
+
+
+
+ROOT_RULE = "SPL"
 RULES = {
     "SPL"       : Rule(Many1("Decl")),
 
@@ -349,26 +368,43 @@ RULES = {
                     ]))
 }
 
+
+# TODO move this to a testing file and convert the intermediate "return False"s to tests
 def validRuleSet(rules):
-    # Test if all rules are used in another rule, except for the root rule (SPL)
-    rulenames = list(rules.keys())
-
-
-    # Test if all used strings are also rule names
-    rulenames = list(rules.keys())
-
-    # Test if all possible token types are consumed
-    tokens_to_consume = [e.val for e in TOKEN]
-
     # Test if structure correct
     # i.e. Test if List and Choice have lists
-    
+    # if not the case these tests raise an exception
+    try:
+        # Test if all rules are used in a rule, except for the root rule (SPL)
+        # Also: Test if all used strings are also rule names
+        rulenames = list(rules.keys())
+        rulenames.remove(ROOT_RULE)
+        rulenames = set(rulenames)
 
-    return False
+        found = set(rule_iter(RULES,
+            lambda x: [x] if type(x) == str else []
+            ))
+        if not rulenames == found:
+            return False
+
+        # Test if all possible token types are consumed in some rule
+        tokens_to_consume = set(TOKEN)
+
+        found = set(rule_iter(RULES,
+            lambda x: [x.val] if type(x) == Tok else []
+            ))
+        if not tokens_to_consume == found:
+            return False
+
+    except Exception as e:
+        print(e)
+        return False
+    
+    return True
 
 def parseTokenStream(instream):
     active_rules = []
-
+    
 
 
 if __name__ == "__main__":
@@ -378,11 +414,13 @@ if __name__ == "__main__":
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     args = argparser.parse_args()
 
+    
     for rule, content in RULES.items():
         print("{}:".format(rule))
         print(content)
         print()
-
+    
+    exit()
     with open(args.infile, "r") as infile:
         tokenstream = tokenize(infile)
 
