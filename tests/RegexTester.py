@@ -29,7 +29,7 @@ class RegexTester(unittest.TestCase):
         """
         for c in self.allowed + list(filter(lambda x: x not in self.disallowed, string.printable)):
             with self.subTest():
-                self.compare(REG_CHR, "'" + str(c) + "'", "Character %s was not matched")
+                self.compare(REG_CHR, "'{}'".format(c), "Character %s was not matched")
 
     def test_identifier_regex(self):
         """
@@ -69,18 +69,19 @@ class RegexTester(unittest.TestCase):
         Test regex that is used to match strings
         """
         strings = [
-            "Dit is een test string\n met meerdere regels",
-            "\t ik hou van tabs \t en verticale \v tabs",
-            "Geen idee wat deze characters doen \a\b0asgd34",
-            "Ik ram op mijn toegwgetr530524315254235\agre442hrw5034952-9554yjgi(*&^%$#@!",
-            "\\",
+            "Enkel",
+            "Dit is een test string\\n met meerdere regels",
+            "\\t ik hou van tabs \\t en verticale \\v tabs",
+            "Geen idee wat deze characters doen \\a\\b0asgd34",
+            "Ik ram op mijn toegwgetr530524315254235\\agre442hrw5034952-9554yjgi(*&^%$#@!",
+            "\\\\",
             "",
-            "\\f\r\'"
+            "\\f\\r\\'"
         ]
 
         for s in strings:
             with self.subTest():
-                self.compare(REG_STR, s, "String %s was not matched")
+                self.compare(REG_STR, '"{}"'.format(s), "String %s was not matched")
 
 
 if __name__ == '__main__':
