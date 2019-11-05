@@ -402,9 +402,94 @@ def validRuleSet(rules):
     
     return True
 
-def parseTokenStream(instream):
-    active_rules = []
-    
+
+'''
+    Give a tuple of the next symbol to parse + the resulting rest of rule matching that
+'''
+def expandRule(rule):
+    options = []
+    typ = type(rule)
+
+    if typ == Tok:
+        options += [(rule, [])]
+
+    elif typ == str: # TODO abstract out this ruleset
+        options += expandRule(RULES[rule])
+
+    elif typ == Rule:
+        options += expandRule(rule.val)
+
+    elif typ == List:
+        templist = rule.val
+
+        if len(templist) == 1:
+            options += expandRule(templist[0])
+        else:
+            head = templist[0]
+            tail = templist[1:]
+
+
+            res_list = expandRule(head)
+            res_list = list(map(lambda x: (x[0], List(x[1] + tail)), res_list)) # Produce list of expanded first and tail
+            options += res_list
+
+    elif typ == Many:
+        temp = rule.val
+
+        res_list = expandRule(temp)
+        res_list = list(map(lambda x: (x[0], List(x[1] + [rule])), res_list)) # Produce list of expanded content and unmodified many
+        options += res_list
+        options += (None, []) # Empty parse
+
+    elif typ == Many1:
+        temp = rule.val
+
+        res_list = expandRule(temp)
+        res_list = list(map(lambda x: (x[0], List(x[1] + [Many(temp)])), res_list)) # Produce list of expanded content and many instead of many1
+        options += res_list
+
+    elif typ == Choice:
+        templist = rule.val
+
+        reslist = [x for y in list(map(expandRule, templist)) for x in y] # Produce flattened list of expanded options
+        options += reslist
+
+    elif typ == Maybe:
+        temp = rule.val
+
+        res_list = expandRule(temp) # Non-empty parse
+        options += res_list
+        options += (None, []) # Empty parse
+    else:
+        print("ERROR",typ)
+
+    #for i in options:
+    #    print(i[0], i[1])
+    return options
+
+
+'''
+Geen pseudo-stack nodig, de recursiediepte is niet geweldig hoog omdat alle many en many1 geen recursie veroorzaken.
+Alleen sterk geneste expressies genereren recursiediepte
+Staat om bij te houden:
+Huidige positie in de regel
+Al gevonden resultaten
+Gekozen alternatieven
+
+List-> index
+Maybe-> yes/no
+Choice-> alternative (index)
+
+Eerste parse naar een naïve AST volgens zelfde structuur als de regels, zodat de prettyprint nog werkt.
+Dan implementeren we een tree-transformer map naar de echte AST
+'''
+def parseTokenStream(instream, active_rules = [RULES["SPL"]]):
+    # obtain expected symbol / rules
+    # then pop one from instream, compare
+
+    #print([str(k) for k in list(instream)])
+    pass
+
 
 
 if __name__ == "__main__":
@@ -415,15 +500,23 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     
+    '''
     for rule, content in RULES.items():
         print("{}:".format(rule))
         print(content)
         print()
     
     exit()
+    '''
+
+
+    print(expandRule(RULES[ROOT_RULE]))
+    print("DONE")
+    exit()
+
     with open(args.infile, "r") as infile:
         tokenstream = tokenize(infile)
-
+        parseTokenStream(tokenstream)
         '''
         tokenlist = list(tokenstream)
         import random
@@ -432,4 +525,5 @@ if __name__ == "__main__":
         print(pointToPosition(infile, randtoken.pos))
         '''
 
+    print("DONE")
 
