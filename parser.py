@@ -3,9 +3,37 @@
 from util import pointToPosition, Position, TOKEN, Token, Node
 import parsec as ps
 
-BasicType = ps.token(TOKEN.TYPE_IDENTIFIER, cond=lambda x: x == "Int") # add more
+# Evaluate return types
 
-Type = BasicType
+@ps.generate
+def BasicType():
+    a = yield ps.token(TOKEN.TYPE_IDENTIFIER, cond=lambda x: x == "Char") # add more
+    return "Char"
+
+@ps.generate
+def TupType():
+    yield ps.token(TOKEN.PAR_OPEN)
+    a = ps.token(TOKEN.TYPE_IDENTIFIER)
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
+    b = ps.token(TOKEN.TYPE_IDENTIFIER)
+    yield ps.token(TOKEN.PAR_CLOSE)
+    return (a,b)
+
+
+@ps.generate
+def ListType():
+    yield ps.token(TOKEN.BRACK_OPEN)
+    a = yield Type
+    yield ps.token(TOKEN.BRACK_CLOSE)
+    return [a]
+
+'''
+@ps.generate
+def Type():
+    a = BasicType | TupType #| ListType | ps.token(TOKEN.TYPE_IDENTIFIER)
+    return a
+'''
+Type = BasicType | TupType | ListType
 
 @ps.generate
 def TypeSyn():
@@ -38,11 +66,22 @@ if __name__ == "__main__":
         Token(None, TOKEN.TYPESYN, None),
         Token(None, TOKEN.TYPE_IDENTIFIER, "String"),
         Token(None, TOKEN.OP_IDENTIFIER, "="),
-#        Token(None, TOKEN.BRACK_OPEN, None),
-        Token(None, TOKEN.TYPE_IDENTIFIER, "Char"),
-#        Token(None, TOKEN.BRACK_CLOSE, None)
+        
     ]
-    TypeSyn.parse(test1)
+    test2 = [
+        Token(None, TOKEN.BRACK_OPEN, None),
+        Token(None, TOKEN.TYPE_IDENTIFIER, "Char"),
+        Token(None, TOKEN.BRACK_CLOSE, None)
+    ]
+    test3 = [
+        Token(None, TOKEN.TYPESYN, None),
+        Token(None, TOKEN.TYPE_IDENTIFIER, "String"),
+        Token(None, TOKEN.OP_IDENTIFIER, "="),
+        Token(None, TOKEN.BRACK_OPEN, None),
+        Token(None, TOKEN.TYPE_IDENTIFIER, "Char"),
+        Token(None, TOKEN.BRACK_CLOSE, None)
+    ]
+    TypeSyn.parse(test3)
 
     exit()
 

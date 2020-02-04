@@ -85,8 +85,12 @@ class Value(namedtuple('Value', 'status index value expected')):
         return Value(True, values[-1].index, out_values, None)
 
     def __str__(self):
-        return 'Value: state: {},  @index: {}, values: {}, expected: {}'.format(
-            self.status, self.index, self.value, self.expected)
+        if self.expected is None or type(self.expected) == str:
+            return 'Value: state: {},  @index: {}, values: {}, expected: {}'.format(
+                self.status, self.index, self.value, self.expected)
+        else:
+            return 'Value: state: {},  @index: {}, values: {}, expected: {}'.format(
+                self.status, self.index, self.value, self.expected.name)
 
 ##########################################################################
 # Text.Parsec.Prim
@@ -675,10 +679,13 @@ def token(t, cond=None):
 
     @Parser
     def token_parser(token_list, index):
-        tok = token_list[index]
+        if index < len(token_list):
+            tok = token_list[index]
 
-        if tok.typ == t and (cond is None or cond(tok.val)):
-            return Value.success(index+1, tok.typ)
+            if tok.typ == t and (cond is None or cond(tok.val)):
+                return Value.success(index+1, tok)
+            else:
+                return Value.failure(index, t)
         else:
-            return Value.failure(index, t)
+                return Value.failure(index, t)
     return token_parser
