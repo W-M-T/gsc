@@ -118,10 +118,9 @@ class Parser(object):
         '''Parse the longest possible prefix of a given string.
         Return a tuple of the result value and the rest of the string.
         If failed, raise a ParseError. '''
-        if not isinstance(text, str):
-            raise TypeError(
-                'Can only parsing string but got {!r}'.format(text))
+
         res = self(text, 0)
+        print(res)
         if res.status:
             return (res.value, text[res.index:])
         else:
@@ -670,3 +669,16 @@ def regex(exp, flags=0):
         else:
             return Value.failure(index, exp.pattern)
     return regex_parser
+
+def token(t, cond=None):
+    ''' TODO define this '''
+
+    @Parser
+    def token_parser(token_list, index):
+        tok = token_list[index]
+
+        if tok.typ == t and (cond is None or cond(tok.val)):
+            return Value.success(index+1, tok.typ)
+        else:
+            return Value.failure(index, t)
+    return token_parser
