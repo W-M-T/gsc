@@ -6,6 +6,7 @@ Decl        = VarDecl
             | OpDecl
 
 ImportDecl  = from ImportName import ImportList
+# strings / keywords opnieuw bekijken
 
 ImportList  = '*' | ImportName+
 
@@ -22,9 +23,7 @@ OpDecl      = 'prefix' op '(' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
 
 TypeSyn     = 'type' type_id '=' Type
 
-FunType     = [FTypes] '->' RetType
-
-FTypes      = Type+
+FunType     = Type* '->' RetType
 
 RetType     = Type
             | 'Void'
@@ -65,6 +64,7 @@ ConvExp     = id Field
             | []
 
 Field       = [('.hd' | '.tl' | '.fst' | '.snd' ) Field]
+# Dit via Field* doen ipv recursie?
 
 FunCall     = id '(' [ActArgs] ')'
 
