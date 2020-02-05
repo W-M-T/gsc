@@ -596,44 +596,6 @@ def none_of(s):
     return none_of_parser
 
 
-def space():
-    '''Parser a whitespace character.'''
-    @Parser
-    def space_parser(text, index=0):
-        if index < len(text) and text[index].isspace():
-            return Value.success(index + 1, text[index])
-        else:
-            return Value.failure(index, 'one space')
-    return space_parser
-
-
-def spaces():
-    '''Parser zero or more whitespace characters.'''
-    return many(space())
-
-
-def letter():
-    '''Parse a letter in alphabet.'''
-    @Parser
-    def letter_parser(text, index=0):
-        if index < len(text) and text[index].isalpha():
-            return Value.success(index + 1, text[index])
-        else:
-            return Value.failure(index, 'a letter')
-    return letter_parser
-
-
-def digit():
-    '''Parse a digit character.'''
-    @Parser
-    def digit_parser(text, index=0):
-        if index < len(text) and text[index].isdigit():
-            return Value.success(index + 1, text[index])
-        else:
-            return Value.failure(index, 'a digit')
-    return digit_parser
-
-
 def eof():
     '''Parser EOF flag of a string.'''
     @Parser
@@ -645,38 +607,8 @@ def eof():
     return eof_parser
 
 
-def string(s):
-    '''Parser a string.'''
-    @Parser
-    def string_parser(text, index=0):
-        slen, tlen = len(s), len(text)
-        if text[index:index + slen] == s:
-            return Value.success(index + slen, s)
-        else:
-            matched = 0
-            while matched < slen and index + matched < tlen and text[index + matched] == s[matched]:
-                matched = matched + 1
-            return Value.failure(index + matched, s)
-    return string_parser
-
-
-def regex(exp, flags=0):
-    '''Parser according to a regular expression.'''
-    if isinstance(exp, str):
-        exp = re.compile(exp, flags)
-
-    @Parser
-    def regex_parser(text, index):
-        match = exp.match(text, index)
-        if match:
-            return Value.success(match.end(), match.group(0))
-        else:
-            return Value.failure(index, exp.pattern)
-    return regex_parser
-
 def token(t, cond=None):
-    ''' TODO define this '''
-
+    '''Parse a lexer token'''
     @Parser
     def token_parser(token_list, index):
         if index < len(token_list):
