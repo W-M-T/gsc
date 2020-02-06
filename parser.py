@@ -45,9 +45,9 @@ def BasicType():
 @ps.generate
 def TupType():
     yield ps.token(TOKEN.PAR_OPEN)
-    a = ps.token(TOKEN.TYPE_IDENTIFIER)
+    a = yield Type
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
-    b = ps.token(TOKEN.TYPE_IDENTIFIER)
+    b = yield Type
     yield ps.token(TOKEN.PAR_CLOSE)
     return (a,b)
 

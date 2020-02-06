@@ -66,7 +66,7 @@ REG_INT = re.compile(r"\d+")
 REG_STR = re.compile(r"\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])*\"")# needs to be tested
 REG_CHR = re.compile(r"\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])\'")# needs to be tested
 
-REG_KEY_END = re.compile(r"[^a-zA-Z0-9]|$")
+REG_KEYWORD_END = re.compile(r"[^a-zA-Z0-9]|$")
 
 # Choice: Keywords and value/type literals should be followed by a non-alphanumeric character
 # Choice: Accessors cannot be preceded by whitespace
@@ -85,7 +85,7 @@ def prefix_strip(string, prefix):
 def prefix_keyword(string):
     for keyword in KEYWORD_LIST:
         found, strippeddata = prefix_strip(string, keyword)
-        if found and REG_KEY_END.match(strippeddata):
+        if found and REG_KEYWORD_END.match(strippeddata):
             if keyword in BOOLS:
                 return (True, strippeddata, COMBINED_KEYWORDS[keyword], keyword == "True")
             else:
@@ -104,13 +104,13 @@ def prefix_identifier(string):
     if tempmatch:
         found_id = tempmatch.group(0)
         rest = string[len(found_id):]
-        if REG_KEY_END.match(rest): # Should always happen?
+        if REG_KEYWORD_END.match(rest): # Should always happen?
             return (True, rest, TOKEN.IDENTIFIER, found_id)
     tempmatch = REG_TYP.match(string)
     if tempmatch:
         found_id = tempmatch.group(0)
         rest = string[len(found_id):]
-        if REG_KEY_END.match(rest): # Should always happen?
+        if REG_KEYWORD_END.match(rest): # Should always happen?
             return (True, rest, TOKEN.TYPE_IDENTIFIER, found_id)
     return (False, None, None, None)
 
