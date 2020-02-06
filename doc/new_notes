@@ -1,0 +1,17 @@
+BasicType and type_id zijn ambigu (alle basictypes zijn ook geldige type_ids)
+De library die we gebruiken kiest de eerste die werkt (wees hiervan bewust)
+
+
+Importoverweging:
+Module directory environment variable
+Override deze directory via compiler arg
+Ook in huidige directory checken
+Verder nog per import aan kunnen geven wat het pad is, override nog sterker
+
+Waarschuwing geven als module in huidige dir en in moduledir bestaat
+
+importnaam is bestandsnaam zonder extensie
+geen relatieve imports: bestandslocatie geregeld op compilerniveau
+
+operator fixities zelfde als haskell, los het zelf maar op met haakjess
+je hoeft niet alle functies te importeren die door een andere functie gebruikt worden: het wordt impliciet wel geimporteerd maar je kunt er niet naar refereren

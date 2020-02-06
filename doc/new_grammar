@@ -5,8 +5,7 @@ Decl        = VarDecl
             | TypeSyn
             | OpDecl
 
-ImportDecl  = from ImportName import ImportList
-# strings / keywords opnieuw bekijken
+ImportDecl  = 'from' AnyId 'import' ImportList
 
 ImportList  = '*' | ImportName+
 
@@ -18,10 +17,14 @@ VarDecl     = ('var' | Type) id '=' Exp ';'
 
 FunDecl     = id '(' [FArgs] ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
 
-OpDecl      = 'prefix' op '(' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
-            |  ('infixl' | 'infixr') int op '(' id ',' id ')' ['::' FunType] '{' VarDecl* Stmt+ '}'
+OpDecl      = 'prefix' op '(' id ')' ['::' PreFunType] '{' VarDecl* Stmt+ '}'
+            |  ('infixl' | 'infixr') int op '(' id ',' id ')' ['::' InfFunType] '{' VarDecl* Stmt+ '}'
 
 TypeSyn     = 'type' type_id '=' Type
+
+PreFunType  = Type -> Type
+
+InfFunType  = Type Type -> Type
 
 FunType     = Type* '->' RetType
 
@@ -48,11 +51,11 @@ Stmt        = 'if' '(' Exp ')' '{' Stmt* '}' ('elif' '(' Exp ')' '{' Stmt* '}')*
 ActStmt     = Ass 
             | FunCall
 
-Ass         = id Field '=' Exp
+Ass         = id Field* '=' Exp
 
 Exp         = ConvExp (op ConvExp)*
 
-ConvExp     = id Field
+ConvExp     = id Field*
             | op Exp
             | int
             | char
@@ -63,8 +66,7 @@ ConvExp     = id Field
             | FunCall
             | []
 
-Field       = [('.hd' | '.tl' | '.fst' | '.snd' ) Field]
-# Dit via Field* doen ipv recursie?
+Field       = ('.hd' | '.tl' | '.fst' | '.snd' )
 
 FunCall     = id '(' [ActArgs] ')'
 
