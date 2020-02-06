@@ -5,6 +5,12 @@ import parsec as ps
 
 # Evaluate return types
 
+@ps.generate
+def IdField():
+    i = yield ps.token(TOKEN.IDENTIFIER)
+    fields = yield ps.many(ps.token(TOKEN.ACCESSOR))
+    return (i, fields)
+
 # Need to be tested
 @ps.generate
 def PrefixOpDecl():
@@ -13,12 +19,26 @@ def PrefixOpDecl():
     yield ps.token(TOKEN.PAR_OPEN)
     varname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_CLOSE)
-    #yield ps.optional(ps.token())
+    typesig = yield ps.times(PreFunTypeSig,0,1)
     yield ps.token(TOKEN.CURL_OPEN)
-    decls = yield ps.many(VarDecl)
-    stmts = yield ps.many1(Stmt)
+    #decls = yield ps.many(VarDecl)
+    #stmts = yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return "PrefixOpDecl"
+    return (operator, varname, typesig)
+
+@ps.generate
+def Dumb_PrefixOpDecl():
+    yield ps.token(TOKEN.PREFIX)
+    operator = yield ps.token(TOKEN.OP_IDENTIFIER)
+    yield ps.token(TOKEN.PAR_OPEN)
+    varname = yield ps.token(TOKEN.IDENTIFIER)
+    yield ps.token(TOKEN.PAR_CLOSE)
+    typesig = yield ps.optional(PreFunTypeSig)
+    yield ps.token(TOKEN.CURL_OPEN)
+    #decls = yield ps.many(VarDecl)
+    #stmts = yield ps.many1(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    return (operator, varname, typesig)
 
 @ps.generate
 def InfixOpDecl():
@@ -29,9 +49,15 @@ def InfixOpDecl():
     a = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
     b = ps.token(TOKEN.IDENTIFIER)
+    yield ps.token(TOKEN.PAR_CLOSE)
+    typesig = yield ps.times(InfFunTypeSig,0,1)
+    yield ps.token(TOKEN.CURL_OPEN)
+    #decls = yield ps.many(VarDecl)
+    #stmts = yield ps.many1(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
     return ""
 
-OpDecl = PrefixOpDecl | InfixOpDecl
+OpDecl = PrefixOpDecl #| InfixOpDecl
 
 
 # TYPES =====================================
@@ -86,24 +112,74 @@ def FunType():
     b = yield RetType
     return (a,b)
 
-# EXPRESSIONS ===================================================
-# Need to be tested
-
-ActStmt = Ass | FunCall
-
-# Kijk naar de "seperated" combinator
 @ps.generate
-def Exp():
-    a = yield ConvExp
-    b = yield many(ps.token(TOKEN.OP_IDENTIFIER) >> ConvExp)
+def PreFunType():
+    a = yield Type
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == "->"))
+    b = yield RetType
     return (a,b)
 
 @ps.generate
-def ConvExp():
-    return
+def PreFunTypeSig():
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "::"))
+    a = yield PreFunType
+    return a
 
 @ps.generate
-def FunCall();
+def InfFunType():
+    a = yield Type
+    b = yield Type
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == "->"))
+    out = yield Type
+    return ((a, b), out)
+
+@ps.generate
+def InfFunTypeSig():
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "::"))
+    a = yield InfFunType
+    return a
+
+
+# EXPRESSIONS ===================================================
+# Need to be tested
+
+@ps.generate
+def Exp():
+    a = yield ConvExp
+    b = yield ps.many(ExpMore)
+    return [a, *b]
+
+@ps.generate
+def ExpMore():
+    op = yield ps.token(TOKEN.OP_IDENTIFIER) 
+    exp = yield ConvExp
+    return (op, exp)
+
+@ps.generate
+def PrefixOpExp():
+    op = yield ps.token(TOKEN.OP_IDENTIFIER) 
+    exp = yield Exp
+    return (op, exp)
+
+@ps.generate
+def ExpLiteral():
+    # Choice without backtrack fine here because they're all single tokens
+    tok = yield ps.token(TOKEN.INT) | ps.token(TOKEN.CHAR) | ps.token(TOKEN.STRING) | ps.token(TOKEN.BOOL) | ps.token(TOKEN.EMPTY_LIST)
+    return tok.val
+
+@ps.generate
+def ExpSub():
+    yield ps.token(TOKEN.PAR_OPEN)
+    subexp = yield Exp
+    yield ps.token(TOKEN.PAR_CLOSE)
+    return subexp
+
+ConvExp = IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub
+
+
+# STATEMENTS ====================================================
+@ps.generate
+def FunCall():
     fname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
     args = yield ps.optional(ActArgs)
@@ -113,16 +189,18 @@ def FunCall();
 @ps.generate
 def ActArgs():
     a = yield Exp
-    b = yield many(ps.token(TOKEN.OP_IDENTIFIER) >> ConvExp)
+    b = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER) >> ConvExp)
     return (a,b)
 
 @ps.generate
 def Ass():
-    varname = yield ps.token(TOKEN.identifier)
-    field = yield many(Field)
+    var = yield IdField
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
     expression = yield Exp
     return (varname, field, expression)
+
+ActStmt = Ass | FunCall
+
 
 
 
@@ -133,6 +211,10 @@ def parseTokenStream(instream):
     pass
 
 
+prefixtest = '''
+
+prefix *%* (a) :: { }
+'''
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -171,8 +253,19 @@ prefix !! (x){
     testprog = io.StringIO('''
 Int -> Void
 ''')
+
+    testprog = io.StringIO('''
+a + + b - 2 * "heyo" - - False + (2*2) - []
+''')
+
+    testprog3 = io.StringIO('''
+("heyo" + + False) - myvar.snd
+''')
     #print(list(tokenize(testprog)))
-    FunType.parse(list(tokenize(testprog)))
+    #Type.parse(test2)
+    #Dumb_PrefixOpDecl.parse(list(tokenize(io.StringIO(prefixtest))))
+    #print(list(tokenize(testprog)))
+    Exp.parse(list(tokenize(testprog3)))
 
     exit()
 

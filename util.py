@@ -72,7 +72,7 @@ class Token():
         return "<{} @{}{}>".format(self.typ.name, self.pos, ", " + str(self.val) if self.val is not None else "")
 
     def __repr__(self):
-        return str(self)
+        return self.pretty()
         
     def mini_str(self):
         return "<{}>".format(self.typ.name)

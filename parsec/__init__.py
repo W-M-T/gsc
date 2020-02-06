@@ -457,6 +457,7 @@ def count(p, n):
     return times(p, n, n)
 
 
+# Watch out: when p fails, the input is still consumed!
 def optional(p, default_value=None):
     '''`Make a parser as optional. If success, return the result, otherwise return
     default_value silently, without raising any exception. If default_value is not
