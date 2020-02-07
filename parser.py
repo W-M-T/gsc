@@ -151,13 +151,13 @@ def Exp():
 
 @ps.generate
 def ExpMore():
-    op = yield ps.token(TOKEN.OP_IDENTIFIER) 
+    op = yield ps.token(TOKEN.OP_IDENTIFIER)
     exp = yield ConvExp
     return (op, exp)
 
 @ps.generate
 def PrefixOpExp():
-    op = yield ps.token(TOKEN.OP_IDENTIFIER) 
+    op = yield ps.token(TOKEN.OP_IDENTIFIER)
     exp = yield Exp
     return (op, exp)
 
@@ -259,13 +259,13 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 ''')
 
     testprog3 = io.StringIO('''
-("heyo" + + False) - myvar.snd
+("heyo" + + False) - myvar.snd a
 ''')
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
     #Dumb_PrefixOpDecl.parse(list(tokenize(io.StringIO(prefixtest))))
     #print(list(tokenize(testprog)))
-    Exp.parse(list(tokenize(testprog3)))
+    Exp.parse_strict(list(tokenize(testprog3)))
 
     exit()
 
