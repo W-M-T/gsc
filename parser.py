@@ -57,6 +57,19 @@ def InfixOpDecl():
     yield ps.token(TOKEN.CURL_CLOSE)
     return ""
 
+@ps.generate
+def VarDecl():
+    typ = yield (ps.token(TOKEN.VAR) | Type)
+    varname = yield ps.token(TOKEN.IDENTIFIER)
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
+    expr = yield Exp
+    yield ps.token(TOKEN.SEMICOLON)
+    return (typ, varname, expr)
+
+@ps.generate
+def FunDecl():
+    
+
 OpDecl = PrefixOpDecl #| InfixOpDecl
 
 
@@ -139,7 +152,80 @@ def InfFunTypeSig():
     a = yield InfFunType
     return a
 
+# CONTROL FLOW ==================================================
+@ps.generate
+def StmtIfElse():
+    yield ps.token(TOKEN.IF)
+    yield ps.token(TOKEN.PAR_OPEN)
+    condition = yield Exp
+    yield ps.token(TOKEN.PAR_CLOSE)
+    yield ps.token(TOKEN.CURL_OPEN)
+    if_contents = yield ps.many(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    elifs = yield ps.many(StmtElif)
+    elses = yield ps.times(StmtElse, 0,1)
+    return (condition, if_contents, elifs, elses)
 
+@ps.generate
+def StmtElif():
+    yield ps.token(TOKEN.ELIF)
+    yield ps.token(TOKEN.PAR_OPEN)
+    condition = yield Exp
+    yield ps.token(TOKEN.PAR_CLOSE)
+    yield ps.token(TOKEN.CURL_OPEN)
+    contents = yield ps.many(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    return (condition, contents)
+
+@ps.generate
+def StmtElse():
+    yield ps.token(TOKEN.ELSE)
+    yield ps.token(TOKEN.CURL_OPEN)
+    contents = yield ps.many(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    return contents
+
+@ps.generate
+def StmtWhile():
+    yield ps.token(TOKEN.WHILE)
+    yield ps.token(TOKEN.PAR_OPEN)
+    expr = yield Exp
+    yield ps.token(TOKEN.PAR_CLOSE)
+    yield ps.token(TOKEN.CURL_OPEN)
+    contents = yield ps.many(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    return (expr, contents)
+
+@ps.generate
+def StmtFor():
+    yield ps.token(TOKEN.FOR)
+    yield ps.token(TOKEN.PAR_OPEN)
+    initial = yield ps.times(ActStmt, 0,1)
+    yield ps.token(TOKEN.SEMICOLON)
+    condition = yield Exp
+    yield ps.token(TOKEN.SEMICOLON)
+    update = yield ActStmt
+    yield ps.token(TOKEN.PAR_CLOSE)
+    yield ps.token(TOKEN.CURL_OPEN)
+    contents = ps.many(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    return (initial, condition, update, contents)
+
+@ps.generate
+def StmtActSem():
+    a = yield ActStmt
+    yield ps.token(TOKEN.SEMICOLON)
+    return a
+
+@ps.generate
+def StmtRet():
+    yield ps.token(TOKEN.RETURN)
+    expr = yield ps.times(Exp, 0,1)
+    yield ps.token(TOKEN.SEMICOLON)
+    return expr
+
+
+Stmt = StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet
 # EXPRESSIONS ===================================================
 # Need to be tested
 
@@ -182,7 +268,7 @@ ConvExp = IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub
 def FunCall():
     fname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
-    args = yield ps.optional(ActArgs)
+    args = yield ps.times(ActArgs, 0,1)
     yield ps.token(TOKEN.PAR_CLOSE)
 
 # Kijk naar de "seperated" combinator
@@ -259,7 +345,7 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 ''')
 
     testprog3 = io.StringIO('''
-("heyo" + + False) - myvar.snd a
+("heyo" + + False) - myvar.snd
 ''')
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
