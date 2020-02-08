@@ -13,6 +13,9 @@ TypeSyns
 Type (replace with tri-or everywhere?)
     real type (type_identifier or TupleType or ListType)
 
+FunType
+	list of Type, Type
+
 TupleType
     Type, Type
 

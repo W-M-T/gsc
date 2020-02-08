@@ -2,6 +2,7 @@
 
 from util import pointToPosition, Position, TOKEN, Token, Node
 import parsec as ps
+from AST import AST
 
 # Evaluate return types
 
@@ -68,7 +69,7 @@ def VarDecl():
 
 @ps.generate
 def FunDecl():
-    
+    pass
 
 OpDecl = PrefixOpDecl #| InfixOpDecl
 
