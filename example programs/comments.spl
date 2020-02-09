@@ -1,0 +1,19 @@
+/* test comment */
+Int a = 5; /* test
+
+
+*/
+
+Char a = '\n';
+Var test = "hahaha//test";
+
+// Int b = 'a';
+
+
+/*
+
+/*
+Var innertest = "inner";
+*\/
+
+*/

@@ -66,9 +66,8 @@ def VarDecl():
     yield ps.token(TOKEN.SEMICOLON)
     return (typ, varname, expr)
 
-@ps.generate
-def FunDecl():
-    
+#@ps.generate
+#def FunDecl():
 
 OpDecl = PrefixOpDecl #| InfixOpDecl
 
@@ -355,16 +354,16 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 
     exit()
 
+    '''
     with open(args.infile, "r") as infile:
         tokenstream = tokenize(infile)
         parseTokenStream(tokenstream)
-        '''
         tokenlist = list(tokenstream)
         import random
         randtoken = random.choice(tokenlist)
         print(randtoken)
         print(pointToPosition(infile, randtoken.pos))
-        '''
+    '''
 
     print("DONE")
 
