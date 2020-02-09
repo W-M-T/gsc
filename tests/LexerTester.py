@@ -90,14 +90,24 @@ class LexerTester(unittest.TestCase):
                 self.compare(REG_STR, '"{}"'.format(s), "String %s was not matched")
 
     def test_lexer_failure_examples(self):
-        for test_file in os.listdir('lexer'):
+        for test_file in os.listdir('lexer/failure/'):
             with self.subTest():
-                proc = subprocess.run(["../lexer.py", "lexer/" + test_file],
+                proc = subprocess.run(["../lexer.py", "lexer/failure/" + test_file],
                     stdout = subprocess.PIPE,
                     stderr = subprocess.STDOUT,
                 )
         
                 self.assertNotEqual(proc.returncode, 0)
+
+    def test_lexer_success_examples(self):
+        for test_file in os.listdir('lexer/success/'):
+            with self.subTest():
+                proc = subprocess.run(["../lexer.py", "lexer/success/" + test_file],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.STDOUT,
+                )
+        
+                self.assertEqual(proc.returncode, 0)
              
 if __name__ == '__main__':
     unittest.main()
