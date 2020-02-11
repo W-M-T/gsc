@@ -127,7 +127,7 @@ def prefix_val_literal(string): # TODO improve this code
     if tempmatch:
         found_id = tempmatch.group(0)
         rest = string[len(found_id):]
-        return (True, rest, TOKEN.INT, int(found_id)) # TODO: consider whether this can produce errors
+        return (True, rest, TOKEN.INT, int(found_id))
     tempmatch = REG_STR.match(string)
     if tempmatch:
         found_id = tempmatch.group(0)
