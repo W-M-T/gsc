@@ -41,7 +41,7 @@ Return
     Expr
 
 Assignment
-    identifier, Expr #TODO consider accessors
+    VarRef, Expr
 
 FunCall
     identifier, list of Expr
@@ -54,9 +54,9 @@ DeferredExpr
 
 ParsedExpr
     Literal
-    Identifier
+    VarRef
     Funcall on list of ParsedExpr
 
+VarRef
+	identifier, list of Field
 
-
-#TODO decide what to do with accessors: function calls or not?
