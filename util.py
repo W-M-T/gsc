@@ -11,55 +11,63 @@ class TOKEN(IntEnum): # auto() for python >3.5
     WHILE           = 5
     FOR             = 6
     RETURN          = 7
-    PREFIX          = 8
-    INFIXL          = 9
-    INFIXR          = 10
-    TYPESYN         = 11
-    BOOL            = 12
-    EMPTY_LIST      = 13
-    CHAR            = 14
-    INT             = 15
-    STRING          = 16
-    PAR_OPEN        = 17
-    PAR_CLOSE       = 18
-    CURL_OPEN       = 19
-    CURL_CLOSE      = 20
-    BRACK_OPEN      = 21
-    BRACK_CLOSE     = 22
-    SEMICOLON       = 23
-    ACCESSOR        = 24
-    IDENTIFIER      = 25
-    OP_IDENTIFIER   = 26
-    TYPE_IDENTIFIER = 27
+    BREAK           = 8
+    CONTINUE        = 9
+    PREFIX          = 10
+    INFIXL          = 11
+    INFIXR          = 12
+    TYPESYN         = 13
+    BOOL            = 14
+    EMPTY_LIST      = 15
+    CHAR            = 16
+    INT             = 17
+    STRING          = 18
+    PAR_OPEN        = 19
+    PAR_CLOSE       = 20
+    CURL_OPEN       = 21
+    CURL_CLOSE      = 22
+    BRACK_OPEN      = 23
+    BRACK_CLOSE     = 24
+    SEMICOLON       = 25
+    ACCESSOR        = 26
+    IDENTIFIER      = 27
+    OP_IDENTIFIER   = 28
+    TYPE_IDENTIFIER = 29
+    IMPORT          = 30
+    FROM            = 31
 
 PRETTY_TOKEN = {
-    TOKEN.VAR             : (lambda x  : "var"),
-    TOKEN.IF              : (lambda x  : "if"),
-    TOKEN.ELIF            : (lambda x  : "elif"),
-    TOKEN.ELSE            : (lambda x  : "else"),
-    TOKEN.WHILE           : (lambda x  : "while"),
-    TOKEN.FOR             : (lambda x  : "for"),
-    TOKEN.RETURN          : (lambda x  : "return"),
-    TOKEN.PREFIX          : (lambda x  : "prefix"),
-    TOKEN.INFIXL          : (lambda x  : "infixl"),
-    TOKEN.INFIXR          : (lambda x  : "infixr"),
-    TOKEN.TYPESYN         : (lambda x  : "type"),
-    TOKEN.BOOL            : (lambda x  : x.val),
-    TOKEN.EMPTY_LIST      : (lambda x  : "[]"),
-    TOKEN.CHAR            : (lambda x  : "(CHAR){}".format(x.val)),
-    TOKEN.INT             : (lambda x  : x.val),
-    TOKEN.STRING          : (lambda x  : "(STRING){}".format(x.val)),
-    TOKEN.PAR_OPEN        : (lambda x  : "("),
-    TOKEN.PAR_CLOSE       : (lambda x  : ")"),
-    TOKEN.CURL_OPEN       : (lambda x  : "{"),
-    TOKEN.CURL_CLOSE      : (lambda x  : "}"),
-    TOKEN.BRACK_OPEN      : (lambda x  : "["),
-    TOKEN.BRACK_CLOSE     : (lambda x  : "]"),
-    TOKEN.SEMICOLON       : (lambda x  : ";"),
-    TOKEN.ACCESSOR        : (lambda x  : "(ACC){}".format(x.val)),
-    TOKEN.IDENTIFIER      : (lambda x  : "(ID){}".format(x.val)),
-    TOKEN.OP_IDENTIFIER   : (lambda x  : "(OP){}".format(x.val)),
-    TOKEN.TYPE_IDENTIFIER : (lambda x  : "(TYPE){}".format(x.val))
+    TOKEN.VAR             : (lambda x : "var"),
+    TOKEN.IF              : (lambda x : "if"),
+    TOKEN.ELIF            : (lambda x : "elif"),
+    TOKEN.ELSE            : (lambda x : "else"),
+    TOKEN.WHILE           : (lambda x : "while"),
+    TOKEN.FOR             : (lambda x : "for"),
+    TOKEN.RETURN          : (lambda x : "return"),
+    TOKEN.BREAK           : (lambda x : "break"),
+    TOKEN.CONTINUE        : (lambda x : "continue"),
+    TOKEN.PREFIX          : (lambda x : "prefix"),
+    TOKEN.INFIXL          : (lambda x : "infixl"),
+    TOKEN.INFIXR          : (lambda x : "infixr"),
+    TOKEN.TYPESYN         : (lambda x : "type"),
+    TOKEN.BOOL            : (lambda x : x.val),
+    TOKEN.EMPTY_LIST      : (lambda x : "[]"),
+    TOKEN.CHAR            : (lambda x : "(CHAR){}".format(x.val)),
+    TOKEN.INT             : (lambda x : x.val),
+    TOKEN.STRING          : (lambda x : "(STRING){}".format(x.val)),
+    TOKEN.PAR_OPEN        : (lambda x : "("),
+    TOKEN.PAR_CLOSE       : (lambda x : ")"),
+    TOKEN.CURL_OPEN       : (lambda x : "{"),
+    TOKEN.CURL_CLOSE      : (lambda x : "}"),
+    TOKEN.BRACK_OPEN      : (lambda x : "["),
+    TOKEN.BRACK_CLOSE     : (lambda x : "]"),
+    TOKEN.SEMICOLON       : (lambda x : ";"),
+    TOKEN.ACCESSOR        : (lambda x : "(ACC){}".format(x.val)),
+    TOKEN.IDENTIFIER      : (lambda x : "(ID){}".format(x.val)),
+    TOKEN.OP_IDENTIFIER   : (lambda x : "(OP){}".format(x.val)),
+    TOKEN.TYPE_IDENTIFIER : (lambda x : "(TYPE){}".format(x.val)),
+    TOKEN.IMPORT          : (lambda x : "import"),
+    TOKEN.FROM            : (lambda x : "from"),
 }
 
 class Token():

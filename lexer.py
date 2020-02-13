@@ -13,25 +13,29 @@ Refactor tokenize along repeating pattern to improve readability
 # Constants
 
 KEYWORDS = {
-    "var"    : TOKEN.VAR,
-    "if"     : TOKEN.IF,
-    "elif"   : TOKEN.ELIF,
-    "else"   : TOKEN.ELSE,
-    "while"  : TOKEN.WHILE,
-    "for"    : TOKEN.FOR,
-    "return" : TOKEN.RETURN,
-    "prefix" : TOKEN.PREFIX,
-    "infixl" : TOKEN.INFIXL,
-    "infixr" : TOKEN.INFIXR,
-    "type"   : TOKEN.TYPESYN
+    "var"      : TOKEN.VAR,
+    "if"       : TOKEN.IF,
+    "elif"     : TOKEN.ELIF,
+    "else"     : TOKEN.ELSE,
+    "while"    : TOKEN.WHILE,
+    "for"      : TOKEN.FOR,
+    "return"   : TOKEN.RETURN,
+    "break"    : TOKEN.BREAK,
+    "continue" : TOKEN.CONTINUE,
+    "prefix"   : TOKEN.PREFIX,
+    "infixl"   : TOKEN.INFIXL,
+    "infixr"   : TOKEN.INFIXR,
+    "type"     : TOKEN.TYPESYN,
+    "import"   : TOKEN.IMPORT,
+    "from"     : TOKEN.FROM,
 }
 BOOLS = {
     "True"  : TOKEN.BOOL,
-    "False" : TOKEN.BOOL
+    "False" : TOKEN.BOOL,
 }
 VALUES = {
     **BOOLS,
-    "[]"    : TOKEN.EMPTY_LIST
+    "[]"    : TOKEN.EMPTY_LIST,
 }
 COMBINED_KEYWORDS = {**KEYWORDS, **VALUES}
 KEYWORD_LIST = list(COMBINED_KEYWORDS.keys())
@@ -44,7 +48,6 @@ SCOPING_SYMBOLS = {
     "["  : TOKEN.BRACK_OPEN,
     "]"  : TOKEN.BRACK_CLOSE,
     ";"  : TOKEN.SEMICOLON,
-
 }
 ACCESSORS = {
     ".hd"  : TOKEN.ACCESSOR,
