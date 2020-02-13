@@ -4,13 +4,6 @@ import sys as _sys
 from keyword import iskeyword as _iskeyword
 from operator import itemgetter as _itemgetter
 
-class AST:
-    SPL     = syntaxnode("SPL", "imports", "decls")
-    VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
-
-    TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
-
-
 
 def syntaxnode(typename, *field_names, module=None):
     # Factory method for syntax construct classes
@@ -64,10 +57,15 @@ def syntaxnode(typename, *field_names, module=None):
         'Return a nicely formatted representation string'
         return self.__class__.__name__ + repr_fmt.format(**{key: getattr(self,key) for key in self._fields})
 
+    def tree_string(self):
+        substrings = list(map(lambda x: "{} = {}".format(x, getattr(self, x).tree_string() if 'tree_string' in dir(getattr(self, x)) else (getattr(self, x)).__repr__() + "\n"), field_names))
+        indented = "\n".join(list(map(lambda x: "\n".join(map(lambda y: "    " + y, x.rstrip().split("\n"))), substrings)))
+        return "{}:\n{}".format(self.__class__.__name__, indented)
+
 
     # Modify function metadata to help with introspection and debugging
 
-    for method in (__new__, __init__, __iter__, __repr__ ):
+    for method in (__new__, __init__, __iter__, __repr__, tree_string ):
         method.__qualname__ = '{}.{}'.format(typename, method.__name__)
 
     # Build-up the class namespace dictionary
@@ -79,6 +77,7 @@ def syntaxnode(typename, *field_names, module=None):
         '__init__':__init__,
         '__iter__':__iter__,
         '__repr__': __repr__,
+        'tree_string': tree_string,
     }
 
 
@@ -101,8 +100,35 @@ def syntaxnode(typename, *field_names, module=None):
 
 
 
+# Where do we track type information of expressions / variables / functions?
+# Also: where do we document the types of the attributes of these nodes?
+class AST:
+    SPL     = syntaxnode("SPL", "imports", "decls")
+    VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
+
+    BASICTYPE = syntaxnode("BASICTYPE", "name")# Change to something like TYPEID?
+    # Check whether type variables are required. Not part of the starting grammar / current grammar.
+    TUPLETYPE = syntaxnode("TUPLETYPE", "a", "b")
+    LISTTYPE = syntaxnode("LISTTYPE", "type")
+    FUNTYPE = syntaxnode("FUNTYPE", "from_type", "to_type")
+
+    TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
+
+    FUNCALL = syntaxnode("FUNCALL", "id", "kind", "args")
+
+    RETURN = syntaxnode("RETURN", "expr")
 
 
 
 if __name__ == "__main__":
-    print(AST.TYPESYN(type_id = "String", def_type = "[Char]"))
+    #print(AST.BASICTYPE(name = "String").tree_string())
+    print(AST.TYPESYN(
+        type_id = AST.BASICTYPE(
+            name = "String"
+            ),
+        def_type = AST.LISTTYPE(
+            type = AST.BASICTYPE(
+                name = "Char"
+                )
+            )
+        ).tree_string())

@@ -10,8 +10,11 @@ FunDecl
 TypeSyns
     type identifier, type
 
-Type (replace with tri-or everywhere?)
+Type
     real type (type_identifier or TupleType or ListType)
+
+FunType
+	list of Type, Type
 
 TupleType
     Type, Type
@@ -29,28 +32,31 @@ IfElse
     list of (Expr, Stmt*) (last one can have None Expr)
 
 Loop
-    #TBD
+    optional ActStmt, optional Expr, optional ActStmt, list of Stmt
 
-ActStmt (maybe factor out just like type)
+ActStmt
     Assignment or FunCall
 
 Return
     Expr
 
 Assignment
-    identifier, Expr #TODO consider accessors
+    VarRef, Expr
 
 FunCall
     identifier, list of Expr
 
-DeferedExpr
+Expr
+	DeferredExpr or ParsedExpr
+
+DeferredExpr
     list of terms and ops
 
 ParsedExpr
     Literal
-    Identifier
+    VarRef
     Funcall on list of ParsedExpr
 
+VarRef
+	identifier, list of Field
 
-
-#TODO decide what to do with accessors: function calls or not?

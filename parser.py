@@ -2,6 +2,7 @@
 
 from util import pointToPosition, Position, TOKEN, Token, Node
 import parsec as ps
+from AST import AST
 
 # Evaluate return types
 
@@ -66,8 +67,10 @@ def VarDecl():
     yield ps.token(TOKEN.SEMICOLON)
     return (typ, varname, expr)
 
-#@ps.generate
-#def FunDecl():
+@ps.generate
+def FunDecl():
+    pass
+
 
 OpDecl = PrefixOpDecl #| InfixOpDecl
 
