@@ -3,7 +3,7 @@
 import sys as _sys
 from keyword import iskeyword as _iskeyword
 from operator import itemgetter as _itemgetter
-
+from enum import IntEnum
 
 def syntaxnode(typename, *field_names, module=None):
     # Factory method for syntax construct classes
@@ -99,36 +99,65 @@ def syntaxnode(typename, *field_names, module=None):
     return result
 
 
+class FunKind(IntEnum):
+    FUNC   = 1
+    PREFIX = 2
+    INFIXL = 3
+    INFIXR = 4
+
+class Accessor(IntEnum):
+    HD = 1
+    TL = 2
+    FST = 3
+    SND = 4
+
 
 # Where do we track type information of expressions / variables / functions?
 # Also: where do we document the types of the attributes of these nodes?
 class AST:
     SPL     = syntaxnode("SPL", "imports", "decls")
-    VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
 
-    BASICTYPE = syntaxnode("BASICTYPE", "name")# Change to something like TYPEID?
-    # Check whether type variables are required. Not part of the starting grammar / current grammar.
+    DECL = syntaxnode("DECL", "val")
+    VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
+    FUNDECL = syntaxnode("FUNDECL", "kind", "id", "params", "type", "vardecls", "stmts")
+    TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
+
+    TYPE = syntaxnode("TYPE", "val")
+    BASICTYPE = syntaxnode("BASICTYPE", "type_id")
     TUPLETYPE = syntaxnode("TUPLETYPE", "a", "b")
     LISTTYPE = syntaxnode("LISTTYPE", "type")
     FUNTYPE = syntaxnode("FUNTYPE", "from_type", "to_type")
 
-    TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
+    STMT = syntaxnode("STMT", "val")
 
-    FUNCALL = syntaxnode("FUNCALL", "id", "kind", "args")
+    IFELSE = syntaxnode("IFELSE", "condbranches")
+    CONDBRANCH = syntaxnode("CONDBRANCH", "expr", "stmts")
+    LOOP = syntaxnode("LOOP", "init", "cond", "update", "stmts")
+    
+    ACTSTMT = syntaxnode("ACTSTMT", "val")
 
     RETURN = syntaxnode("RETURN", "expr")
+    BREAK = syntaxnode("BREAK")
+    CONTINUE = syntaxnode("CONTINUE")
 
+    ASSIGNMENT = syntaxnode("ASSIGNMENT", "varref", "expr")
+    FUNCALL = syntaxnode("FUNCALL", "id", "kind", "args")
+
+    DEFERREDEXPR = syntaxnode("DEFERREDEXPR", "contents")
+    PARSEDEXPR = syntaxnode("PARSEDEXPR", "val")
+
+    VARREF = syntaxnode("VARREF", "id", "fields")
 
 
 if __name__ == "__main__":
     #print(AST.BASICTYPE(name = "String").tree_string())
     print(AST.TYPESYN(
         type_id = AST.BASICTYPE(
-            name = "String"
+            type_id = "String"
             ),
         def_type = AST.LISTTYPE(
             type = AST.BASICTYPE(
-                name = "Char"
+                type_id = "Char"
                 )
             )
         ).tree_string())

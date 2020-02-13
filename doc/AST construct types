@@ -1,5 +1,10 @@
 SPL
-    list of VarDecl, FunDecl, TypeSyns
+    list of imports, list of Decl
+
+Decl
+	VarDecl
+	FunDecl
+	TypeSyns
 
 VarDecl
     optional type, identifier, expression
@@ -11,7 +16,10 @@ TypeSyns
     type identifier, type
 
 Type
-    real type (type_identifier or TupleType or ListType)
+	BasicType
+    FunType
+	TupleType
+	ListType
 
 FunType
 	list of Type, Type
@@ -23,31 +31,40 @@ ListType
     Type
 
 Stmt
-    IfElse or
-    Loop (TBD) or
-    ActStmt or
+    IfElse
+    Loop
+    ActStmt
     Return
+	Break
+	Continue
 
 IfElse
-    list of (Expr, Stmt*) (last one can have None Expr)
+    list of CondBranch (last one can have None Expr)
+
+CondBranch
+	optional Expr, list of Stmt
 
 Loop
     optional ActStmt, optional Expr, optional ActStmt, list of Stmt
 
 ActStmt
-    Assignment or FunCall
+    Assignment
+	FunCall
 
 Return
     Expr
+
+Break
+	-
+
+Continue
+	-
 
 Assignment
     VarRef, Expr
 
 FunCall
-    identifier, list of Expr
-
-Expr
-	DeferredExpr or ParsedExpr
+    identifier, kind, list of Expr
 
 DeferredExpr
     list of terms and ops
@@ -55,7 +72,7 @@ DeferredExpr
 ParsedExpr
     Literal
     VarRef
-    Funcall on list of ParsedExpr
+    Funcall (on list of ParsedExpr)
 
 VarRef
 	identifier, list of Field

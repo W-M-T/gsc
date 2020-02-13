@@ -47,6 +47,8 @@ Stmt        = 'if' '(' Exp ')' '{' Stmt* '}' ('elif' '(' Exp ')' '{' Stmt* '}')*
             | 'for' '(' [ActStmt] ';' [Exp] ';' [ActStmt] ')' '{' Stmt* '}'
             | ActStmt ';'
             | 'return' [Exp] ';'
+            | 'break' ';'
+            | 'continue' ';'
 
 ActStmt     = Ass 
             | FunCall
