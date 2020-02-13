@@ -7,7 +7,7 @@ Decl        = VarDecl
 
 ImportDecl  = 'from' AnyId 'import' ImportList
 
-ImportList  = '*' | ImportName+
+ImportList  = '*' | ImportName (',' ImportName)*
 
 ImportName  = AnyId [as AnyId]
 
@@ -44,10 +44,9 @@ FArgs       = id (',' id)*
 
 Stmt        = 'if' '(' Exp ')' '{' Stmt* '}' ('elif' '(' Exp ')' '{' Stmt* '}')* ['else' '{' Stmt* '}']
             | 'while' '(' Exp ')' '{' Stmt* '}'
-            | 'for' '(' [ActStmt] ';' Exp ';' ActStmt ')' '{' Stmt* '}'
+            | 'for' '(' [ActStmt] ';' [Exp] ';' [ActStmt] ')' '{' Stmt* '}'
             | ActStmt ';'
             | 'return' [Exp] ';'
-# for loop niet verplichten een condition of update te hebben?
 
 ActStmt     = Ass 
             | FunCall

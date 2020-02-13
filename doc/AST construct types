@@ -10,7 +10,7 @@ FunDecl
 TypeSyns
     type identifier, type
 
-Type (replace with tri-or everywhere?)
+Type
     real type (type_identifier or TupleType or ListType)
 
 FunType
@@ -32,9 +32,9 @@ IfElse
     list of (Expr, Stmt*) (last one can have None Expr)
 
 Loop
-    #TBD
+    optional ActStmt, optional Expr, optional ActStmt, list of Stmt
 
-ActStmt (maybe factor out just like type)
+ActStmt
     Assignment or FunCall
 
 Return
@@ -46,7 +46,10 @@ Assignment
 FunCall
     identifier, list of Expr
 
-DeferedExpr
+Expr
+	DeferredExpr or ParsedExpr
+
+DeferredExpr
     list of terms and ops
 
 ParsedExpr
