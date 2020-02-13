@@ -94,8 +94,3 @@ upperalpha  = A..Z
 
 alphaNum    = a..z | A..Z | 0..9
 
-
-
-
-Still missing:
-import statement (syntax needs to be decided)
