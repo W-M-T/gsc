@@ -6,16 +6,9 @@ before_script:
 stages:
   - test
 
-test_regex:
+test_lexer:
   stage: test
   script: 
     - cd tests/ 
-    - python3 RegexTester.py
+    - python3 LexerTester.py -v
   allow_failure: true
-
-test_lexer:
-    stage: test
-    script: 
-      - cd tests/
-      - ./LexerTester.sh
-    allow_failure: true

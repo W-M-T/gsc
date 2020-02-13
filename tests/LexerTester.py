@@ -2,22 +2,28 @@
 
 import unittest
 import string
+import subprocess
 import sys
+import os
 
+# Makes it possible to import from the lexer
 sys.path.insert(0, '../')
 
 from lexer import REG_ID, REG_OP, REG_INT, REG_STR, REG_CHR
 
-class RegexTester(unittest.TestCase):
+class LexerTester(unittest.TestCase):
 
     """
-    Test the regexes that are used to match the tokens.
+    Test the regexes that are used to match the tokens and that source files with unexpected symbols result in failure.
     """
 
     disallowed = ['\0','\a','\b','\f','\n','\r','\t','\v','\\','\"','\'']
     allowed = ['\\0', '\\a', '\\b', '\\f', '\\n', '\\r', '\\t', '\\v', '\\\\', '\\\'', '\\\"']
 
     def compare(self, regex, value, msg):
+        """
+        Helper function that compares the lexed value with expected value
+        """
         r = regex.match(value)
         self.assertIsNotNone(r, msg % value)
         if r is not None:
@@ -83,6 +89,25 @@ class RegexTester(unittest.TestCase):
             with self.subTest():
                 self.compare(REG_STR, '"{}"'.format(s), "String %s was not matched")
 
+    def test_lexer_failure_examples(self):
+        for test_file in os.listdir('lexer/failure/'):
+            with self.subTest():
+                proc = subprocess.run(["../lexer.py", "lexer/failure/" + test_file],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.STDOUT,
+                )
+        
+                self.assertNotEqual(proc.returncode, 0)
 
+    def test_lexer_success_examples(self):
+        for test_file in os.listdir('lexer/success/'):
+            with self.subTest():
+                proc = subprocess.run(["../lexer.py", "lexer/success/" + test_file],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.STDOUT,
+                )
+        
+                self.assertEqual(proc.returncode, 0)
+             
 if __name__ == '__main__':
     unittest.main()
