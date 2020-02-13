@@ -117,6 +117,10 @@ class Accessor(IntEnum):
 class AST:
     SPL     = syntaxnode("SPL", "imports", "decls")
 
+    IMPORT = syntaxnode("IMPORT", "name", "importlist")
+    IMPORTLIST = syntaxnode("IMPORTLIST", "imports")
+    IMPORTNAME = syntaxnode("IMPORTNAME", "name", "alias")
+
     DECL = syntaxnode("DECL", "val")
     VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
     FUNDECL = syntaxnode("FUNDECL", "kind", "id", "params", "type", "vardecls", "stmts")

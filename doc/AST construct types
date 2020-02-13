@@ -1,5 +1,14 @@
 SPL
-    list of imports, list of Decl
+    list of Import, list of Decl
+
+Import
+	name (identifier or type identifier), ImportList
+
+ImportList
+	optional list of ImportName (None = *)
+
+ImportName
+	name, optional name
 
 Decl
 	VarDecl
