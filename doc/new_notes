@@ -15,3 +15,19 @@ geen relatieve imports: bestandslocatie geregeld op compilerniveau
 
 operator fixities zelfde als haskell, los het zelf maar op met haakjess
 je hoeft niet alle functies te importeren die door een andere functie gebruikt worden: het wordt impliciet wel geimporteerd maar je kunt er niet naar refereren
+
+Polymorfisme:
+
+In het geval van polymorfisme moet je het variable type defineren met een hoofdletter, het kan dus voorkomen dat deze naam hetzelfde is als een eerder gedefineerd type synoniem, in welk geval de compiler dus dit type synoniem zou overnemen. Wij vinden dit echter geen probleem, aangezien de conventie in de meeste talen (java, haskell, clean) is dat je variable type een single character is. De kans dat deze dan een collision vormt met een eerder gedefineerd type is dan klein, aangezien het idee van type synoniemen is dat je duidelijkheid kan geven aan de typering van bepaalde variablen wat zeker niet het geval is als je een single letter type introduceert.
+
+Integer:
+
+Getallen zijn altijd signed, negatieve literals worden geimplementeerd als positieve literals met een prefix negatie operator.
+
+We defineren onze eigen MAX_INT en MIN_INT constanten om de edge cases van het integer domein te kunnen gebruiken.
+
+Loops:
+We voegen zowel de break als het continue statement toe aan de taal, aangezien dit handig is het geval van edge cases waarbij je uit de loop wil breaken of juist verder wil gaan. 
+
+Typing:
+In deze fase converten we alle untyped nodes naar typed nodes. Dit geldt voor de FunCall, Expr, VarDecl en FunDecl.   

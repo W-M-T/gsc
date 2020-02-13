@@ -1,0 +1,22 @@
+from StdLib import Print, Exec 
+
+type Number = Int
+
+sum (a, b) :: Number, Number -> Number {
+    return a + b;
+} 
+
+sumPrint (a, b) :: Number, Number -> Void {
+    Print(a + b);;
+} 
+
+
+
+main() {
+    Int a = 5;
+    Int b = 6;
+
+    Print(sum(a, b));
+}
+
+
