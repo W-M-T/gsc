@@ -121,20 +121,33 @@ class AST:
     IMPORTLIST = syntaxnode("IMPORTLIST", "imports")
     IMPORTNAME = syntaxnode("IMPORTNAME", "name", "alias")
 
+    # val :: AST.VARDECL or AST.FUNDECL or AST.TYPESYN
     DECL = syntaxnode("DECL", "val")
+
+    # type :: AST.TYPE or None, id :: TOKEN, expr :: AST.EXPR
     VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
+    # kind :: FunKind, id :: TOKEN, params :: [TOKEN], type :: AST.TYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
     FUNDECL = syntaxnode("FUNDECL", "kind", "id", "params", "type", "vardecls", "stmts")
+    # type_id :: TOKEN, def_type :: AST.TYPE
     TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
 
+    # val :: AST.BASICTYPE or AST.TUPLETYPE or AST.LISTTYPE or AST.FUNTYPE
     TYPE = syntaxnode("TYPE", "val")
+    # type_id :: TOKEN
     BASICTYPE = syntaxnode("BASICTYPE", "type_id")
+    # a :: AST.TYPE, b :: AST.TYPE
     TUPLETYPE = syntaxnode("TUPLETYPE", "a", "b")
+    # type :: AST.TYPE
     LISTTYPE = syntaxnode("LISTTYPE", "type")
-    FUNTYPE = syntaxnode("FUNTYPE", "from_type", "to_type")
+    # from_types :: [AST.TYPE], to_type :: AST.TYPE
+    FUNTYPE = syntaxnode("FUNTYPE", "from_types", "to_type")
 
+    # val :: AST.IFELSE or AST.LOOP or AST.ACTSTMT or AST.RETURN or AST.BREAK or AST.CONTINUE
     STMT = syntaxnode("STMT", "val")
 
+    # condbranches :: [AST.CONDBRANCH]
     IFELSE = syntaxnode("IFELSE", "condbranches")
+    
     CONDBRANCH = syntaxnode("CONDBRANCH", "expr", "stmts")
     LOOP = syntaxnode("LOOP", "init", "cond", "update", "stmts")
     

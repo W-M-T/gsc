@@ -2,9 +2,9 @@
 
 from util import pointToPosition, Position, TOKEN, Token, Node
 import parsec as ps
-from AST import AST
+from AST import AST, FunKind, Accessor
 
-# Evaluate return types
+# TODO Evaluate return types
 
 @ps.generate
 def IdField():
@@ -12,7 +12,6 @@ def IdField():
     fields = yield ps.many(ps.token(TOKEN.ACCESSOR))
     return (i, fields)
 
-# Need to be tested
 @ps.generate
 def PrefixOpDecl():
     yield ps.token(TOKEN.PREFIX)
@@ -21,51 +20,47 @@ def PrefixOpDecl():
     varname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_CLOSE)
     typesig = yield ps.times(PreFunTypeSig,0,1)
+    typesig = None if typesig is [] else None
     yield ps.token(TOKEN.CURL_OPEN)
-    #decls = yield ps.many(VarDecl)
-    #stmts = yield ps.many1(Stmt)
+    decls = None #yield ps.many(VarDecl)
+    found_stmts = None #yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return (operator, varname, typesig)
 
-@ps.generate
-def Dumb_PrefixOpDecl():
-    yield ps.token(TOKEN.PREFIX)
-    operator = yield ps.token(TOKEN.OP_IDENTIFIER)
-    yield ps.token(TOKEN.PAR_OPEN)
-    varname = yield ps.token(TOKEN.IDENTIFIER)
-    yield ps.token(TOKEN.PAR_CLOSE)
-    typesig = yield ps.optional(PreFunTypeSig)
-    yield ps.token(TOKEN.CURL_OPEN)
-    #decls = yield ps.many(VarDecl)
-    #stmts = yield ps.many1(Stmt)
-    yield ps.token(TOKEN.CURL_CLOSE)
-    return (operator, varname, typesig)
+    return AST.FUNDECL(kind=FunKind.PREFIX, id=operator, params=[varname], type=typesig, vardecls=decls, stmts=found_stmts)
 
 @ps.generate
 def InfixOpDecl():
     side = yield (ps.token(TOKEN.INFIXL) | ps.token(TOKEN.INFIXR))
-    fixity = yield ps.token(TOKEN.INT)
+    if side.typ is TOKEN.INFIXL:
+        found_kind = FunKind.INFIXL
+    elif side.typ is TOKEN.INFIXR:
+        found_kind = FunKind.INFIXR
+    else:
+        raise Exception("Should never happen")
+    fixity = yield ps.token(TOKEN.INT) # TODO not in AST yet
     operator = yield ps.token(TOKEN.OP_IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
     a = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
-    b = ps.token(TOKEN.IDENTIFIER)
+    b = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_CLOSE)
     typesig = yield ps.times(InfFunTypeSig,0,1)
     yield ps.token(TOKEN.CURL_OPEN)
-    #decls = yield ps.many(VarDecl)
-    #stmts = yield ps.many1(Stmt)
+    decls = None #yield ps.many(VarDecl)
+    found_stmts = None #yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return ""
+
+    return AST.FUNDECL(kind=found_kind, id=operator, params=[a,b], type=typesig, vardecls=decls, stmts=found_stmts)
 
 @ps.generate
 def VarDecl():
     typ = yield (ps.token(TOKEN.VAR) | Type)
     varname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
-    expr = yield Exp
+    found_expr = yield Exp
     yield ps.token(TOKEN.SEMICOLON)
-    return (typ, varname, expr)
+
+    return AST.VARDECL(type=typ, id=varname, expr=found_expr)
 
 @ps.generate
 def FunDecl():
@@ -116,7 +111,8 @@ def TypeSyn():
     identifier = yield ps.token(TOKEN.TYPE_IDENTIFIER)
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == '='))
     other_type = yield Type
-    return (identifier, other_type)
+
+    return AST.TYPESYN(type_id=identifier, def_type=other_type)
 
 RetType = ps.token(TOKEN.TYPE_IDENTIFIER, cond=(lambda x: x == "Void")) | Type
 
@@ -153,6 +149,7 @@ def InfFunTypeSig():
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "::"))
     a = yield InfFunType
     return a
+
 
 # CONTROL FLOW ==================================================
 @ps.generate
@@ -228,8 +225,9 @@ def StmtRet():
 
 
 Stmt = StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet
+
+
 # EXPRESSIONS ===================================================
-# Need to be tested
 
 @ps.generate
 def Exp():
@@ -301,9 +299,18 @@ def parseTokenStream(instream):
 
 prefixtest = '''
 
-prefix *%* (a) :: { }
+prefix *%* (a) { }
 '''
 
+infixtest = '''
+
+infixl 2 *%*(a,a) { }
+'''
+
+prefixtest2 = '''
+
+prefix *%* (a) :: { }
+'''
 if __name__ == "__main__":
     from argparse import ArgumentParser
     from lexer import tokenize
@@ -338,7 +345,7 @@ prefix !! (x){
     return x;
 }
 ''')
-    testprog = io.StringIO('''
+    testprog2 = io.StringIO('''
 Int -> Void
 ''')
 
@@ -351,9 +358,11 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 ''')
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
-    #Dumb_PrefixOpDecl.parse(list(tokenize(io.StringIO(prefixtest))))
+    tokens = list(tokenize(io.StringIO(infixtest)))
+    print(tokens)
+    InfixOpDecl.parse_strict(tokens)
     #print(list(tokenize(testprog)))
-    Exp.parse_strict(list(tokenize(testprog3)))
+    #Exp.parse_strict(list(tokenize(testprog3)))
 
     exit()
 
@@ -369,4 +378,3 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
     '''
 
     print("DONE")
-

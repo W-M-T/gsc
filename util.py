@@ -53,7 +53,7 @@ PRETTY_TOKEN = {
     TOKEN.BOOL            : (lambda x : x.val),
     TOKEN.EMPTY_LIST      : (lambda x : "[]"),
     TOKEN.CHAR            : (lambda x : "(CHAR){}".format(x.val)),
-    TOKEN.INT             : (lambda x : x.val),
+    TOKEN.INT             : (lambda x : str(x.val)),
     TOKEN.STRING          : (lambda x : "(STRING){}".format(x.val)),
     TOKEN.PAR_OPEN        : (lambda x : "("),
     TOKEN.PAR_CLOSE       : (lambda x : ")"),
