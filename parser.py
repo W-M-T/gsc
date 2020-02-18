@@ -9,8 +9,8 @@ from AST import AST, FunKind, Accessor
 @ps.generate
 def IdField():
     i = yield ps.token(TOKEN.IDENTIFIER)
-    fields = yield ps.many(ps.token(TOKEN.ACCESSOR))
-    return (i, fields)
+    found_fields = yield ps.many(ps.token(TOKEN.ACCESSOR))
+    return AST.VARREF(id=i, fields=found_fields)
 
 @ps.generate
 def PrefixOpDecl():
@@ -26,7 +26,7 @@ def PrefixOpDecl():
     found_stmts = None #yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
 
-    return AST.FUNDECL(kind=FunKind.PREFIX, id=operator, params=[varname], type=typesig, vardecls=decls, stmts=found_stmts)
+    return AST.FUNDECL(kind=FunKind.PREFIX, fixity=None, id=operator, params=[varname], type=typesig, vardecls=decls, stmts=found_stmts)
 
 @ps.generate
 def InfixOpDecl():
@@ -37,7 +37,7 @@ def InfixOpDecl():
         found_kind = FunKind.INFIXR
     else:
         raise Exception("Should never happen")
-    fixity = yield ps.token(TOKEN.INT) # TODO not in AST yet
+    found_fixity = yield ps.token(TOKEN.INT)
     operator = yield ps.token(TOKEN.OP_IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
     a = yield ps.token(TOKEN.IDENTIFIER)
@@ -50,7 +50,7 @@ def InfixOpDecl():
     found_stmts = None #yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
 
-    return AST.FUNDECL(kind=found_kind, id=operator, params=[a,b], type=typesig, vardecls=decls, stmts=found_stmts)
+    return AST.FUNDECL(kind=found_kind, fixity=found_fixity, id=operator, params=[a,b], type=typesig, vardecls=decls, stmts=found_stmts)
 
 @ps.generate
 def VarDecl():
@@ -63,7 +63,7 @@ def VarDecl():
     return AST.VARDECL(type=typ, id=varname, expr=found_expr)
 
 @ps.generate
-def FunDecl():
+def FunDecl():# TODO implement this
     pass
 
 
@@ -76,16 +76,17 @@ BasicTypeChoice = ps.token(TOKEN.TYPE_IDENTIFIER, cond=(lambda x: x == "Int")) |
 @ps.generate
 def BasicType():
     a = yield BasicTypeChoice
-    return "BasicType " + a.val
+
+    return AST.BASICTYPE(type_id=a)
 
 @ps.generate
 def TupType():
     yield ps.token(TOKEN.PAR_OPEN)
-    a = yield Type
+    el1 = yield Type
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
-    b = yield Type
+    el2 = yield Type
     yield ps.token(TOKEN.PAR_CLOSE)
-    return (a,b)
+    return AST.TUPLETYPE(a=el1, b=el2)
 
 
 @ps.generate
@@ -93,7 +94,7 @@ def ListType():
     yield ps.token(TOKEN.BRACK_OPEN)
     a = yield Type
     yield ps.token(TOKEN.BRACK_CLOSE)
-    return [a]
+    return AST.LISTTYPE(type=a)
 
 '''
 @ps.generate
@@ -219,12 +220,24 @@ def StmtActSem():
 @ps.generate
 def StmtRet():
     yield ps.token(TOKEN.RETURN)
-    expr = yield ps.times(Exp, 0,1)
+    found_expr = yield ps.times(Exp, 0,1)
     yield ps.token(TOKEN.SEMICOLON)
-    return expr
+    return AST.RETURN(expr=found_expr)
+
+@ps.generate
+def StmtBreak():
+    yield ps.token(TOKEN.BREAK)
+    yield ps.token(TOKEN.SEMICOLON)
+    return AST.BREAK()
+
+@ps.generate
+def StmtContinue():
+    yield ps.token(TOKEN.CONTINUE)
+    yield ps.token(TOKEN.SEMICOLON)
+    return AST.CONTINUE()
 
 
-Stmt = StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet
+Stmt = StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet ^ StmtBreak ^ StmtContinue
 
 
 # EXPRESSIONS ===================================================

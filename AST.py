@@ -126,12 +126,13 @@ class AST:
 
     # type :: AST.TYPE or None, id :: TOKEN, expr :: AST.EXPR
     VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
-    # kind :: FunKind, id :: TOKEN, params :: [TOKEN], type :: AST.TYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
-    FUNDECL = syntaxnode("FUNDECL", "kind", "id", "params", "type", "vardecls", "stmts")
+    # kind :: FunKind, fixity :: int or None, id :: TOKEN, params :: [TOKEN], type :: AST.TYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
+    FUNDECL = syntaxnode("FUNDECL", "kind", "fixity", "id", "params", "type", "vardecls", "stmts")
     # type_id :: TOKEN, def_type :: AST.TYPE
     TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
 
     # val :: AST.BASICTYPE or AST.TUPLETYPE or AST.LISTTYPE or AST.FUNTYPE
+    # TODO how to capture naked type id (i.e. a typevar)
     TYPE = syntaxnode("TYPE", "val")
     # type_id :: TOKEN
     BASICTYPE = syntaxnode("BASICTYPE", "type_id")
@@ -147,22 +148,29 @@ class AST:
 
     # condbranches :: [AST.CONDBRANCH]
     IFELSE = syntaxnode("IFELSE", "condbranches")
-    
+
+    # expr :: AST.EXPR, stmts :: [AST.STMT]
     CONDBRANCH = syntaxnode("CONDBRANCH", "expr", "stmts")
+    # init :: AST.ACTSTMT, cond :: EXPR, update :: AST.ACTSTMT
+    # TODO decide whether to parse to dummy exprs or just None if not present
     LOOP = syntaxnode("LOOP", "init", "cond", "update", "stmts")
     
     ACTSTMT = syntaxnode("ACTSTMT", "val")
 
+    # expr :: AST.EXPR
     RETURN = syntaxnode("RETURN", "expr")
     BREAK = syntaxnode("BREAK")
     CONTINUE = syntaxnode("CONTINUE")
 
+    # varref :: AST.VARREF, expr :: AST.EXPR
     ASSIGNMENT = syntaxnode("ASSIGNMENT", "varref", "expr")
+    # id :: TOKEN, kind :: FunKind, args :: [AST.EXPR]
     FUNCALL = syntaxnode("FUNCALL", "id", "kind", "args")
 
     DEFERREDEXPR = syntaxnode("DEFERREDEXPR", "contents")
-    PARSEDEXPR = syntaxnode("PARSEDEXPR", "val")
+    PARSEDEXPR = syntaxnode("PARSEDEXPR", "val") # TODO evaluate this
 
+    # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")
 
 
