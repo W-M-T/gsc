@@ -175,7 +175,8 @@ def StmtElif():
     yield ps.token(TOKEN.CURL_OPEN)
     contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return (condition, contents)
+
+    return AST.CONDBRANCH(expr=condition, stmts=contents)
 
 @ps.generate
 def StmtElse():
@@ -183,18 +184,22 @@ def StmtElse():
     yield ps.token(TOKEN.CURL_OPEN)
     contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return contents
+
+    # TODO: Verify that this is OK
+    return AST.CONDBRANCH(expr=None, stmts=contents)
 
 @ps.generate
 def StmtWhile():
     yield ps.token(TOKEN.WHILE)
     yield ps.token(TOKEN.PAR_OPEN)
-    expr = yield Exp
+    condition = yield Exp
     yield ps.token(TOKEN.PAR_CLOSE)
     yield ps.token(TOKEN.CURL_OPEN)
     contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return (expr, contents)
+
+    # TODO: Verify this one aswell.
+    return AST.LOOP(init=None, cond=condition, update=None, stmts=contents)
 
 @ps.generate
 def StmtFor():
@@ -209,7 +214,8 @@ def StmtFor():
     yield ps.token(TOKEN.CURL_OPEN)
     contents = ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    return (initial, condition, update, contents)
+
+    return AST.LOOP(init=initial, cond=condition, update=update, stmts=contents)
 
 @ps.generate
 def StmtActSem():
@@ -246,25 +252,27 @@ Stmt = StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet ^ StmtBreak ^ Stm
 def Exp():
     a = yield ConvExp
     b = yield ps.many(ExpMore)
-    return [a, *b]
+
+    return AST.DEFERREDEXPR(contents=[a, *b])
 
 @ps.generate
 def ExpMore():
     op = yield ps.token(TOKEN.OP_IDENTIFIER)
     exp = yield ConvExp
-    return (op, exp)
+    return [op, exp]
 
 @ps.generate
 def PrefixOpExp():
     op = yield ps.token(TOKEN.OP_IDENTIFIER)
     exp = yield Exp
-    return (op, exp)
+    return [op, exp]
 
 @ps.generate
 def ExpLiteral():
     # Choice without backtrack fine here because they're all single tokens
     tok = yield ps.token(TOKEN.INT) | ps.token(TOKEN.CHAR) | ps.token(TOKEN.STRING) | ps.token(TOKEN.BOOL) | ps.token(TOKEN.EMPTY_LIST)
-    return tok.val
+
+    return tok
 
 @ps.generate
 def ExpSub():
@@ -274,7 +282,6 @@ def ExpSub():
     return subexp
 
 ConvExp = IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub
-
 
 # STATEMENTS ====================================================
 @ps.generate
@@ -296,6 +303,7 @@ def Ass():
     var = yield IdField
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
     expression = yield Exp
+
     return (varname, field, expression)
 
 ActStmt = Ass | FunCall
@@ -369,11 +377,16 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
     testprog3 = io.StringIO('''
 ("heyo" + + False) - myvar.snd
 ''')
+
+    testexpr = io.StringIO('''
+        a + b + 5
+    ''')
+
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
-    tokens = list(tokenize(io.StringIO(infixtest)))
+    tokens = list(tokenize(testexpr))
     print(tokens)
-    InfixOpDecl.parse_strict(tokens)
+    Exp.parse_strict(tokens)
     #print(list(tokenize(testprog)))
     #Exp.parse_strict(list(tokenize(testprog3)))
 

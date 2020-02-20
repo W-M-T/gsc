@@ -95,16 +95,16 @@ class ParserTester(unittest.TestCase):
 
         tests = [
             [
-                Token(None, TOKEN.INFIXL, 'infixl'),
-                Token(None, TOKEN.INT, '5'),
-                Token(None, TOKEN.OP_IDENTIFIER, '%%'),
-                Token(None, TOKEN.PAR_OPEN, '('),
-                Token(None, TOKEN.IDENTIFIER, 'a'),
-                Token(None, TOKEN.OP_IDENTIFIER, ','),
-                Token(None, TOKEN.IDENTIFIER, 'b'),
-                Token(None, TOKEN.PAR_CLOSE, ')'),
-                Token(None, TOKEN.CURL_OPEN, '{'),
-                Token(None, TOKEN.CURL_OPEN, '}'),
+                Token(None, TOKEN.INFIXL, "infixl"),
+                Token(None, TOKEN.INT, "5"),
+                Token(None, TOKEN.OP_IDENTIFIER, "%%"),
+                Token(None, TOKEN.PAR_OPEN, "("),
+                Token(None, TOKEN.IDENTIFIER, "a"),
+                Token(None, TOKEN.OP_IDENTIFIER, ","),
+                Token(None, TOKEN.IDENTIFIER, "b"),
+                Token(None, TOKEN.PAR_CLOSE, ")"),
+                Token(None, TOKEN.CURL_OPEN, "{"),
+                Token(None, TOKEN.CURL_OPEN, "}"),
 
                 # TODO: Custom infixl operator with function body.
 
@@ -139,11 +139,11 @@ class ParserTester(unittest.TestCase):
 
         tests = [
             [
-                Token(None, TOKEN.VAR, 'Var'),
-                Token(None, TOKEN.IDENTIFIER, 'a'),
-                Token(None, TOKEN.OP_IDENTIFIER, '='),
-                Token(None, TOKEN.IDENTIFIER, 'b'),
-                Token(None, TOKEN.SEMICOLON, ';'),
+                Token(None, TOKEN.VAR, "Var"),
+                Token(None, TOKEN.IDENTIFIER, "a"),
+                Token(None, TOKEN.OP_IDENTIFIER, "="),
+                Token(None, TOKEN.IDENTIFIER, "b"),
+                Token(None, TOKEN.SEMICOLON, ";"),
             ]
         ]
 
@@ -162,9 +162,26 @@ class ParserTester(unittest.TestCase):
                 i += 1
 
     def test_basic_type_parser(self):
-        pass
+
+        # Validate parsing of basic data types
+
+        tests = [
+            [Token(None, TOKEN.TYPE_IDENTIFIER, "Int")],
+            [Token(None, TOKEN.TYPE_IDENTIFIER, "Char")],
+            [Token(None, TOKEN.TYPE_IDENTIFIER, "Bool")]
+        ]
+
+        i = 0
+        for t in tests:
+            with self.subTest(i=i):
+                res = VarDecl.parse_strict(t)
+                self.assertEqual(es.type_id, TOKEN.TYPE_IDENTIFIER)
+
+                i += 1
 
     def test_tuple_type_parser(self):
+
+        # Validate parsing of tuple types
         pass
 
     def test_list_type_parser(self):
