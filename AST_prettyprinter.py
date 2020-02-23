@@ -10,6 +10,40 @@ def flatten(xs):
 def map_print(xs):
     return list(map(lambda y: print_node(y), xs))
 
+INFIX_STR = {
+    FunKind.INFIXL : "infixl",
+    FunKind.INFIXR : "infixr"
+}
+INFIX_LOOKUP = (lambda x:
+    "{} {} {} ({},{}) {}{{".format(INFIX_STR[x.kind], x.fixity, x.id.val, x.params[0].val, x.params[1].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+)
+
+FUN_LOOKUP = {
+    FunKind.FUNC : (lambda x:
+            "{} ({}) {}{{".format(x.id.val, ", ".join(map(lambda y: y.val, x.params)), ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+        ),
+    FunKind.PREFIX : (lambda x:
+            "prefix {} ({}) {}{{".format(x.id.val, x.params[0].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+        ),
+    FunKind.INFIXL : INFIX_LOOKUP,
+    FunKind.INFIXR : INFIX_LOOKUP,
+}
+
+FUNCALL_LOOKUP = { #TODO test this
+    FunKind.FUNC : (lambda x:
+            "{}({});".format(x.id.val, ", ".join(map_print(x.args)))
+        ),
+    FunKind.PREFIX : (lambda x:
+            "{}{}".format(x.id.val, print_node(x.args[0]))
+        ),
+    FunKind.INFIXL : (lambda x:
+            "({}) {} {}".format(print_node(x.args[0]), x.id.val, print_node(x.args[1]))
+        ),
+    FunKind.INFIXR : (lambda x:
+            "{} {} ({})".format(print_node(x.args[0]), x.id.val, print_node(x.args[1]))
+        )
+}
+
 LOOKUP = {
     AST.SPL : (lambda x:
         [
@@ -28,7 +62,16 @@ LOOKUP = {
     AST.VARDECL : (lambda x:
             ["{}{} = {};".format("{} ".format(print_node(x.type) if x.type is not None else "var"), x.id.val, print_node(x.expr))]
         ),
-    AST.FUNDECL : [],
+    AST.FUNDECL : (lambda x:
+            [
+                FUN_LOOKUP[x.kind](x),
+                [
+                    *flatten(map_print(x.vardecls)),
+                    *flatten(map_print(x.stmts))
+                ],
+                "}"
+            ]
+        ),
     AST.TYPESYN : (lambda x:
             ["type {} = {}".format(x.type_id.val, print_node(x.def_type))]
         ),
@@ -38,23 +81,35 @@ LOOKUP = {
     AST.BASICTYPE : (lambda x:
             x.type_id.val
         ),
-    AST.TUPLETYPE : [],
+    AST.TUPLETYPE : [],#TODO
     AST.LISTTYPE : (lambda x:
             "[{}]".format(print_node(x.type))
         ),
-    AST.FUNTYPE : [],
-    AST.STMT : [],
+    AST.FUNTYPE : (lambda x:
+            "{} -> {}".format(" ".join(map_print(x.from_types)), print_node(x.to_type))
+        ),
+    AST.STMT : (lambda x:
+            print_node(x.val)
+        ),
     AST.IFELSE : [],
     AST.CONDBRANCH : [],
     AST.LOOP : [],
-    AST.ACTSTMT : [],
-    AST.RETURN : (lambda x:
-            "return"
+    AST.ACTSTMT : (lambda x:
+            print_node(x.val)
         ),
-    AST.BREAK : [],
-    AST.CONTINUE : [],
+    AST.RETURN : (lambda x:
+            ["return {};".format(print_node(x.expr))]
+        ),
+    AST.BREAK : (lambda x:
+            ["break;"]
+        ),
+    AST.CONTINUE : (lambda x:
+            ["continue;"]
+        ),
     AST.ASSIGNMENT : [],
-    AST.FUNCALL : [],
+    AST.FUNCALL : (lambda x:
+            []
+        ),
     AST.DEFERREDEXPR : (lambda x: # THIS IS TEMP
             " ".join(list(map(lambda y: str(y.val), x.contents)))
         ),
@@ -63,7 +118,8 @@ LOOKUP = {
 }
 
 def printAST(root):
-    return print_node(root)
+    temp = print_node(root)
+    return indent_print(temp, 0)
 
 def print_node(node):
     if type(node) in LOOKUP:
@@ -76,6 +132,16 @@ def print_node(node):
         print(type(node),"not handled in lambda")
         print(node)
         return []
+
+INDENT_CHARS = "  "
+def indent_print(temp, level):
+    res = ""
+    for el in temp:
+        if type(el) == list:
+            res += indent_print(el, level + 1)
+        else:
+            res += level*INDENT_CHARS + el + "\n"
+    return res
 
 
 if __name__ == "__main__":
@@ -127,6 +193,141 @@ if __name__ == "__main__":
                         )
                     )
                 )
+            ),
+            AST.FUNDECL(
+                kind=FunKind.INFIXL,
+                fixity=4,
+                id=Token(None,TOKEN.OP_IDENTIFIER, "%%"),
+                params=[
+                    Token(None,TOKEN.IDENTIFIER, "x"),
+                    Token(None,TOKEN.IDENTIFIER, "y")
+                ],
+                type=AST.FUNTYPE(
+                    from_types=[
+                        AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
+                        ),
+                        AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
+                        )
+                    ],
+                    to_type=AST.TYPE(
+                        val=AST.BASICTYPE(
+                            type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                        )
+                    )
+                ),
+                vardecls=[],
+                stmts=[]
+            ),
+            AST.FUNDECL(
+                kind=FunKind.INFIXR,
+                fixity=4,
+                id=Token(None,TOKEN.OP_IDENTIFIER, "^^"),
+                params=[
+                    Token(None,TOKEN.IDENTIFIER, "x"),
+                    Token(None,TOKEN.IDENTIFIER, "y")
+                ],
+                type=None,
+                vardecls=[],
+                stmts=[
+                    AST.STMT(
+                        val=AST.RETURN(
+                            expr=None
+                        )
+                    ),
+                    AST.STMT(
+                        val=AST.RETURN(
+                            expr=None
+                        )
+                    )
+                ]
+            ),
+            AST.FUNDECL(
+                kind=FunKind.FUNC,
+                fixity=None,
+                id=Token(None,TOKEN.OP_IDENTIFIER, "fib2"),
+                params=[
+                    Token(None,TOKEN.IDENTIFIER, "x"),
+                    Token(None,TOKEN.IDENTIFIER, "y"),
+                    Token(None,TOKEN.IDENTIFIER, "z")
+                ],
+                type=AST.FUNTYPE(
+                    from_types=[
+                        AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
+                        ),
+                        AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
+                        ),
+                        AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
+                        )
+                    ],
+                    to_type=AST.TYPE(
+                        val=AST.BASICTYPE(
+                            type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                        )
+                    )
+                ),
+                vardecls=[],
+                stmts=[
+                    AST.STMT(
+                        val=AST.RETURN(
+                            expr=None
+                        )
+                    ),
+                    AST.STMT(
+                        val=AST.RETURN(
+                            expr=None
+                        )
+                    )
+                ]
+            ),
+            AST.FUNDECL(
+                kind=FunKind.PREFIX,
+                fixity=None,
+                id=Token(None,TOKEN.OP_IDENTIFIER, "!"),
+                params=[
+                    Token(None,TOKEN.IDENTIFIER, "x")
+                ],
+                type=AST.FUNTYPE(
+                    from_types=[
+                        AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
+                        )
+                    ],
+                    to_type=AST.TYPE(
+                        val=AST.BASICTYPE(
+                            type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                        )
+                    )
+                ),
+                vardecls=[],
+                stmts=[
+                    AST.STMT(
+                        val=AST.RETURN(
+                            expr=None
+                        )
+                    ),
+                    AST.STMT(
+                        val=AST.RETURN(
+                            expr=None
+                        )
+                    )
+                ]
             )
         ]
     )

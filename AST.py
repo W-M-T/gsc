@@ -127,7 +127,7 @@ class AST:
 
     # type :: AST.TYPE or None, id :: TOKEN, expr :: AST.EXPR
     VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
-    # kind :: FunKind, fixity :: int or None, id :: TOKEN, params :: [TOKEN], type :: AST.TYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
+    # kind :: FunKind, fixity :: int or None, id :: TOKEN, params :: [TOKEN], type :: AST.FUNTYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
     FUNDECL = syntaxnode("FUNDECL", "kind", "fixity", "id", "params", "type", "vardecls", "stmts")
     # type_id :: TOKEN, def_type :: AST.TYPE
     TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
