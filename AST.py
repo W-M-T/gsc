@@ -117,8 +117,9 @@ class Accessor(IntEnum):
 class AST:
     SPL     = syntaxnode("SPL", "imports", "decls")
 
+    # NOTE: if importlist None then *
+
     IMPORT = syntaxnode("IMPORT", "name", "importlist")
-    IMPORTLIST = syntaxnode("IMPORTLIST", "imports")
     IMPORTNAME = syntaxnode("IMPORTNAME", "name", "alias")
 
     # val :: AST.VARDECL or AST.FUNDECL or AST.TYPESYN

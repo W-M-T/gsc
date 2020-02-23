@@ -28,6 +28,7 @@ KEYWORDS = {
     "type"     : TOKEN.TYPESYN,
     "import"   : TOKEN.IMPORT,
     "from"     : TOKEN.FROM,
+    "as"       : TOKEN.AS
 }
 BOOLS = {
     "True"  : TOKEN.BOOL,
