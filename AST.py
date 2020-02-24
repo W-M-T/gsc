@@ -150,7 +150,8 @@ class AST:
     # condbranches :: [AST.CONDBRANCH]
     IFELSE = syntaxnode("IFELSE", "condbranches")
 
-    # expr :: AST.EXPR, stmts :: [AST.STMT]
+    # expr :: AST.EXPR or None, stmts :: [AST.STMT]
+    # TODO else case just a True expr or None?
     CONDBRANCH = syntaxnode("CONDBRANCH", "expr", "stmts")
     # init :: AST.ACTSTMT, cond :: EXPR, update :: AST.ACTSTMT
     # TODO decide whether to parse to dummy exprs or just None if not present

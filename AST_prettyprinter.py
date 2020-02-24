@@ -10,9 +10,16 @@ def flatten(xs):
 def map_print(xs):
     return list(map(lambda y: print_node(y), xs))
 
+
 INFIX_STR = {
     FunKind.INFIXL : "infixl",
     FunKind.INFIXR : "infixr"
+}
+ACC_STR = {
+    Accessor.HD : ".hd",
+    Accessor.TL : ".tl",
+    Accessor.FST : ".fst",
+    Accessor.SND : ".snd"
 }
 INFIX_LOOKUP = (lambda x:
     "{} {} {} ({},{}) {}{{".format(INFIX_STR[x.kind], x.fixity, x.id.val, x.params[0].val, x.params[1].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
@@ -81,7 +88,9 @@ LOOKUP = {
     AST.BASICTYPE : (lambda x:
             x.type_id.val
         ),
-    AST.TUPLETYPE : [],#TODO
+    AST.TUPLETYPE : (lambda x:
+            "({}, {})".format(print_node(x.a), print_node(x.b))
+        ),
     AST.LISTTYPE : (lambda x:
             "[{}]".format(print_node(x.type))
         ),
@@ -106,15 +115,19 @@ LOOKUP = {
     AST.CONTINUE : (lambda x:
             ["continue;"]
         ),
-    AST.ASSIGNMENT : [],
+    AST.ASSIGNMENT : (lambda x:
+            ["{} = {};".format(print_node(x.varref), print_node(x.expr))]
+        ),
     AST.FUNCALL : (lambda x:
-            []
+            [FUNCALL_LOOKUP[x.kind](x)]
         ),
     AST.DEFERREDEXPR : (lambda x: # THIS IS TEMP
             " ".join(list(map(lambda y: str(y.val), x.contents)))
         ),
     AST.PARSEDEXPR : [],
-    AST.VARREF : [],
+    AST.VARREF : (lambda x:
+            "{}{}".format(x.id.val, "".join(map(lambda y: ACC_STR[y], x.fields)))
+        ),
 }
 
 def printAST(root):
@@ -188,8 +201,10 @@ if __name__ == "__main__":
                 type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "String"),
                 def_type=AST.TYPE(
                     val=AST.LISTTYPE(
-                        type=AST.BASICTYPE(
-                            type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                        type=AST.TYPE(
+                            val=AST.BASICTYPE(
+                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                            )
                         )
                     )
                 )
@@ -252,16 +267,23 @@ if __name__ == "__main__":
                 fixity=None,
                 id=Token(None,TOKEN.OP_IDENTIFIER, "fib2"),
                 params=[
-                    Token(None,TOKEN.IDENTIFIER, "x"),
+                    Token(None,TOKEN.IDENTIFIER, "xtup"),
                     Token(None,TOKEN.IDENTIFIER, "y"),
                     Token(None,TOKEN.IDENTIFIER, "z")
                 ],
                 type=AST.FUNTYPE(
                     from_types=[
-                        AST.TYPE(
-                            val=AST.BASICTYPE(
-                                type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
-                            )
+                        AST.TUPLETYPE(
+                            a=AST.TYPE(
+                                val=AST.BASICTYPE(
+                                    type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                                )
+                            ),
+                            b=AST.TYPE(
+                                val=AST.BASICTYPE(
+                                    type_id=Token(None,TOKEN.TYPE_IDENTIFIER, "Char")
+                                )
+                            ),
                         ),
                         AST.TYPE(
                             val=AST.BASICTYPE(
@@ -334,3 +356,47 @@ if __name__ == "__main__":
 
 
     print(printAST(test))
+
+    test2 = AST.VARREF(
+        id=Token(None,TOKEN.IDENTIFIER, "xs"),
+        fields=[]
+    )
+    print(print_node(test2))
+    test3 = AST.VARREF(
+        id=Token(None,TOKEN.IDENTIFIER, "xs"),
+        fields=[
+            Accessor.TL,
+            Accessor.HD
+        ]
+    )
+    print(print_node(test3))
+    test4 = AST.FUNCALL(
+        id=Token(None,TOKEN.IDENTIFIER, "pow"),
+        kind=FunKind.FUNC,
+        args=[
+            AST.VARREF(
+                id=Token(None,TOKEN.IDENTIFIER, "x"),
+                fields=[]
+            ),
+            AST.VARREF(
+                id=Token(None,TOKEN.IDENTIFIER, "x"),
+                fields=[]
+            )
+        ]
+    )
+    print(print_node(test4))
+    test5 = AST.FUNCALL(
+        id=Token(None,TOKEN.IDENTIFIER, "*"),
+        kind=FunKind.INFIXL,
+        args=[
+            AST.VARREF(
+                id=Token(None,TOKEN.IDENTIFIER, "x"),
+                fields=[]
+            ),
+            AST.VARREF(
+                id=Token(None,TOKEN.IDENTIFIER, "x"),
+                fields=[]
+            )
+        ]
+    )
+    print(print_node(test5))
