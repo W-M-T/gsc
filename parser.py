@@ -1,10 +1,47 @@
 #!/usr/bin/env python3
 
-from util import pointToPosition, Position, TOKEN, Token, Node
+from util import pointToPosition, Position, TOKEN, Token
 import parsec as ps
 from AST import AST, FunKind, Accessor
 
 # TODO Evaluate return types
+
+
+@ps.generate
+def SPL():
+    found_imports = yield ps.many(ImportDecl)
+    found_decls =yield ps.many(Decl)
+    return AST.SPL(imports=found_imports, decls=found_decls)
+
+AnyId = ps.token(TOKEN.IDENTIFIER) ^ ps.token(TOKEN.TYPE_IDENTIFIER) ^ ps.token(TOKEN.OP_IDENTIFIER)
+
+@ps.generate
+def ImportDecl():
+    yield ps.token(TOKEN.FROM)
+    found_name = yield AnyId # TODO look at this
+    yield ps.token(TOKEN.IMPORT)
+    found_importlist = yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "*")) ^ ImportListStrict
+    found_importlist = None if type(found_importlist) == Token else found_importlist
+    return AST.IMPORT(name=found_name, importlist=found_importlist)
+
+@ps.generate
+def ImportListStrict():
+    n = yield ImportName
+    ns = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == ",")) >> ImportName)
+    return [n, *ns]
+
+@ps.generate
+def ImportName():
+    found_name = yield AnyId
+    found_alias = yield ps.times(ps.token(TOKEN.AS) >> AnyId,0,1)
+    found_alias = found_alias[0] if len(found_alias) > 0 else None
+    return AST.IMPORTNAME(name=found_name, alias=found_alias)
+
+# DECLS ===========================================================
+@ps.generate
+def Decl():
+    found_val = yield VarDecl ^ OpDecl#VarDecl ^ FunDecl ^ TypeSyn ^ OpDecl
+    return AST.DECL(val=found_val)
 
 @ps.generate
 def IdField():
@@ -14,6 +51,7 @@ def IdField():
 
 @ps.generate
 def PrefixOpDecl():
+    print("Trying for prefix")
     yield ps.token(TOKEN.PREFIX)
     operator = yield ps.token(TOKEN.OP_IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
@@ -55,6 +93,7 @@ def InfixOpDecl():
 @ps.generate
 def VarDecl():
     typ = yield (ps.token(TOKEN.VAR) | Type)
+    typ = None if type(typ) == Token and typ.typ == TOKEN.VAR else typ
     varname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
     found_expr = yield Exp
@@ -295,7 +334,7 @@ def FunCall():
 @ps.generate
 def ActArgs():
     a = yield Exp
-    b = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER) >> ConvExp)
+    b = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER) >> Exp)
     return (a,b)
 
 @ps.generate
@@ -332,13 +371,36 @@ prefixtest2 = '''
 
 prefix *%* (a) :: { }
 '''
+
+importtest = '''
+
+from TestFile import abs,pow as power, cons_pi as pi
+from StdIO import print
+from math import *
+
+var element = no;
+Int element2 = no;
+
+prefix *%* (a) { }
+'''
 if __name__ == "__main__":
     from argparse import ArgumentParser
     from lexer import tokenize
     argparser = ArgumentParser(description="SPL Parser")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     args = argparser.parse_args()
+
+    '''
+    with open(args.infile, "r") as infile:
+        tokenstream = tokenize(infile)
+        tokenlist = list(tokenstream)
+        print(tokenlist)
+        exit()
+        SPL.parse_strict(tokenlist)
     
+    exit()
+    '''
+
 
     test1 = [
         Token(None, TOKEN.TYPESYN, None),
@@ -384,23 +446,16 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
-    tokens = list(tokenize(testexpr))
+    tokens = list(tokenize(io.StringIO(importtest)))
     print(tokens)
-    Exp.parse_strict(tokens)
+    x = SPL.parse_strict(tokens)
+    print("PARSED X =============================")
+    print(x.tree_string())
     #print(list(tokenize(testprog)))
     #Exp.parse_strict(list(tokenize(testprog3)))
 
     exit()
 
-    '''
-    with open(args.infile, "r") as infile:
-        tokenstream = tokenize(infile)
-        parseTokenStream(tokenstream)
-        tokenlist = list(tokenstream)
-        import random
-        randtoken = random.choice(tokenlist)
-        print(randtoken)
-        print(pointToPosition(infile, randtoken.pos))
-    '''
+    
 
     print("DONE")

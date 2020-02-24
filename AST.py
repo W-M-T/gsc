@@ -58,7 +58,23 @@ def syntaxnode(typename, *field_names, module=None):
         return self.__class__.__name__ + repr_fmt.format(**{key: getattr(self,key) for key in self._fields})
 
     def tree_string(self):
-        substrings = list(map(lambda x: "{} = {}".format(x, getattr(self, x).tree_string() if 'tree_string' in dir(getattr(self, x)) else (getattr(self, x)).__repr__() + "\n"), field_names))
+        def sub_tree_str(x):
+            attr = getattr(self, x)
+            if type(attr) == list:
+                res = "{} = [\n".format(x)
+                for el in attr:
+                    if 'tree_string' in dir(el):
+                        res += "\n".join(map(lambda y: "\t" + y if len(y) > 0 else y, el.tree_string().split("\n"))) + "\n"
+                    else:
+                        res += el.__repr__()
+                res += "]\n"
+                return res
+            elif 'tree_string' in dir(attr):
+                return "{} = {}".format(x, attr.tree_string())
+            else:
+                return "{} = {}".format(x, attr.__repr__() + "\n")
+
+        substrings = list(map(sub_tree_str, field_names))
         indented = "\n".join(list(map(lambda x: "\n".join(map(lambda y: "    " + y, x.rstrip().split("\n"))), substrings)))
         return "{}:\n{}".format(self.__class__.__name__, indented)
 

@@ -51,7 +51,7 @@ PRETTY_TOKEN = {
     TOKEN.INFIXL          : (lambda x : "infixl"),
     TOKEN.INFIXR          : (lambda x : "infixr"),
     TOKEN.TYPESYN         : (lambda x : "type"),
-    TOKEN.BOOL            : (lambda x : x.val),
+    TOKEN.BOOL            : (lambda x : str(x.val)),
     TOKEN.EMPTY_LIST      : (lambda x : "[]"),
     TOKEN.CHAR            : (lambda x : "(CHAR){}".format(x.val)),
     TOKEN.INT             : (lambda x : str(x.val)),
