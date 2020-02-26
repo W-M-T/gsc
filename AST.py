@@ -148,7 +148,7 @@ class AST:
     # type_id :: TOKEN, def_type :: AST.TYPE
     TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
 
-    # val :: AST.BASICTYPE or AST.TUPLETYPE or AST.LISTTYPE or AST.FUNTYPE
+    # val :: AST.BASICTYPE or AST.TUPLETYPE or AST.LISTTYPE or TOKEN
     # TODO how to capture naked type id (i.e. a typevar)
     TYPE = syntaxnode("TYPE", "val")
     # type_id :: TOKEN
