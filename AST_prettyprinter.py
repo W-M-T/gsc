@@ -42,7 +42,7 @@ def subprint_type(el):
         return print_node(el)
 
 INFIX_LOOKUP = (lambda x:
-    "{} {} {} ({},{}) {}{{".format(INFIX_STR[x.kind], x.fixity, x.id.val, x.params[0].val, x.params[1].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+    "{} {} {} ({},{}) {}{{".format(INFIX_STR[x.kind], x.fixity.val, x.id.val, x.params[0].val, x.params[1].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
 )
 
 FUN_LOOKUP = {
@@ -165,7 +165,7 @@ LOOKUP = {
     AST.FUNCALL : (lambda x:
             FUNCALL_LOOKUP[x.kind](x)
         ),
-    AST.DEFERREDEXPR : (lambda x: # THIS IS TEMP (handelt dingen die niet door hun val gedefinieerd zijn nog niet)
+    AST.DEFERREDEXPR : (lambda x:
             " ".join(list(map(subprint_expr, x.contents)))
         ),
     AST.PARSEDEXPR : [],

@@ -19,5 +19,5 @@ main ( ) :: -> Void {
     var y = 2 :: 3;
     print(x);
     print ( y );
-    print("HELLO WORLD")
+    print("HELLO WORLD");
 }

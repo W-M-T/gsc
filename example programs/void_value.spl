@@ -7,6 +7,6 @@ void_prod () :: -> Void {
 
 
 main ( ) :: -> Void {
-    var x = void_prod()
+    var x = void_prod();
     print(x);
 }

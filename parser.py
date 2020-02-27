@@ -200,7 +200,7 @@ def InfFunType():
     b = yield Type
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == "->"))
     out = yield Type
-    return AST.FUNTYPE(from_types=[a, b], to_types=out)
+    return AST.FUNTYPE(from_types=[a, b], to_type=out)
 
 @ps.generate
 def InfFunTypeSig():
