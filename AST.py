@@ -173,6 +173,7 @@ class AST:
     # TODO decide whether to parse to dummy exprs or just None if not present
     LOOP = syntaxnode("LOOP", "init", "cond", "update", "stmts")
     
+    # val :: AST.FUNCALL or AST.ASSIGNMENT
     ACTSTMT = syntaxnode("ACTSTMT", "val")
 
     # expr :: AST.EXPR

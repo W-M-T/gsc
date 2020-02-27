@@ -5,8 +5,6 @@ import parsec as ps
 from AST import AST, FunKind, Accessor
 from AST_prettyprinter import flatten, printAST
 
-# TODO Evaluate return types
-
 
 @ps.generate
 def SPL():
@@ -44,10 +42,18 @@ def Decl():
     found_val = yield VarDecl ^ FunDecl ^ TypeSyn ^ PrefixOpDecl ^ InfixOpDecl
     return AST.DECL(val=found_val)
 
+Accessor_lookup = {
+    ".hd" : Accessor.HD,
+    ".tl" : Accessor.TL,
+    ".fst" : Accessor.FST,
+    ".snd" : Accessor.SND
+}
+
 @ps.generate
 def IdField():
     i = yield ps.token(TOKEN.IDENTIFIER)
     found_fields = yield ps.many(ps.token(TOKEN.ACCESSOR))
+    found_fields = list(map(lambda x: Accessor_lookup[x.val], found_fields))
     return AST.VARREF(id=i, fields=found_fields)
 
 @ps.generate
@@ -448,7 +454,7 @@ if __name__ == "__main__":
         tokenlist = list(tokenstream)
         print(tokenlist)
         x = SPL.parse_strict(tokenlist)
-        #print(x.tree_string())
+        print(x.tree_string())
         print(printAST(x))
     exit()
 
