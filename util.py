@@ -35,6 +35,7 @@ class TOKEN(IntEnum): # auto() for python >3.5
     TYPE_IDENTIFIER = 29
     IMPORT          = 30
     FROM            = 31
+    AS              = 32
 
 PRETTY_TOKEN = {
     TOKEN.VAR             : (lambda x : "var"),
@@ -50,7 +51,7 @@ PRETTY_TOKEN = {
     TOKEN.INFIXL          : (lambda x : "infixl"),
     TOKEN.INFIXR          : (lambda x : "infixr"),
     TOKEN.TYPESYN         : (lambda x : "type"),
-    TOKEN.BOOL            : (lambda x : x.val),
+    TOKEN.BOOL            : (lambda x : str(x.val)),
     TOKEN.EMPTY_LIST      : (lambda x : "[]"),
     TOKEN.CHAR            : (lambda x : "(CHAR){}".format(x.val)),
     TOKEN.INT             : (lambda x : str(x.val)),
@@ -68,6 +69,7 @@ PRETTY_TOKEN = {
     TOKEN.TYPE_IDENTIFIER : (lambda x : "(TYPE){}".format(x.val)),
     TOKEN.IMPORT          : (lambda x : "import"),
     TOKEN.FROM            : (lambda x : "from"),
+    TOKEN.AS              : (lambda x : "as"),
 }
 
 class Token():
@@ -100,12 +102,12 @@ class Position():
     def copy(self):
         return Position(self.line, self.col)
 
-
+'''
 class Node():
     def __init__(self, pos, token, children):
         self.token    = token
         self.children = list(children)
-
+'''
 
 
 '''

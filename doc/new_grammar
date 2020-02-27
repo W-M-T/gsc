@@ -11,7 +11,7 @@ ImportList  = '*' | ImportName (',' ImportName)*
 
 ImportName  = AnyId [as AnyId]
 
-AnyId       = id | type_id
+AnyId       = id | type_id | op
 
 VarDecl     = ('var' | Type) id '=' Exp ';'
 

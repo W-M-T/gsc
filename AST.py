@@ -58,7 +58,23 @@ def syntaxnode(typename, *field_names, module=None):
         return self.__class__.__name__ + repr_fmt.format(**{key: getattr(self,key) for key in self._fields})
 
     def tree_string(self):
-        substrings = list(map(lambda x: "{} = {}".format(x, getattr(self, x).tree_string() if 'tree_string' in dir(getattr(self, x)) else (getattr(self, x)).__repr__() + "\n"), field_names))
+        def sub_tree_str(x):
+            attr = getattr(self, x)
+            if type(attr) == list:
+                res = "{} = [\n".format(x)
+                for el in attr:
+                    if 'tree_string' in dir(el):
+                        res += "\n".join(map(lambda y: "\t" + y if len(y) > 0 else y, el.tree_string().split("\n"))) + "\n"
+                    else:
+                        res += el.__repr__()
+                res += "]\n"
+                return res
+            elif 'tree_string' in dir(attr):
+                return "{} = {}".format(x, attr.tree_string())
+            else:
+                return "{} = {}".format(x, attr.__repr__() + "\n")
+
+        substrings = list(map(sub_tree_str, field_names))
         indented = "\n".join(list(map(lambda x: "\n".join(map(lambda y: "    " + y, x.rstrip().split("\n"))), substrings)))
         return "{}:\n{}".format(self.__class__.__name__, indented)
 
@@ -117,8 +133,9 @@ class Accessor(IntEnum):
 class AST:
     SPL     = syntaxnode("SPL", "imports", "decls")
 
+    # NOTE: if importlist None then *
+
     IMPORT = syntaxnode("IMPORT", "name", "importlist")
-    IMPORTLIST = syntaxnode("IMPORTLIST", "imports")
     IMPORTNAME = syntaxnode("IMPORTNAME", "name", "alias")
 
     # val :: AST.VARDECL or AST.FUNDECL or AST.TYPESYN
@@ -126,12 +143,12 @@ class AST:
 
     # type :: AST.TYPE or None, id :: TOKEN, expr :: AST.EXPR
     VARDECL = syntaxnode("VARDECL", "type", "id", "expr")
-    # kind :: FunKind, fixity :: int or None, id :: TOKEN, params :: [TOKEN], type :: AST.TYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
+    # kind :: FunKind, fixity :: int or None, id :: TOKEN, params :: [TOKEN], type :: AST.FUNTYPE or None, vardecls :: [AST.VARDECL], stmts :: [AST.STMT]
     FUNDECL = syntaxnode("FUNDECL", "kind", "fixity", "id", "params", "type", "vardecls", "stmts")
     # type_id :: TOKEN, def_type :: AST.TYPE
     TYPESYN = syntaxnode("TYPESYN", "type_id", "def_type")
 
-    # val :: AST.BASICTYPE or AST.TUPLETYPE or AST.LISTTYPE or AST.FUNTYPE
+    # val :: AST.BASICTYPE or AST.TUPLETYPE or AST.LISTTYPE or TOKEN
     # TODO how to capture naked type id (i.e. a typevar)
     TYPE = syntaxnode("TYPE", "val")
     # type_id :: TOKEN
@@ -149,7 +166,8 @@ class AST:
     # condbranches :: [AST.CONDBRANCH]
     IFELSE = syntaxnode("IFELSE", "condbranches")
 
-    # expr :: AST.EXPR, stmts :: [AST.STMT]
+    # expr :: AST.EXPR or None, stmts :: [AST.STMT]
+    # TODO else case just a True expr or None?
     CONDBRANCH = syntaxnode("CONDBRANCH", "expr", "stmts")
     # init :: AST.ACTSTMT, cond :: EXPR, update :: AST.ACTSTMT
     # TODO decide whether to parse to dummy exprs or just None if not present
