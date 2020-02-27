@@ -66,7 +66,7 @@ def syntaxnode(typename, *field_names, module=None):
                     if 'tree_string' in dir(el):
                         res += "\n".join(map(lambda y: "\t" + y if len(y) > 0 else y, el.tree_string().split("\n"))) + "\n"
                     else:
-                        res += el.__repr__()
+                        res += "\t" + el.__repr__() + "\n"
                 res += "]\n"
                 return res
             elif 'tree_string' in dir(attr):
@@ -185,7 +185,9 @@ class AST:
     # id :: TOKEN, kind :: FunKind, args :: [AST.EXPR]
     FUNCALL = syntaxnode("FUNCALL", "id", "kind", "args")
 
+    # contents :: [literal token or operator token or funcall or identifier or AST.DEFERREDEXPR]
     DEFERREDEXPR = syntaxnode("DEFERREDEXPR", "contents")
+    # val :: AST.FUNCALL or literal or identifier
     PARSEDEXPR = syntaxnode("PARSEDEXPR", "val") # TODO evaluate this
 
     # id :: TOKEN, fields :: [Accessor]

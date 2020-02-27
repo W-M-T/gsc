@@ -3,6 +3,7 @@
 from util import pointToPosition, Position, TOKEN, Token
 import parsec as ps
 from AST import AST, FunKind, Accessor
+from AST_prettyprinter import flatten, printAST
 
 # TODO Evaluate return types
 
@@ -10,7 +11,7 @@ from AST import AST, FunKind, Accessor
 @ps.generate
 def SPL():
     found_imports = yield ps.many(ImportDecl)
-    found_decls =yield ps.many(Decl)
+    found_decls = yield ps.many(Decl)
     return AST.SPL(imports=found_imports, decls=found_decls)
 
 AnyId = ps.token(TOKEN.IDENTIFIER) ^ ps.token(TOKEN.TYPE_IDENTIFIER) ^ ps.token(TOKEN.OP_IDENTIFIER)
@@ -40,7 +41,7 @@ def ImportName():
 # DECLS ===========================================================
 @ps.generate
 def Decl():
-    found_val = yield VarDecl ^ OpDecl#VarDecl ^ FunDecl ^ TypeSyn ^ OpDecl
+    found_val = yield VarDecl ^ FunDecl ^ TypeSyn ^ PrefixOpDecl ^ InfixOpDecl
     return AST.DECL(val=found_val)
 
 @ps.generate
@@ -51,23 +52,22 @@ def IdField():
 
 @ps.generate
 def PrefixOpDecl():
-    print("Trying for prefix")
     yield ps.token(TOKEN.PREFIX)
     operator = yield ps.token(TOKEN.OP_IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
     varname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_CLOSE)
     typesig = yield ps.times(PreFunTypeSig,0,1)
-    typesig = None if typesig is [] else None
+    typesig = typesig[0] if len(typesig) > 0 else None
     yield ps.token(TOKEN.CURL_OPEN)
-    decls = None #yield ps.many(VarDecl)
-    found_stmts = None #yield ps.many1(Stmt)
+    decls = yield ps.many(VarDecl)
+    found_stmts = yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
     return AST.FUNDECL(kind=FunKind.PREFIX, fixity=None, id=operator, params=[varname], type=typesig, vardecls=decls, stmts=found_stmts)
 
 @ps.generate
 def InfixOpDecl():
-    side = yield (ps.token(TOKEN.INFIXL) | ps.token(TOKEN.INFIXR))
+    side = yield (ps.token(TOKEN.INFIXL) ^ ps.token(TOKEN.INFIXR))
     if side.typ is TOKEN.INFIXL:
         found_kind = FunKind.INFIXL
     elif side.typ is TOKEN.INFIXR:
@@ -82,9 +82,10 @@ def InfixOpDecl():
     b = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_CLOSE)
     typesig = yield ps.times(InfFunTypeSig,0,1)
+    typesig = typesig[0] if len(typesig) > 0 else None
     yield ps.token(TOKEN.CURL_OPEN)
-    decls = None #yield ps.many(VarDecl)
-    found_stmts = None #yield ps.many1(Stmt)
+    decls = yield ps.many(VarDecl)
+    found_stmts = yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
     return AST.FUNDECL(kind=found_kind, fixity=found_fixity, id=operator, params=[a,b], type=typesig, vardecls=decls, stmts=found_stmts)
 
@@ -99,11 +100,33 @@ def VarDecl():
     return AST.VARDECL(type=typ, id=varname, expr=found_expr)
 
 @ps.generate
-def FunDecl():# TODO implement this
-    pass
+def FunDecl():
+    fname = yield ps.token(TOKEN.IDENTIFIER)
+    yield ps.token(TOKEN.PAR_OPEN)
+    args = yield ps.times(FArgs,0,1)
+    args = args[0] if len(args) > 0 else args
+    yield ps.token(TOKEN.PAR_CLOSE)
+    typesig = yield ps.times(FunTypeSig,0,1)
+    typesig = typesig[0] if len(typesig) > 0 else None
+    yield ps.token(TOKEN.CURL_OPEN)
+    decls = yield ps.many(VarDecl)
+    found_stmts = yield ps.many1(Stmt)
+    yield ps.token(TOKEN.CURL_CLOSE)
+    return AST.FUNDECL(kind=FunKind.FUNC, fixity=None, id=fname, params=args, type=typesig, vardecls=decls, stmts=found_stmts)
 
+@ps.generate
+def FArgs():
+    x = yield ps.token(TOKEN.IDENTIFIER)
+    xs = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER, (lambda x : x == ",")) >> ps.token(TOKEN.IDENTIFIER))
+    return [x, *xs]
 
-OpDecl = PrefixOpDecl #| InfixOpDecl
+@ps.generate
+def TypeSyn():
+    yield ps.token(TOKEN.TYPESYN)
+    identifier = yield ps.token(TOKEN.TYPE_IDENTIFIER)
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == '='))
+    other_type = yield Type
+    return AST.TYPESYN(type_id=identifier, def_type=other_type)
 
 
 # TYPES =====================================
@@ -135,14 +158,8 @@ def ListType():
     yield ps.token(TOKEN.BRACK_CLOSE)
     return AST.LISTTYPE(type=a)
 
-@ps.generate
-def TypeSyn():
-    yield ps.token(TOKEN.TYPESYN)
-    identifier = yield ps.token(TOKEN.TYPE_IDENTIFIER)
-    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == '='))
-    other_type = yield Type
-    return AST.TYPESYN(type_id=identifier, def_type=other_type)
-
+# Check this:
+# results in type id token instead of type node with type id token
 RetType = ps.token(TOKEN.TYPE_IDENTIFIER, cond=(lambda x: x == "Void")) ^ Type
 
 @ps.generate
@@ -151,6 +168,12 @@ def FunType():
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == "->"))
     b = yield RetType
     return AST.FUNTYPE(from_types=a, to_type=b)
+
+@ps.generate
+def FunTypeSig():
+    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "::"))
+    a = yield FunType
+    return a
 
 @ps.generate
 def PreFunType():
@@ -181,7 +204,7 @@ def InfFunTypeSig():
 
 
 # CONTROL FLOW ==================================================
-@ps.generate()
+@ps.generate
 def Stmt():
     found_val = yield StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet ^ StmtBreak ^ StmtContinue
     return AST.STMT(val=found_val)
@@ -195,7 +218,7 @@ def StmtIfElse():
     yield ps.token(TOKEN.CURL_OPEN)
     if_contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-    first_cond = AST.CONBRANCH(expr=condition, stmts=if_contents)
+    first_cond = AST.CONDBRANCH(expr=condition, stmts=if_contents)
 
     elifs = yield ps.many(StmtElif)
     elses = yield ps.times(StmtElse, 0,1)
@@ -218,8 +241,6 @@ def StmtElse():
     yield ps.token(TOKEN.CURL_OPEN)
     contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
-
-    # TODO: Verify that this is OK
     return AST.CONDBRANCH(expr=None, stmts=contents)
 
 @ps.generate
@@ -232,7 +253,6 @@ def StmtWhile():
     contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
 
-    # TODO: Verify this one aswell.
     return AST.LOOP(init=None, cond=condition, update=None, stmts=contents)
 
 @ps.generate
@@ -249,7 +269,7 @@ def StmtFor():
     update = update[0] if len(update) > 0 else None
     yield ps.token(TOKEN.PAR_CLOSE)
     yield ps.token(TOKEN.CURL_OPEN)
-    contents = ps.many(Stmt)
+    contents = yield ps.many(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
     return AST.LOOP(init=initial, cond=condition, update=update, stmts=contents)
 
@@ -286,7 +306,7 @@ def StmtContinue():
 def Exp():
     a = yield ConvExp
     b = yield ps.many(ExpMore)
-
+    b = flatten(b)
     return AST.DEFERREDEXPR(contents=[a, *b])
 
 @ps.generate
@@ -299,13 +319,11 @@ def ExpMore():
 def PrefixOpExp():
     op = yield ps.token(TOKEN.OP_IDENTIFIER)
     exp = yield Exp
-    return [op, exp]
+    return AST.FUNCALL(kind=FunKind.PREFIX, id=op, args=[exp])
 
 @ps.generate
 def ExpLiteral():
-    # Choice without backtrack fine here because they're all single tokens
-    tok = yield ps.token(TOKEN.INT) | ps.token(TOKEN.CHAR) | ps.token(TOKEN.STRING) | ps.token(TOKEN.BOOL) | ps.token(TOKEN.EMPTY_LIST)
-
+    tok = yield ps.token(TOKEN.INT) ^ ps.token(TOKEN.CHAR) ^ ps.token(TOKEN.STRING) ^ ps.token(TOKEN.BOOL) ^ ps.token(TOKEN.EMPTY_LIST)
     return tok
 
 @ps.generate
@@ -315,35 +333,39 @@ def ExpSub():
     yield ps.token(TOKEN.PAR_CLOSE)
     return subexp
 
-ConvExp = IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub
+@ps.generate
+def ConvExp():
+    a = yield FunCall ^ IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub
+    return a
 
 # STATEMENTS ====================================================
 @ps.generate
 def FunCall():
     fname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
-    args = yield ps.times(ActArgs, 0,1)
+    found_args = yield ps.times(ActArgs, 0,1)
+    found_args = found_args[0] if len(found_args) > 0 else None
     yield ps.token(TOKEN.PAR_CLOSE)
+    return AST.FUNCALL(id=fname, kind=FunKind.FUNC, args=found_args)
 
 # Kijk naar de "seperated" combinator
 @ps.generate
 def ActArgs():
     a = yield Exp
-    b = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER) >> Exp)
-    return (a,b)
+    b = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ',')) >> Exp)
+    return [a, *b]
 
 @ps.generate
 def Ass():
     var = yield IdField
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
     expression = yield Exp
+    return AST.ASSIGNMENT(varref=var, expr=expression)
 
-    return (varname, field, expression)
-
-ActStmt = Ass | FunCall
-
-
-
+@ps.generate
+def ActStmt():
+    found_val = yield Ass ^ FunCall
+    return AST.ACTSTMT(val=found_val)
 
 
 
@@ -376,7 +398,42 @@ from math import *
 var element = no;
 Int element2 = no;
 
-prefix *%* (a) { }
+type String = [Char]
+
+prefix *%* (a) { break; }
+infixl 4 <! (a,b) { break; }
+infixr 4 <! (a,b) { break; }
+
+power (a,b) :: Int Int -> Int {
+    if (x == 1) {
+        return 2;
+    }
+    elif (x==3) {
+        return 4;
+    }
+    else {
+        return 88;
+    }
+    f(22);
+
+    while (True) {
+        break;
+    }
+
+    for(f(x);x==1;x= x + 1) {
+        continue;
+    }
+}
+'''
+
+extratest = '''
+facR ( n ) :: Int -> Int {
+    if ( n < 2 ) {
+        return 1;
+    } else {
+        return n * facR ( n - 1 );
+    }
+}
 '''
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -385,16 +442,17 @@ if __name__ == "__main__":
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     args = argparser.parse_args()
 
-    '''
+
     with open(args.infile, "r") as infile:
         tokenstream = tokenize(infile)
         tokenlist = list(tokenstream)
         print(tokenlist)
-        exit()
-        SPL.parse_strict(tokenlist)
-    
+        x = SPL.parse_strict(tokenlist)
+        #print(x.tree_string())
+        print(printAST(x))
     exit()
-    '''
+
+
 
 
     test1 = [
@@ -441,7 +499,7 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
-    tokens = list(tokenize(io.StringIO(importtest)))
+    tokens = list(tokenize(io.StringIO(extratest)))
     print(tokens)
     x = SPL.parse_strict(tokens)
     print("PARSED X =============================")

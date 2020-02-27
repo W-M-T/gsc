@@ -121,7 +121,7 @@ LOOKUP = {
     AST.FUNCALL : (lambda x:
             [FUNCALL_LOOKUP[x.kind](x)]
         ),
-    AST.DEFERREDEXPR : (lambda x: # THIS IS TEMP
+    AST.DEFERREDEXPR : (lambda x: # THIS IS TEMP (tokens verwacht, is niet zo)
             " ".join(list(map(lambda y: str(y.val), x.contents)))
         ),
     AST.PARSEDEXPR : [],
