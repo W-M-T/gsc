@@ -1,0 +1,7 @@
+Var _a = "test";
+
+Var a_ = "test2";
+
+_CustomDataType test = "test3";
+
+Custom_Data_Type test2 = "test4";

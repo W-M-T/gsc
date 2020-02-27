@@ -42,7 +42,15 @@ class ParseError(RuntimeError):
             return '<out of bounds index {!r}>'.format(self.index)
 
     def __str__(self):
-        return 'expected {} at {}'.format(self.expected, self.loc())
+        print("Ali baba")
+        print("\n\n\nSome kind of exception occured: %s / %s " % (type(self.expected), type(self.loc())))
+        try:
+            return 'expected {} at {}'.format(self.expected, self.loc())
+        except Exception:
+            print("Some kind of exception occured: %s / %s " % (type(self.expected), type(self.loc())))
+
+    def __repr__(self):
+        print("test")
 
 ##########################################################################
 # Definition the Value model of parsec.py.

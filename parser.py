@@ -22,8 +22,8 @@ def PrefixOpDecl():
     typesig = yield ps.times(PreFunTypeSig,0,1)
     typesig = None if typesig is [] else None
     yield ps.token(TOKEN.CURL_OPEN)
-    decls = None #yield ps.many(VarDecl)
-    found_stmts = None #yield ps.many1(Stmt)
+    decls = None # yield ps.many(VarDecl)
+    found_stmts = None # yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
 
     return AST.FUNDECL(kind=FunKind.PREFIX, fixity=None, id=operator, params=[varname], type=typesig, vardecls=decls, stmts=found_stmts)
@@ -46,8 +46,8 @@ def InfixOpDecl():
     yield ps.token(TOKEN.PAR_CLOSE)
     typesig = yield ps.times(InfFunTypeSig,0,1)
     yield ps.token(TOKEN.CURL_OPEN)
-    decls = None #yield ps.many(VarDecl)
-    found_stmts = None #yield ps.many1(Stmt)
+    decls = None # yield ps.many(VarDecl)
+    found_stmts = None # yield ps.many1(Stmt)
     yield ps.token(TOKEN.CURL_CLOSE)
 
     return AST.FUNDECL(kind=found_kind, fixity=found_fixity, id=operator, params=[a,b], type=typesig, vardecls=decls, stmts=found_stmts)

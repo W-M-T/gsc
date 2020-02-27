@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
-import unittest
-import string
-import subprocess
 import sys
-import os
+import unittest
 
 # Makes it possible to import from the lexer
 sys.path.insert(0, '../')
 
-from lexer import tokenize
 from parser import *
 
 class ParserTester(unittest.TestCase):
@@ -28,19 +24,19 @@ class ParserTester(unittest.TestCase):
             [
                 # Basic identifier
                 Token(None, TOKEN.IDENTIFIER, "test")
-            ],        
+            ],
             [
                 # Indentifier with one accessor
                 Token(None, TOKEN.IDENTIFIER, "test"),
                 Token(None, TOKEN.ACCESSOR, ".snd")
-            ],        
+            ],
             [
                 # Identifier with multiple different accessors
                 Token(None, TOKEN.IDENTIFIER, "test"),
                 Token(None, TOKEN.ACCESSOR, ".tl"),
                 Token(None, TOKEN.ACCESSOR, ".snd"),
                 Token(None, TOKEN.ACCESSOR, ".tl")
-            ],        
+            ],
         ]
 
         i = 0
@@ -121,9 +117,9 @@ class ParserTester(unittest.TestCase):
             with self.subTest(i=i):
                 res = PrefixOpDecl.parse_strict(t)
                 if res.id.val == 'infixl':
-                    assertEqual(res.kind.typ, TOKEN.INFIXL)
+                    self.assertEqual(res.kind.typ, TOKEN.INFIXL)
                 elif res.id.val == 'infixr':
-                    assertEqual(res.kind.typ, TOKEN.INFIXR)
+                    self.assertEqual(res.kind.typ, TOKEN.INFIXR)
                 self.assertEqual(res.fixity, TOKEN.INT)
                 self.assertEqual(res.id.typ, TOKEN.OP_IDENTIFIER)
                 self.assertEqual(len(res.params), 2)
@@ -134,7 +130,7 @@ class ParserTester(unittest.TestCase):
                 i += 1
 
     def test_var_decl_parser(self):
-        
+
         # Validate parsing of variable declarations
 
         tests = [
@@ -150,7 +146,7 @@ class ParserTester(unittest.TestCase):
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = VarDecl.parse_strict(t)              
+                res = VarDecl.parse_strict(t)
                 if res.type.val == 'Var':
                     self.assertEqual(res.type.typ, TOKEN.VAR)
                 else:
@@ -175,7 +171,7 @@ class ParserTester(unittest.TestCase):
         for t in tests:
             with self.subTest(i=i):
                 res = VarDecl.parse_strict(t)
-                self.assertEqual(es.type_id, TOKEN.TYPE_IDENTIFIER)
+                self.assertEqual(res.type_id, TOKEN.TYPE_IDENTIFIER)
 
                 i += 1
 
@@ -209,7 +205,82 @@ class ParserTester(unittest.TestCase):
         pass
 
     def test_exp_parser(self):
-        pass
-             
+        tests = [
+            # Identifiers with accessors
+            [
+                Token(None, TOKEN.IDENTIFIER, "a.snd"),
+                Token(None, TOKEN.OP_IDENTIFIER, "+"),
+                Token(None, TOKEN.IDENTIFIER, "b.hd"),
+            ],
+            # Simple expressions
+            [
+                Token(None, TOKEN.IDENTIFIER, "first_val"),
+                Token(None, TOKEN.OP_IDENTIFIER, "%%"),
+                Token(None, TOKEN.IDENTIFIER, "second_val")
+            ],
+            # Boolean values
+            [
+                Token(None, TOKEN.BOOL, "False"),
+            ],
+            [
+                Token(None, TOKEN.BOOL, "True"),
+            ],
+            [
+                Token(None, TOKEN.EMPTY_LIST, "[]"),
+            ],
+            # Literals
+            [
+                Token(None, TOKEN.INT, "5314235241")
+            ],
+            [
+                Token(None, TOKEN.CHAR, "c"),
+            ],
+            [
+                Token(None, TOKEN.STRING, "a long piece of text"),
+            ],
+            # Nested expression
+            [
+                Token(None, TOKEN.IDENTIFIER, "a"),
+                Token(None, TOKEN.OP_IDENTIFIER, "+"),
+                Token(None, TOKEN.PAR_OPEN, "("),
+                Token(None, TOKEN.INT, "5"),
+                Token(None, TOKEN.PAR_OPEN, ")"),
+            ],
+            # Function call
+            [
+                Token(None, TOKEN.IDENTIFIER, "sum"),
+                Token(None, TOKEN.CURL_OPEN, "("),
+                Token(None, TOKEN.IDENTIFIER, "a"),
+                Token(None, TOKEN.OP_IDENTIFIER, ","),
+                Token(None, TOKEN.IDENTIFIER, "b"),
+                Token(None, TOKEN.BRACK_CLOSE, ")"),
+            ],
+            # More complex nested expression
+            [
+                Token(None, TOKEN.PAR_OPEN, "("),
+                Token(None, TOKEN.PAR_OPEN, "("),
+                Token(None, TOKEN.IDENTIFIER, "a"),
+                Token(None, TOKEN.OP_IDENTIFIER, "*"),
+                Token(None, TOKEN.IDENTIFIER, "b"),
+                Token(None, TOKEN.PAR_CLOSE, ")"),
+                Token(None, TOKEN.OP_IDENTIFIER, "@"),
+                Token(None, TOKEN.PAR_OPEN, "("),
+                Token(None, TOKEN.IDENTIFIER, "c"),
+                Token(None, TOKEN.OP_IDENTIFIER, "-"),
+                Token(None, TOKEN.IDENTIFIER, "d"),
+                Token(None, TOKEN.PAR_CLOSE, ")"),
+                Token(None, TOKEN.PAR_CLOSE, ")"),
+            ],
+        ]
+
+        i = 0
+        for t in tests:
+            with self.subTest(i=i):
+                res = Exp.parse_strict(t)
+                self.assertEqual(len(t), len(res.contents))
+                # TODO: Come up with a better way to test here.
+
+                i += 1
+
 if __name__ == '__main__':
     unittest.main()
