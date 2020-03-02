@@ -16,6 +16,20 @@ class ParserTester(unittest.TestCase):
     since the goal is to test the parsing step instead of both the lexer and the parser.
     """
 
+    def compare(self, parsed, expected):
+        print("Exp" + expected)
+        self.assertEqual(len(parsed.contents), len(expected))
+        # X are all elements in the parse
+        for x in range(0, len(parsed.contents)):
+            self.assertEqual(parsed.contents[x]['id'], expected[x]['token'])
+            # Loop over all the keys in dictionairy
+            for k in parsed:
+                if k is not 'token':
+                    self.assertEqual(parsed.contents[x], len(expected[x][k]))
+                    if len(expected[x][k]) > 1:
+                        for i in range(0, len(expected[x][k])):
+                            self.assertEqual(expected[x][k][i], parsed.contents[x][k][i])
+
     def test_id_parser(self):
 
         # Validate parsing of an identifier.
@@ -146,13 +160,16 @@ class ParserTester(unittest.TestCase):
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = VarDecl.parse_strict(t)
-                if res.type.val == 'Var':
-                    self.assertEqual(res.type.typ, TOKEN.VAR)
+                parsed = VarDecl.parse_strict(t)
+                print("testing..")
+                print(parsed)
+                self.assertIsNotNone(parsed.type)
+                if parsed.type.val == 'Var':
+                    self.assertEqual(parsed.type.typ, TOKEN.VAR)
                 else:
                     # TODO: Add type test
                     pass
-                self.assertEqual(res.id.typ, TOKEN.IDENTIFIER)
+                self.assertEqual(parsed.id.typ, TOKEN.IDENTIFIER)
                 # TODO: Check the expression
 
                 i += 1
@@ -205,12 +222,17 @@ class ParserTester(unittest.TestCase):
         pass
 
     def test_exp_parser(self):
+
+        # Test expressions
+
         tests = [
             # Identifiers with accessors
             [
-                Token(None, TOKEN.IDENTIFIER, "a.snd"),
+                Token(None, TOKEN.IDENTIFIER, "a"),
+                Token(None, TOKEN.ACCESSOR, ".snd"),
                 Token(None, TOKEN.OP_IDENTIFIER, "+"),
                 Token(None, TOKEN.IDENTIFIER, "b.hd"),
+                Token(None, TOKEN.ACCESSOR, ".hd")
             ],
             # Simple expressions
             [
@@ -239,47 +261,63 @@ class ParserTester(unittest.TestCase):
                 Token(None, TOKEN.STRING, "a long piece of text"),
             ],
             # Nested expression
+            #[
+            #    Token(None, TOKEN.IDENTIFIER, "a"),
+            #    Token(None, TOKEN.OP_IDENTIFIER, "+"),
+            #    Token(None, TOKEN.PAR_OPEN, "("),
+            #    Token(None, TOKEN.INT, "5"),
+            #    Token(None, TOKEN.PAR_CLOSE, ")"),
+            #],
+            ## Function call
+            #[
+            #    Token(None, TOKEN.IDENTIFIER, "sum"),
+            #    Token(None, TOKEN.CURL_OPEN, "("),
+            #    Token(None, TOKEN.IDENTIFIER, "a"),
+            #    Token(None, TOKEN.OP_IDENTIFIER, ","),
+            #    Token(None, TOKEN.IDENTIFIER, "b"),
+            #    Token(None, TOKEN.CURL_CLOSE, ")"),
+            #],
+        ]
+
+        res = [
             [
-                Token(None, TOKEN.IDENTIFIER, "a"),
-                Token(None, TOKEN.OP_IDENTIFIER, "+"),
-                Token(None, TOKEN.PAR_OPEN, "("),
-                Token(None, TOKEN.INT, "5"),
-                Token(None, TOKEN.PAR_OPEN, ")"),
+                {'token': TOKEN.IDENTIFIER, 'fields': [TOKEN.ACCESSOR]},
+                {'token': TOKEN.ACCESSOR},
+                {'token': TOKEN.IDENTIFIER, 'fields': [TOKEN.ACCESSOR]},
             ],
-            # Function call
             [
-                Token(None, TOKEN.IDENTIFIER, "sum"),
-                Token(None, TOKEN.CURL_OPEN, "("),
-                Token(None, TOKEN.IDENTIFIER, "a"),
-                Token(None, TOKEN.OP_IDENTIFIER, ","),
-                Token(None, TOKEN.IDENTIFIER, "b"),
-                Token(None, TOKEN.BRACK_CLOSE, ")"),
+                {'token': TOKEN.IDENTIFIER, 'fields': None},
+                {'token': TOKEN.OP_IDENTIFIER},
+                {'token': TOKEN.IDENTIFIER, 'fields': None},
             ],
-            # More complex nested expression
             [
-                Token(None, TOKEN.PAR_OPEN, "("),
-                Token(None, TOKEN.PAR_OPEN, "("),
-                Token(None, TOKEN.IDENTIFIER, "a"),
-                Token(None, TOKEN.OP_IDENTIFIER, "*"),
-                Token(None, TOKEN.IDENTIFIER, "b"),
-                Token(None, TOKEN.PAR_CLOSE, ")"),
-                Token(None, TOKEN.OP_IDENTIFIER, "@"),
-                Token(None, TOKEN.PAR_OPEN, "("),
-                Token(None, TOKEN.IDENTIFIER, "c"),
-                Token(None, TOKEN.OP_IDENTIFIER, "-"),
-                Token(None, TOKEN.IDENTIFIER, "d"),
-                Token(None, TOKEN.PAR_CLOSE, ")"),
-                Token(None, TOKEN.PAR_CLOSE, ")"),
+                {'token': TOKEN.BOOL}
+            ],
+            [
+                {'token': TOKEN.BOOL}
+            ],
+            [
+                {'token': TOKEN.EMPTY_LIST}
+            ],
+            [
+                {'token': TOKEN.INT}
+            ],
+            [
+                {'token': TOKEN.CHAR}
+            ],
+            [
+                {'token': TOKEN.STRING}
             ],
         ]
 
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = Exp.parse_strict(t)
-                self.assertEqual(len(t), len(res.contents))
-                # TODO: Come up with a better way to test here.
-
+                try:
+                    parsed = Exp.parse_strict(t)
+                except Exception as e:
+                    print(e)
+                self.compare(parsed, res[i]);
                 i += 1
 
 if __name__ == '__main__':
