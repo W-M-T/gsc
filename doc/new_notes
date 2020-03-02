@@ -30,4 +30,7 @@ Loops:
 We voegen zowel de break als het continue statement toe aan de taal, aangezien dit handig is het geval van edge cases waarbij je uit de loop wil breaken of juist verder wil gaan. 
 
 Typing:
-In deze fase converten we alle untyped nodes naar typed nodes. Dit geldt voor de FunCall, Expr, VarDecl en FunDecl.   
+In deze fase converten we alle untyped nodes naar typed nodes. Dit geldt voor de FunCall, Expr, VarDecl en FunDecl.
+
+Type synoniemen:
+Het is niet mogelijk om een type synoniem te defineren die een basic type of Void herdefineert.

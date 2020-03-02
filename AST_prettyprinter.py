@@ -355,13 +355,13 @@ if __name__ == "__main__":
     )
 
 
-    print(printAST(test))
+    #print(printAST(test))
 
     test2 = AST.VARREF(
         id=Token(None,TOKEN.IDENTIFIER, "xs"),
         fields=[]
     )
-    print(print_node(test2))
+    #print(print_node(test2))
     test3 = AST.VARREF(
         id=Token(None,TOKEN.IDENTIFIER, "xs"),
         fields=[
@@ -369,7 +369,7 @@ if __name__ == "__main__":
             Accessor.HD
         ]
     )
-    print(print_node(test3))
+    #print(print_node(test3))
     test4 = AST.FUNCALL(
         id=Token(None,TOKEN.IDENTIFIER, "pow"),
         kind=FunKind.FUNC,
@@ -384,7 +384,7 @@ if __name__ == "__main__":
             )
         ]
     )
-    print(print_node(test4))
+    #print(print_node(test4))
     test5 = AST.FUNCALL(
         id=Token(None,TOKEN.IDENTIFIER, "*"),
         kind=FunKind.INFIXL,

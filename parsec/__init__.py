@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -30,7 +30,7 @@ class ParseError(RuntimeError):
         '''Location of `index` in source code `text`.'''
         if index > len(text):
             raise ValueError('Invalid index.')
-        line, last_ln = text.count('\n', 0, index), text.rfind('\n', 0, index)
+        line, last_ln = 0, 0
         col = index - (last_ln + 1)
         return (line, col)
 
@@ -42,18 +42,13 @@ class ParseError(RuntimeError):
             return '<out of bounds index {!r}>'.format(self.index)
 
     def __str__(self):
-        print("Ali baba")
-        print("\n\n\nSome kind of exception occured: %s / %s " % (type(self.expected), type(self.loc())))
-        try:
-            return 'expected {} at {}'.format(self.expected, self.loc())
-        except Exception:
-            print("Some kind of exception occured: %s / %s " % (type(self.expected), type(self.loc())))
+        return 'expected {} at {}'.format(self.expected, self.loc())
 
     def __repr__(self):
-        print("test")
+        print("Reaching the repr state")
 
 ##########################################################################
-# Definition the Value model of parsec.py.
+# Definition the Value modelof parsec.py.
 ##########################################################################
 
 

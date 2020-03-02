@@ -51,7 +51,6 @@ def IdField():
 
 @ps.generate
 def PrefixOpDecl():
-    print("Trying for prefix")
     yield ps.token(TOKEN.PREFIX)
     operator = yield ps.token(TOKEN.OP_IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
@@ -181,7 +180,7 @@ def InfFunTypeSig():
 
 
 # CONTROL FLOW ==================================================
-@ps.generate()
+@ps.generate
 def Stmt():
     found_val = yield StmtIfElse ^ StmtWhile ^ StmtFor ^ StmtActSem ^ StmtRet ^ StmtBreak ^ StmtContinue
     return AST.STMT(val=found_val)
@@ -287,7 +286,9 @@ def Exp():
     a = yield ConvExp
     b = yield ps.many(ExpMore)
 
-    return AST.DEFERREDEXPR(contents=[a, *b])
+    exps = [exp for exps in b for exp in exps]
+
+    return AST.DEFERREDEXPR(contents=[a, *exps])
 
 @ps.generate
 def ExpMore():
@@ -441,16 +442,15 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
-    tokens = list(tokenize(io.StringIO(importtest)))
-    print(tokens)
-    x = SPL.parse_strict(tokens)
-    print("PARSED X =============================")
-    print(x.tree_string())
-    #print(list(tokenize(testprog)))
-    #Exp.parse_strict(list(tokenize(testprog3)))
+
+    #tokens = list(tokenize(io.StringIO(importtest)))
+    #print(tokens)
+    #x = SPL.parse_strict(tokens)
+    #print("PARSED X =============================")
+    #print(x.tree_string())
+
+    Exp.parse_strict(list(tokenize(testprog)))
 
     exit()
-
-    
 
     print("DONE")
