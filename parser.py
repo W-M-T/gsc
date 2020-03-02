@@ -454,7 +454,7 @@ if __name__ == "__main__":
         tokenstream = tokenize(infile)
         tokenlist = list(tokenstream)
         print(tokenlist)
-        x = SPL.parse_strict(tokenlist)
+        x = SPL.parse_strict(tokenlist, infile)
         print(x.tree_string())
         print(printAST(x))
     exit()

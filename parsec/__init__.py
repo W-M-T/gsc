@@ -10,6 +10,7 @@ __author__ = 'He Tao, sighingnow@gmail.com'
 import re
 from functools import wraps
 from collections import namedtuple
+from util import pointToPosition
 
 ##########################################################################
 # Text.Parsec.Error
@@ -19,33 +20,36 @@ from collections import namedtuple
 class ParseError(RuntimeError):
     '''Parser error.'''
 
-    def __init__(self, expected, text, index):
+    def __init__(self, expected, text, index, hint):
         super(ParseError, self).__init__() # compatible with Python 2.
         self.expected = expected
         self.text = text
-        self.index = index
+        self.pos = index
+        self.hint = hint
 
-    @staticmethod
-    def loc_info(text, index):
-        '''Location of `index` in source code `text`.'''
-        if index > len(text):
-            raise ValueError('Invalid index.')
-        line, last_ln = 0, 0
-        col = index - (last_ln + 1)
-        return (line, col)
+    
+    #@staticmethod
+    #def loc_info(text, index):
+    #    '''Location of `index` in source code `text`.'''
+    #    if index > len(text):
+    #        raise ValueError('Invalid index.')
+    #    line, last_ln = 0, 0
+    #    col = index - (last_ln + 1)
+    #    return (line, col)
 
-    def loc(self):
-        '''Locate the error position in the source code text.'''
-        try:
-            return '{}:{}'.format(*ParseError.loc_info(self.text, self.index))
-        except ValueError:
-            return '<out of bounds index {!r}>'.format(self.index)
+
+    #def loc(self):
+    #    '''Locate the error position in the source code text.'''
+    #    try:
+    #        return '{}:{}'.format(*ParseError.loc_info(self.text, self.index))
+    #    except ValueError:
+    #        return '<out of bounds index {!r}>'.format(self.index)
+    
 
     def __str__(self):
-        return 'expected {} at {}'.format(self.expected, self.loc())
+        return "unexpected token in definition:\n{}".format(self.hint)
+    #return 'expected {} at {}'.format(self.expected, ())
 
-    def __repr__(self):
-        print("Reaching the repr state")
 
 ##########################################################################
 # Definition the Value modelof parsec.py.
@@ -121,7 +125,7 @@ class Parser(object):
         '''Parser a given string `text`.'''
         return self.parse_partial(text)[0]
 
-    def parse_partial(self, text):
+    def parse_partial(self, text, infile):
         '''Parse the longest possible prefix of a given string.
         Return a tuple of the result value and the rest of the string.
         If failed, raise a ParseError. '''
@@ -131,9 +135,11 @@ class Parser(object):
         if res.status:
             return (res.value, text[res.index:])
         else:
-            raise ParseError(res.expected, text, res.index)
+            #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
+            #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
+            raise ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos))
 
-    def parse_strict(self, text):
+    def parse_strict(self, text, infile):
         '''Parse the longest possible prefix of the entire given string.
         If the parser worked successfully and NONE text was rested, return the
         result value, else raise a ParseError.
@@ -141,7 +147,7 @@ class Parser(object):
         given text must be used.'''
         # pylint: disable=comparison-with-callable
         # Here the `<` is not comparison.
-        return (self < eof()).parse_partial(text)[0]
+        return (self < eof()).parse_partial(text, infile)[0]
 
     def bind(self, fn):
         '''This is the monadic binding operation. Returns a parser which, if
