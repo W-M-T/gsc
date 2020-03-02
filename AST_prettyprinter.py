@@ -21,8 +21,28 @@ ACC_STR = {
     Accessor.FST : ".fst",
     Accessor.SND : ".snd"
 }
+def subprint_expr(el):
+    # lambda y: str(y.val) if type(y) is Token else print_node(y)
+    if type(el) == Token:
+        if el.typ == TOKEN.EMPTY_LIST:
+            return "[]"
+        elif el.typ == TOKEN.CHAR:
+            return "'{}'".format(el.val)
+        elif el.typ == TOKEN.STRING:
+            return "\"{}\"".format(el.val)
+        else:
+            return str(el.val)
+    else:
+        return print_node(el)
+
+def subprint_type(el):
+    if type(el) == Token:
+        return el.val
+    else:
+        return print_node(el)
+
 INFIX_LOOKUP = (lambda x:
-    "{} {} {} ({},{}) {}{{".format(INFIX_STR[x.kind], x.fixity, x.id.val, x.params[0].val, x.params[1].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+    "{} {} {} ({},{}) {}{{".format(INFIX_STR[x.kind], x.fixity.val, x.id.val, x.params[0].val, x.params[1].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
 )
 
 FUN_LOOKUP = {
@@ -35,10 +55,26 @@ FUN_LOOKUP = {
     FunKind.INFIXL : INFIX_LOOKUP,
     FunKind.INFIXR : INFIX_LOOKUP,
 }
+CONDBRANCH_LOOKUP = {
+    True : (lambda x:
+            [
+                "if ({}) {{".format(print_node(x.expr)),
+                [flatten(map_print(x.stmts))],
+                "}"
+            ]
+        ),
+    False : (lambda x:
+            [
+                "{} {{".format("else" if x.expr is None else "elif ({})".format(print_node(x.expr))),
+                [flatten(map_print(x.stmts))],
+                "}"
+            ]
+        )
+}
 
 FUNCALL_LOOKUP = { #TODO test this
     FunKind.FUNC : (lambda x:
-            "{}({});".format(x.id.val, ", ".join(map_print(x.args)))
+            "{}({})".format(x.id.val, ", ".join(map_print(x.args)))
         ),
     FunKind.PREFIX : (lambda x:
             "{}{}".format(x.id.val, print_node(x.args[0]))
@@ -83,7 +119,7 @@ LOOKUP = {
             ["type {} = {}".format(x.type_id.val, print_node(x.def_type))]
         ),
     AST.TYPE : (lambda x:
-            print_node(x.val)
+            subprint_type(x.val)
         ),
     AST.BASICTYPE : (lambda x:
             x.type_id.val
@@ -95,16 +131,24 @@ LOOKUP = {
             "[{}]".format(print_node(x.type))
         ),
     AST.FUNTYPE : (lambda x:
-            "{} -> {}".format(" ".join(map_print(x.from_types)), print_node(x.to_type))
+            "{} -> {}".format(" ".join(map_print(x.from_types)), subprint_type(x.to_type))
         ),
     AST.STMT : (lambda x:
             print_node(x.val)
         ),
-    AST.IFELSE : [],
-    AST.CONDBRANCH : [],
-    AST.LOOP : [],
+    AST.IFELSE : (lambda x:
+            [*CONDBRANCH_LOOKUP[True](x.condbranches[0]), *flatten(list(map(CONDBRANCH_LOOKUP[False],x.condbranches[1:])))]
+        ),
+    #AST.CONDBRANCH : [], Not reachable
+    AST.LOOP : (lambda x:
+            [
+                "for({}{};{}) {{".format(";" if x.init is None else print_node(x.init)[0], "" if x.cond is None else print_node(x.cond), "" if x.update is None else print_node(x.update)[0].rstrip(';')),
+                [flatten(map_print(x.stmts))],
+                "}"
+            ]
+        ),
     AST.ACTSTMT : (lambda x:
-            print_node(x.val)
+            [print_node(x.val) + ";"]
         ),
     AST.RETURN : (lambda x:
             ["return {};".format(print_node(x.expr))]
@@ -116,13 +160,13 @@ LOOKUP = {
             ["continue;"]
         ),
     AST.ASSIGNMENT : (lambda x:
-            ["{} = {};".format(print_node(x.varref), print_node(x.expr))]
+            "{} = {}".format(print_node(x.varref), print_node(x.expr))
         ),
     AST.FUNCALL : (lambda x:
-            [FUNCALL_LOOKUP[x.kind](x)]
+            FUNCALL_LOOKUP[x.kind](x)
         ),
-    AST.DEFERREDEXPR : (lambda x: # THIS IS TEMP
-            " ".join(list(map(lambda y: str(y.val), x.contents)))
+    AST.DEFERREDEXPR : (lambda x:
+            " ".join(list(map(subprint_expr, x.contents)))
         ),
     AST.PARSEDEXPR : [],
     AST.VARREF : (lambda x:
@@ -137,14 +181,11 @@ def printAST(root):
 def print_node(node):
     if type(node) in LOOKUP:
         if LOOKUP[type(node)] == []:
-            print(type(node),"not defined yet")
-            return []
+            raise Exception(str(type(node)) + " not defined yet")
         else:
             return LOOKUP[type(node)](node)
     else:
-        print(type(node),"not handled in lambda")
-        print(node)
-        return []
+        raise Exception(str(type(node)) + " not handled in lambda\n"+str(node))
 
 INDENT_CHARS = "  "
 def indent_print(temp, level):
@@ -348,14 +389,96 @@ if __name__ == "__main__":
                         val=AST.RETURN(
                             expr=None
                         )
+                    ),
+                    AST.LOOP(
+                        init=AST.ACTSTMT(
+                            val=AST.ASSIGNMENT(
+                                varref=AST.VARREF(
+                                    id=Token(None,TOKEN.IDENTIFIER, "x"),
+                                    fields=[]
+                                ),
+                                expr=AST.DEFERREDEXPR(
+                                    contents=[
+                                        Token(None,TOKEN.IDENTIFIER, "x")
+                                    ]
+                                )
+                            )
+                        ),
+                        cond=AST.DEFERREDEXPR(
+                            contents=[
+                                Token(None,TOKEN.IDENTIFIER, "x"),
+                                Token(None,TOKEN.OP_IDENTIFIER, "=="),
+                                Token(None,TOKEN.IDENTIFIER, "y")
+                            ]
+                        ),
+                        update=AST.FUNCALL(
+                            id=Token(None,TOKEN.IDENTIFIER, "f"),
+                            kind=FunKind.FUNC,
+                            args=[]
+                        ),
+                        stmts=[
+                            AST.STMT(
+                                val=AST.RETURN(
+                                    expr=None
+                                )
+                            ),
+                            AST.STMT(
+                                val=AST.IFELSE(
+                                    condbranches=[
+                                        AST.CONDBRANCH(
+                                            expr=AST.DEFERREDEXPR(
+                                                contents=[
+                                                    Token(None,TOKEN.IDENTIFIER, "x"),
+                                                    Token(None,TOKEN.OP_IDENTIFIER, "=="),
+                                                    Token(None,TOKEN.IDENTIFIER, "y")
+                                                ]
+                                            ),
+                                            stmts=[
+                                                AST.STMT(
+                                                    val=AST.RETURN(
+                                                        expr=None
+                                                    )
+                                                )
+                                            ]
+                                        ),
+                                        AST.CONDBRANCH(
+                                            expr=AST.DEFERREDEXPR(
+                                                contents=[
+                                                    Token(None,TOKEN.IDENTIFIER, "x"),
+                                                    Token(None,TOKEN.OP_IDENTIFIER, "=="),
+                                                    Token(None,TOKEN.IDENTIFIER, "y")
+                                                ]
+                                            ),
+                                            stmts=[
+                                                AST.STMT(
+                                                    val=AST.RETURN(
+                                                        expr=None
+                                                    )
+                                                )
+                                            ]
+                                        ),
+                                        AST.CONDBRANCH(
+                                            expr=None,
+                                            stmts=[
+                                                AST.STMT(
+                                                    val=AST.RETURN(
+                                                        expr=None
+                                                    )
+                                                )
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+                        ]
                     )
                 ]
             )
         ]
     )
 
-
-    #print(printAST(test))
+    print("======")
+    print(printAST(test))
 
     test2 = AST.VARREF(
         id=Token(None,TOKEN.IDENTIFIER, "xs"),

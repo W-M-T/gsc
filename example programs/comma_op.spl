@@ -6,5 +6,5 @@ infixl 3 , (a,b) :: Char Char -> Char {
 }
 
 main () :: -> Void {
-    print ('a','b')
+    print ('a','b');
 }

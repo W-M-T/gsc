@@ -53,16 +53,16 @@ product ( list ) :: [Int] -> Int {
 }
 
 // Generates a list of integers from the first to the last argument
-fromTo ( from, to ) :: Int Int -> [Int] {
-    if ( from <= to ) {
-        return from : fromTo ( from + 1, to );
+fromTo ( x, to ) :: Int Int -> [Int] {
+    if ( x <= to ) {
+        return x : fromTo ( x + 1, to );
     } else {
         return [];
     }
 }
 
 // Make a reversed copy of any list
-reverse ( list ) :: [t] -> [t] {
+reverse ( list ) :: [T] -> [T] {
     var accu = [] ;
     while ( ! isEmpty ( list ) ) {
         accu = list.hd : accu ;
@@ -75,12 +75,12 @@ reverse ( list ) :: [t] -> [t] {
 abs ( n ) :: Int -> Int { if (n < 0) { return -n; } else { return n ; } }
 
 // make a copy of a tuple with swapped elements
-swapCopy ( pair ) :: (a, b) -> (b, a) {
+swapCopy ( pair ) :: (A, B) -> (B, A) {
     return ( pair.snd, pair.fst) ;
 }
 
 // swap the elements in a tuple
-swap ( tuple ) :: (a , a) -> (a , a) {
+swap ( tuple ) :: (A , A) -> (A , A) {
     var tmp = tuple.fst;
     tuple.fst = tuple.snd;
     tuple.snd = tmp;
@@ -88,7 +88,7 @@ swap ( tuple ) :: (a , a) -> (a , a) {
 }
 
 // list append
-append ( l1, l2 ) :: [t] [t] -> [t] {
+append ( l1, l2 ) :: [T] [T] -> [T] {
     if ( isEmpty ( l1 ) ) {
         return l2;
     } else {
