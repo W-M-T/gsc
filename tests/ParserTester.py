@@ -3,10 +3,11 @@
 import sys
 import unittest
 
-# Makes it possible to import from the lexer
+# Makes it possible to import from parser
 sys.path.insert(0, '../')
 
 from parser import *
+from parsec import ParseError
 
 class ParserTester(unittest.TestCase):
 
@@ -17,11 +18,12 @@ class ParserTester(unittest.TestCase):
     """
 
     def compare(self, parsed, expected):
-        print("Exp" + expected)
+        print("%d / %d" % (len(parsed.contents), len(expected)))
         self.assertEqual(len(parsed.contents), len(expected))
         # X are all elements in the parse
         for x in range(0, len(parsed.contents)):
-            self.assertEqual(parsed.contents[x]['id'], expected[x]['token'])
+            print("c:")
+            self.assertEqual(parsed.contents[x].id.typ, expected[x]['token'])
             # Loop over all the keys in dictionairy
             for k in parsed:
                 if k is not 'token':
@@ -30,6 +32,7 @@ class ParserTester(unittest.TestCase):
                         for i in range(0, len(expected[x][k])):
                             self.assertEqual(expected[x][k][i], parsed.contents[x][k][i])
 
+    @unittest.skip
     def test_id_parser(self):
 
         # Validate parsing of an identifier.
@@ -62,6 +65,7 @@ class ParserTester(unittest.TestCase):
                     self.assertEqual(f.typ, TOKEN.ACCESSOR)
                 i += 0
 
+    @unittest.skip
     def test_prefix_op_decl_parser(self):
 
         # Validate parsing of the defintion of a custom prefix operator
@@ -98,6 +102,7 @@ class ParserTester(unittest.TestCase):
 
                 i += 1
 
+    @unittest.skip
     def test_infix_op_decl_parser(self):
 
         # Validate parsing of the definition of custom infix operator.
@@ -148,32 +153,41 @@ class ParserTester(unittest.TestCase):
         # Validate parsing of variable declarations
 
         tests = [
-            [
+            [   # Forgot semicolon
                 Token(None, TOKEN.VAR, "Var"),
                 Token(None, TOKEN.IDENTIFIER, "a"),
                 Token(None, TOKEN.OP_IDENTIFIER, "="),
                 Token(None, TOKEN.IDENTIFIER, "b"),
-                Token(None, TOKEN.SEMICOLON, ";"),
-            ]
+            ],
+            [   # Forgot to close tuple type
+                Token(None, TOKEN.PAR_OPEN, "("),
+                Token(None, TOKEN.TYPE_IDENTIFIER, "Int"),
+                Token(None, TOKEN.OP_IDENTIFIER, ","),
+                Token(None, TOKEN.TYPE_IDENTIFIER, "T"),
+                Token(None, TOKEN.IDENTIFIER, "c"),
+                Token(None, TOKEN.OP_IDENTIFIER, "="),
+                Token(None, TOKEN.IDENTIFIER, "b"),
+                Token(None, TOKEN.ACCESSOR, ".tl"),
+                Token(None, TOKEN.SEMICOLON, ";")
+            ],
+            [   # No type given
+                Token(None, TOKEN.IDENTIFIER, "c"),
+                Token(None, TOKEN.OP_IDENTIFIER, "="),
+                Token(None, TOKEN.OP_IDENTIFIER, "="),
+                Token(None, TOKEN.IDENTIFIER, "b"),
+                Token(None, TOKEN.ACCESSOR, ".tl"),
+                Token(None, TOKEN.SEMICOLON, ";")
+            ],
         ]
 
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                parsed = VarDecl.parse_strict(t)
-                print("testing..")
-                print(parsed)
-                self.assertIsNotNone(parsed.type)
-                if parsed.type.val == 'Var':
-                    self.assertEqual(parsed.type.typ, TOKEN.VAR)
-                else:
-                    # TODO: Add type test
-                    pass
-                self.assertEqual(parsed.id.typ, TOKEN.IDENTIFIER)
-                # TODO: Check the expression
+                self.assertRaises(ParseError, VarDecl.parse_strict, t)
 
                 i += 1
 
+    @unittest.skip
     def test_basic_type_parser(self):
 
         # Validate parsing of basic data types
@@ -313,11 +327,12 @@ class ParserTester(unittest.TestCase):
         i = 0
         for t in tests:
             with self.subTest(i=i):
+                print(i)
                 try:
                     parsed = Exp.parse_strict(t)
                 except Exception as e:
-                    print(e)
-                self.compare(parsed, res[i]);
+                    print("EXCEPTION")
+                self.compare(parsed, res[i])
                 i += 1
 
 if __name__ == '__main__':
