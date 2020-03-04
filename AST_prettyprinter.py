@@ -151,7 +151,7 @@ LOOKUP = {
             [print_node(x.val) + ";"]
         ),
     AST.RETURN : (lambda x:
-            ["return {};".format(print_node(x.expr))]
+            ["return;" if x.expr is None else "return {};".format(print_node(x.expr))]
         ),
     AST.BREAK : (lambda x:
             ["break;"]
@@ -252,7 +252,7 @@ if __name__ == "__main__":
             ),
             AST.FUNDECL(
                 kind=FunKind.INFIXL,
-                fixity=4,
+                fixity=Token(None,TOKEN.INT, 4),
                 id=Token(None,TOKEN.OP_IDENTIFIER, "%%"),
                 params=[
                     Token(None,TOKEN.IDENTIFIER, "x"),
@@ -282,7 +282,7 @@ if __name__ == "__main__":
             ),
             AST.FUNDECL(
                 kind=FunKind.INFIXR,
-                fixity=4,
+                fixity=Token(None,TOKEN.INT, 4),
                 id=Token(None,TOKEN.OP_IDENTIFIER, "^^"),
                 params=[
                     Token(None,TOKEN.IDENTIFIER, "x"),
