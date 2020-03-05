@@ -27,6 +27,8 @@ class ParserTester(unittest.TestCase):
             # Loop over all the keys in dictionairy
             for k in parsed:
                 if k is not 'token':
+                    print("test:" + k)
+                    print(parsed.contents[x])
                     self.assertEqual(parsed.contents[x], len(expected[x][k]))
                     if len(expected[x][k]) > 1:
                         for i in range(0, len(expected[x][k])):
@@ -59,7 +61,7 @@ class ParserTester(unittest.TestCase):
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = IdField.parse_strict(t)
+                res = IdField.parse_strict(t, "A"*100)
                 self.assertEqual(res.id.typ, TOKEN.IDENTIFIER)
                 for f in res.fields:
                     self.assertEqual(f.typ, TOKEN.ACCESSOR)
@@ -92,7 +94,7 @@ class ParserTester(unittest.TestCase):
         i = 0;
         for t in tests:
             with self.subTest(i=i):
-                res = PrefixOpDecl.parse_strict(t)
+                res = PrefixOpDecl.parse_strict(t, "A"*100)
                 self.assertEqual(res.kind, FunKind.PREFIX)
                 self.assertIsNone(res.fixity)
                 self.assertEqual(res.id.typ, TOKEN.OP_IDENTIFIER)
@@ -134,7 +136,7 @@ class ParserTester(unittest.TestCase):
         i = 0;
         for t in tests:
             with self.subTest(i=i):
-                res = PrefixOpDecl.parse_strict(t)
+                res = PrefixOpDecl.parse_strict(t, "A"*100)
                 if res.id.val == 'infixl':
                     self.assertEqual(res.kind.typ, TOKEN.INFIXL)
                 elif res.id.val == 'infixr':
@@ -183,7 +185,7 @@ class ParserTester(unittest.TestCase):
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                self.assertRaises(ParseError, VarDecl.parse_strict, t)
+                self.assertRaises(ParseError, VarDecl.parse_strict, t, "A"*100)
 
                 i += 1
 
@@ -201,38 +203,63 @@ class ParserTester(unittest.TestCase):
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = VarDecl.parse_strict(t)
+                res = BasicType.parse_strict(t, "A" * 100)
                 self.assertEqual(res.type_id, TOKEN.TYPE_IDENTIFIER)
 
                 i += 1
 
     def test_tuple_type_parser(self):
 
+        # Parses (a, b)
+
         # Validate parsing of tuple types
         pass
 
     def test_list_type_parser(self):
+
+        # Parses [a]
+
         pass
 
     def test_type_syn_parser(self):
+
+        # Parses type id = other_type
         pass
 
     def test_stmtifelse_parser(self):
+
+        # Parses if (e) { stmts1 } else { stmts2 }
+
         pass
 
     def test_stmtelif_parser(self):
+
+        # Parses elif (e) { stmts }
+
         pass
 
     def test_stmtelse_parser(self):
+
+        # Parses else { stmts }
+
         pass
 
     def test_stmtwhile_parser(self):
+
+        # Parses while (e) { stmts }
+
         pass
 
     def test_stmtfor_parser(self):
+
+        # Parses for (init, cond, update ) { stmts }
+
         pass
 
     def test_stmtret_parser(self):
+
+        # Parses ret exp
+
         pass
 
     def test_exp_parser(self):
@@ -329,7 +356,7 @@ class ParserTester(unittest.TestCase):
             with self.subTest(i=i):
                 print(i)
                 try:
-                    parsed = Exp.parse_strict(t)
+                    parsed = Exp.parse_strict(t, "A" * 100)
                 except Exception as e:
                     print("EXCEPTION")
                 self.compare(parsed, res[i])
