@@ -12,17 +12,17 @@ from functools import wraps
 from collections import namedtuple
 from util import pointToPosition
 
-HACKY_ERROR_GLOBAL_INDEX = 0
-HACKY_ERROR_GLOBAL = None
-HACKY_ERROR_GLOBAL_SET = set()
+ERROR_GLOBAL_INDEX = 0
+ERROR_GLOBAL_VAL = None
+ERROR_GLOBAL_SET = set()
 def hacky_error_log(failure):
-    global HACKY_ERROR_GLOBAL_INDEX, HACKY_ERROR_GLOBAL, HACKY_ERROR_GLOBAL_SET
-    if failure.index > HACKY_ERROR_GLOBAL_INDEX:
-        HACKY_ERROR_GLOBAL_INDEX = failure.index
-        HACKY_ERROR_GLOBAL = failure
-        HACKY_ERROR_GLOBAL_SET = set()
-    if failure.index >= HACKY_ERROR_GLOBAL_INDEX:
-        HACKY_ERROR_GLOBAL_SET.add(failure.expected)
+    global ERROR_GLOBAL_INDEX, ERROR_GLOBAL_VAL, ERROR_GLOBAL_SET
+    if failure.index > ERROR_GLOBAL_INDEX:
+        ERROR_GLOBAL_INDEX = failure.index
+        ERROR_GLOBAL_VAL = failure
+        ERROR_GLOBAL_SET = set()
+    if failure.index >= ERROR_GLOBAL_INDEX:
+        ERROR_GLOBAL_SET.add(failure.expected)
 
 ##########################################################################
 # Text.Parsec.Error
@@ -78,7 +78,9 @@ class Value(namedtuple('Value', 'status index value expected')):
     @staticmethod
     def failure(index, expected):
         '''Create failure value.'''
-        return Value(False, index, None, expected)
+        result = Value(False, index, None, expected)
+        hacky_error_log(result)
+        return result
 
     def aggregate(self, other=None):
         '''collect the furthest failure from self and other.'''
@@ -150,9 +152,9 @@ class Parser(object):
         else:
             #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
             #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
-            print("HACKY_ERROR_GLOBAL_INDEX",HACKY_ERROR_GLOBAL_INDEX)
-            print(pointToPosition(infile, text[HACKY_ERROR_GLOBAL.index].pos))
-            print(HACKY_ERROR_GLOBAL_SET)
+            print("HACKY_ERROR_GLOBAL_INDEX",ERROR_GLOBAL_INDEX)
+            print(pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
+            print(ERROR_GLOBAL_SET)
             raise ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos))
 
     def parse_strict(self, text, infile):
@@ -210,8 +212,6 @@ class Parser(object):
         @Parser
         def try_choice_parser(text, index):
             res = self(text, index)
-            if not res.status: # log this failure
-                hacky_error_log(res)
             return res if res.status else other(text, index) # TODO also log basic choice + failure for last alternative (in case this does't happen in ps.generate)
             # Maybe just add the logging to the failure method?
         return try_choice_parser
@@ -417,8 +417,6 @@ def generate(fn):
                 parser = iterator.send(value)
                 res = parser(text, index)
                 if not res.status:  # this parser failed.
-                    print(res)
-                    hacky_error_log(res)
                     return res
                 value, index = res.value, res.index  # iterate
         except StopIteration as stop:
@@ -648,11 +646,7 @@ def token(t, cond=None):
             if tok.typ == t and (cond is None or cond(tok.val)):
                 return Value.success(index+1, tok)
             else:
-                print(Value.failure(index, t))
-                hacky_error_log(Value.failure(index, t))
                 return Value.failure(index, t)
         else:
-                print(Value.failure(index, t))
-                hacky_error_log(Value.failure(index, t))
-                return Value.failure(index, t)
+            return Value.failure(index, t)
     return token_parser
