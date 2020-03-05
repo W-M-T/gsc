@@ -12,6 +12,18 @@ from functools import wraps
 from collections import namedtuple
 from util import pointToPosition
 
+ERROR_GLOBAL_INDEX = 0
+ERROR_GLOBAL_VAL = None
+ERROR_GLOBAL_SET = set()
+def hacky_error_log(failure):
+    global ERROR_GLOBAL_INDEX, ERROR_GLOBAL_VAL, ERROR_GLOBAL_SET
+    if failure.index > ERROR_GLOBAL_INDEX:
+        ERROR_GLOBAL_INDEX = failure.index
+        ERROR_GLOBAL_VAL = failure
+        ERROR_GLOBAL_SET = set()
+    if failure.index >= ERROR_GLOBAL_INDEX:
+        ERROR_GLOBAL_SET.add(failure.expected)
+
 ##########################################################################
 # Text.Parsec.Error
 ##########################################################################
@@ -66,7 +78,9 @@ class Value(namedtuple('Value', 'status index value expected')):
     @staticmethod
     def failure(index, expected):
         '''Create failure value.'''
-        return Value(False, index, None, expected)
+        result = Value(False, index, None, expected)
+        hacky_error_log(result)
+        return result
 
     def aggregate(self, other=None):
         '''collect the furthest failure from self and other.'''
@@ -126,6 +140,7 @@ class Parser(object):
         return self.parse_partial(text)[0]
 
     def parse_partial(self, text, infile):
+        global HACKY_ERROR_GLOBAL
         '''Parse the longest possible prefix of a given string.
         Return a tuple of the result value and the rest of the string.
         If failed, raise a ParseError. '''
@@ -137,6 +152,9 @@ class Parser(object):
         else:
             #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
             #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
+            print("HACKY_ERROR_GLOBAL_INDEX",ERROR_GLOBAL_INDEX)
+            print(pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
+            print(ERROR_GLOBAL_SET)
             raise ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos))
 
     def parse_strict(self, text, infile):
@@ -194,7 +212,8 @@ class Parser(object):
         @Parser
         def try_choice_parser(text, index):
             res = self(text, index)
-            return res if res.status else other(text, index)
+            return res if res.status else other(text, index) # TODO also log basic choice + failure for last alternative (in case this does't happen in ps.generate)
+            # Maybe just add the logging to the failure method?
         return try_choice_parser
 
     def skip(self, other):
@@ -629,5 +648,5 @@ def token(t, cond=None):
             else:
                 return Value.failure(index, t)
         else:
-                return Value.failure(index, t)
+            return Value.failure(index, t)
     return token_parser
