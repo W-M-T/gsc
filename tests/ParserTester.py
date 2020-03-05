@@ -222,8 +222,9 @@ class ParserTester(unittest.TestCase):
         pass
 
     def test_type_syn_parser(self):
-
         # Parses type id = other_type
+
+
         pass
 
     def test_stmtifelse_parser(self):
