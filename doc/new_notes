@@ -34,3 +34,6 @@ In deze fase converten we alle untyped nodes naar typed nodes. Dit geldt voor de
 
 Type synoniemen:
 Het is niet mogelijk om een type synoniem te defineren die een basic type of Void herdefineert.
+
+Parser errors:
+De parsec library houdt 1 index bij, dit is echter de continuatie index die kan worden gebruikt om de volgende alternatieven te kiezen. Deze index kan echter niet worden gebruikt voor de error handling, daarom moeten we een aparte index bijhouden die aangeeft welke parsing alternatief het beste is en we dus recommenden

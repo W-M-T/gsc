@@ -50,7 +50,7 @@ def syntaxnode(typename, *field_names, module=None):
 
     def __iter__(self):
         field_values = list(map(lambda x: getattr(self, x), field_names))
-        return iter(flatten(field_values))
+        return iter(field_values)
 
 
     def __repr__(self):
