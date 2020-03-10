@@ -7,7 +7,6 @@ A universal Python parser combinator library inspired by Parsec library of Haske
 
 __author__ = 'He Tao, sighingnow@gmail.com'
 
-import re
 from functools import wraps
 from collections import namedtuple
 from util import pointToPosition
@@ -152,9 +151,10 @@ class Parser(object):
         else:
             #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
             #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
-            print("HACKY_ERROR_GLOBAL_INDEX",ERROR_GLOBAL_INDEX)
+            print("An exception occured at token index", ERROR_GLOBAL_INDEX)
             print(pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
             print(ERROR_GLOBAL_SET)
+            exit(1)
             raise ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos))
 
     def parse_strict(self, text, infile):
