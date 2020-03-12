@@ -23,6 +23,12 @@ def hacky_error_log(failure):
     if failure.index >= ERROR_GLOBAL_INDEX:
         ERROR_GLOBAL_SET.add(failure.expected)
 
+def format_error(errors):
+    if(len(errors) == 0):
+        print("Somehow no possible not a single parsers tried and yet failed.")
+
+    return errors
+
 ##########################################################################
 # Text.Parsec.Error
 ##########################################################################
@@ -145,17 +151,19 @@ class Parser(object):
         If failed, raise a ParseError. '''
 
         res = self(text, 0)
-        print(res)
+        #print(res)
         if res.status:
             return (res.value, text[res.index:])
         else:
             #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
             #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
-            print("An exception occured at token index", ERROR_GLOBAL_INDEX)
-            print(pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
-            print(ERROR_GLOBAL_SET)
-            exit(1)
-            raise ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos))
+            #print("An exception occured at ", pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
+            #print(format_error(ERROR_GLOBAL_SET))
+            #exit(1)
+
+            # Neccesary because missing last symbols (like semicolons) will return index == len(tokens) which means out of bounds if not adjusted
+            index = res.index if len(text) > res.index else res.index - 1
+            raise ParseError(res.expected, text, text[index].pos, pointToPosition(infile, text[index].pos))
 
     def parse_strict(self, text, infile):
         '''Parse the longest possible prefix of the entire given string.

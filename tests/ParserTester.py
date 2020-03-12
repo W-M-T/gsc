@@ -3,364 +3,604 @@
 import sys
 import unittest
 
-# Makes it possible to import from parser
+# Makes it possible to import from the parser/lexer
 sys.path.insert(0, '../')
 
 from parser import *
 from parsec import ParseError
+from io import StringIO
+from lexer import tokenize
 
 class ParserTester(unittest.TestCase):
 
     """
     Test all of the parsing functions.
-    Every test get a list of tokens as input rather than actual SPL source code
-    since the goal is to test the parsing step instead of both the lexer and the parser.
+    Ideally, every test would only get a list of tokens to make sure that only the parser is tested.
+    However, we also have to supply the source code for error handling.
     """
 
-    def compare(self, parsed, expected):
-        print("%d / %d" % (len(parsed.contents), len(expected)))
-        self.assertEqual(len(parsed.contents), len(expected))
-        # X are all elements in the parse
-        for x in range(0, len(parsed.contents)):
-            print("c:")
-            self.assertEqual(parsed.contents[x].id.typ, expected[x]['token'])
-            # Loop over all the keys in dictionairy
-            for k in parsed:
-                if k is not 'token':
-                    print("test:" + k)
-                    print(parsed.contents[x])
-                    self.assertEqual(parsed.contents[x], len(expected[x][k]))
-                    if len(expected[x][k]) > 1:
-                        for i in range(0, len(expected[x][k])):
-                            self.assertEqual(expected[x][k][i], parsed.contents[x][k][i])
-
-    @unittest.skip
     def test_id_parser(self):
 
-        # Validate parsing of an identifier.
+        # Test parsing of identifiers.
 
         tests = [
-            [
-                # Basic identifier
-                Token(None, TOKEN.IDENTIFIER, "test")
-            ],
-            [
-                # Indentifier with one accessor
-                Token(None, TOKEN.IDENTIFIER, "test"),
-                Token(None, TOKEN.ACCESSOR, ".snd")
-            ],
-            [
-                # Identifier with multiple different accessors
-                Token(None, TOKEN.IDENTIFIER, "test"),
-                Token(None, TOKEN.ACCESSOR, ".tl"),
-                Token(None, TOKEN.ACCESSOR, ".snd"),
-                Token(None, TOKEN.ACCESSOR, ".tl")
-            ],
+            StringIO("test"),
+            StringIO("a.tl.fst"),
+            StringIO("a.snd.fst"),
         ]
 
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = IdField.parse_strict(t, "A"*100)
-                self.assertEqual(res.id.typ, TOKEN.IDENTIFIER)
-                for f in res.fields:
-                    self.assertEqual(f.typ, TOKEN.ACCESSOR)
-                i += 0
+                tks = list(tokenize(t))
+                res = IdField.parse_strict(tks, t)
+                print(res)
+                self.assertEqual(type(res), AST.VARREF)
+                i += 1
 
-    @unittest.skip
     def test_prefix_op_decl_parser(self):
 
-        # Validate parsing of the defintion of a custom prefix operator
+        # Test parsing of the defintion of a custom prefix operator prefix o (a) { stmts } where
+        # prefix is the prefix keyword;
+        # o is an Opidentifier;
+        # a is an Identifier
+        # stmts can be any positive number of Statements
 
-        tests = [
-            [
-                # Custom prefix operator that does absolutely nothing.
-                Token(None, TOKEN.PREFIX, 'prefix'),
-                Token(None, TOKEN.OP_IDENTIFIER, '++'),
-                Token(None, TOKEN.PAR_OPEN, '('),
-                Token(None, TOKEN.IDENTIFIER, 'arg'),
-                Token(None, TOKEN.PAR_CLOSE, ')'),
-                Token(None, TOKEN.CURL_OPEN, '{'),
-                Token(None, TOKEN.CURL_CLOSE, '}'),
-
-                # TODO: Custom prefix operator with function body.
-
-                # TODO: Custom prefix operator that uses a type signature
-
-                # TODO: Custom prefix operator that is incorcet (uses :: but no actual type sig)
-            ],
+        valid_examples = [
+            StringIO('''
+                 prefix % (a) { continue; }
+             '''),
+            # Nice long prefix,
+            StringIO('''
+                 prefix %%!#^$% (a) { continue; }
+             '''),
         ]
 
-        i = 0;
-        for t in tests:
+        incorrect_examples = [
+            # No argument
+            StringIO('''
+                prefix % () { continue; }
+            '''),
+            # No prefix body
+            StringIO('''
+                 prefix %%!#^$% (a) { }
+             '''),
+            # Invalid prefix character
+            StringIO('''
+                 prefix %%c (a) { }
+             '''),
+        ]
+
+        i = 0
+        for t in valid_examples:
             with self.subTest(i=i):
-                res = PrefixOpDecl.parse_strict(t, "A"*100)
+                tks = list(tokenize(t))
+                res = PrefixOpDecl.parse_strict(tks, t)
                 self.assertEqual(res.kind, FunKind.PREFIX)
                 self.assertIsNone(res.fixity)
                 self.assertEqual(res.id.typ, TOKEN.OP_IDENTIFIER)
                 self.assertEqual(len(res.params), 1)
                 self.assertEqual(res.params[0].typ, TOKEN.IDENTIFIER)
-                # TODO: Declarations, statements, typesignature
 
                 i += 1
 
-    @unittest.skip
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, PrefixOpDecl.parse_strict, tks, t)
+
+                i += 1
+
     def test_infix_op_decl_parser(self):
 
-        # Validate parsing of the definition of custom infix operator.
-        # Note: INFIX token is validated by looking at INFIX token value.
+        # Test parsing of the definition of custom infix operator infix f o (a, b) { stmts } where
+        # infix can be either the keyword infixl or infixr;
+        # f is the fixity, a positive number;
+        # o is the operator identifier;
+        # a, b are Identifiers;
+        # stmts can be any positive number of Statements.
 
-        tests = [
-            [
-                Token(None, TOKEN.INFIXL, "infixl"),
-                Token(None, TOKEN.INT, "5"),
-                Token(None, TOKEN.OP_IDENTIFIER, "%%"),
-                Token(None, TOKEN.PAR_OPEN, "("),
-                Token(None, TOKEN.IDENTIFIER, "a"),
-                Token(None, TOKEN.OP_IDENTIFIER, ","),
-                Token(None, TOKEN.IDENTIFIER, "b"),
-                Token(None, TOKEN.PAR_CLOSE, ")"),
-                Token(None, TOKEN.CURL_OPEN, "{"),
-                Token(None, TOKEN.CURL_OPEN, "}"),
-
-                # TODO: Custom infixl operator with function body.
-
-                # TODO: Custom infixr operator with function body.
-
-                # TODO: Custom infixl operator with type signature
-
-                # TODO: Custom infixr operator with type signature
-            ]
+        valid_examples = [
+            StringIO('''
+                infixl 5 %% (a, b) { continue; }
+            '''),
+            StringIO('''
+                infixr 9 &&& (a, b) { break; }
+            '''),
+            StringIO('''
+               infixr 7 ++ (a, b) :: Int Int -> Int { return a + a + b + b; }
+            '''),
+            StringIO('''
+                infixl 25 * (a, b) :: Int Int -> Int { return a^2 + b^2; }
+            '''),
         ]
 
-        i = 0;
-        for t in tests:
+        incorrect_examples = [
+            # No negative fixity allowed
+            StringIO('''
+               infixl -5 %% (a, b) { continue; }
+            '''),
+            # Typo, we dont have a infixt
+            StringIO('''
+                infixt 5 %% (a, b) { continue; }
+            '''),
+            # Fixity also cannot be an expression
+            StringIO('''
+               infixr 5+9 %% (a, b) { continue; }
+            '''),
+            # Forgot one argument
+            StringIO('''
+                infixr 7 %% (a) { break; }
+            '''),
+            # Forgot curly brace
+            StringIO('''
+                infixr 7 %% (a) break; }
+            '''),
+            # Typing symbol :: given, but no actual types argument and return types provided.
+            StringIO('''
+                infixr 7 %% (a, b) :: { break; }
+            '''),
+        ]
+
+        i = 0
+        for t in valid_examples:
             with self.subTest(i=i):
-                res = PrefixOpDecl.parse_strict(t, "A"*100)
+                tks = list(tokenize(t))
+                res = InfixOpDecl.parse_strict(tks, t)
                 if res.id.val == 'infixl':
                     self.assertEqual(res.kind.typ, TOKEN.INFIXL)
                 elif res.id.val == 'infixr':
                     self.assertEqual(res.kind.typ, TOKEN.INFIXR)
-                self.assertEqual(res.fixity, TOKEN.INT)
                 self.assertEqual(res.id.typ, TOKEN.OP_IDENTIFIER)
                 self.assertEqual(len(res.params), 2)
                 self.assertEqual(res.params[0].typ, TOKEN.IDENTIFIER)
                 self.assertEqual(res.params[1].typ, TOKEN.IDENTIFIER)
-                # TODO: Declarations, statements, typesignature
+
+                i += 1
+
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, InfixOpDecl.parse_strict, tks, t)
 
                 i += 1
 
     def test_var_decl_parser(self):
 
-        # Validate parsing of variable declarations
+        # Test parsing of variable declaration X i = e where
+        # X can be any Type;
+        # i is an Identifier;
+        # e can be any Expression.
 
-        tests = [
-            [   # Forgot semicolon
-                Token(None, TOKEN.VAR, "Var"),
-                Token(None, TOKEN.IDENTIFIER, "a"),
-                Token(None, TOKEN.OP_IDENTIFIER, "="),
-                Token(None, TOKEN.IDENTIFIER, "b"),
-            ],
-            [   # Forgot to close tuple type
-                Token(None, TOKEN.PAR_OPEN, "("),
-                Token(None, TOKEN.TYPE_IDENTIFIER, "Int"),
-                Token(None, TOKEN.OP_IDENTIFIER, ","),
-                Token(None, TOKEN.TYPE_IDENTIFIER, "T"),
-                Token(None, TOKEN.IDENTIFIER, "c"),
-                Token(None, TOKEN.OP_IDENTIFIER, "="),
-                Token(None, TOKEN.IDENTIFIER, "b"),
-                Token(None, TOKEN.ACCESSOR, ".tl"),
-                Token(None, TOKEN.SEMICOLON, ";")
-            ],
-            [   # No type given
-                Token(None, TOKEN.IDENTIFIER, "c"),
-                Token(None, TOKEN.OP_IDENTIFIER, "="),
-                Token(None, TOKEN.OP_IDENTIFIER, "="),
-                Token(None, TOKEN.IDENTIFIER, "b"),
-                Token(None, TOKEN.ACCESSOR, ".tl"),
-                Token(None, TOKEN.SEMICOLON, ";")
-            ],
+        valid_examples = [
+            StringIO('Int b = 5 + c;'),
+            StringIO('String a = "testing";'),
+            StringIO('Bool false = False;')
+        ]
+
+        incorrect_examples = [
+            # Forgot semicolon
+            StringIO('''
+                Var a = b
+            '''),
+            # Forgot to close tuple
+            StringIO('''
+                (Int, T c = b.tl;
+            '''),
+            # No type
+            StringIO('''
+                c = =b.tl;
+            '''),
+            # Identifier cannot start with capital
+            StringIO('''
+                String B = "test";
+            '''),
         ]
 
         i = 0
-        for t in tests:
+        for t in valid_examples:
             with self.subTest(i=i):
-                self.assertRaises(ParseError, VarDecl.parse_strict, t, "A"*100)
-
+                tks = list(tokenize(t))
+                res = VarDecl.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.VARDECL)
                 i += 1
 
-    @unittest.skip
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, VarDecl.parse_strict, tks, t)
+                i += 1
+
     def test_basic_type_parser(self):
 
-        # Validate parsing of basic data types
+        # Test parsing of the basic types Int, Char, Bool
 
         tests = [
-            [Token(None, TOKEN.TYPE_IDENTIFIER, "Int")],
-            [Token(None, TOKEN.TYPE_IDENTIFIER, "Char")],
-            [Token(None, TOKEN.TYPE_IDENTIFIER, "Bool")]
+            StringIO('Int'),
+            StringIO('Char'),
+            StringIO('Bool')
         ]
 
         i = 0
         for t in tests:
             with self.subTest(i=i):
-                res = BasicType.parse_strict(t, "A" * 100)
-                self.assertEqual(res.type_id, TOKEN.TYPE_IDENTIFIER)
+                tks = list(tokenize(t))
+                res = BasicType.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.BASICTYPE)
 
                 i += 1
 
     def test_tuple_type_parser(self):
 
-        # Parses (a, b)
+        # Test parsing of (a, b) where a, b can be any Type
 
-        # Validate parsing of tuple types
-        pass
+        valid_examples = [
+            StringIO('(Int, B)'),
+            StringIO('(Int, Char)'),
+            StringIO('(String, Int)'),
+            StringIO('(Int, [Char])'),
+        ]
+
+        incorrect_examples = [
+            # Missing second argument
+            StringIO('(Int, )'),
+            # Second argument not a type
+            StringIO('(Char, t)'),
+            # Unexpected comma
+            StringIO('(Int,,String)'),
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = TupType.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.TUPLETYPE)
+
+                i += 1
+
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, TupType.parse_strict, tks, t)
+
+                i += 1
 
     def test_list_type_parser(self):
 
-        # Parses [a]
+        # Test parsing of list [a] where a can be any type
 
-        pass
+        valid_examples = [
+            StringIO('[Int]'),
+            StringIO('[(Int, Char)]'),
+            StringIO('[String]'),
+        ]
+
+        incorrect_examples = [
+            # Lists have to be strongly-typed
+            StringIO('[var]'),
+            # Missing capital for Int
+            StringIO('[int]'),
+            # Void lists are not a thing
+            StringIO('[Void]'),
+            # Cannot create an untyped list
+            StringIO('[]'),
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = ListType.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.LISTTYPE)
+
+                i += 1
+
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, TupType.parse_strict, tks, t)
+
+                i += 1
 
     def test_type_syn_parser(self):
-        # Parses type id = other_type
 
+        # Test parsing of type synonyms type T1 = T2
+        # where type is the type keyword
+        # T1 is your new Type
+        # T2 is the Type definition
 
-        pass
+        valid_examples = [
+            StringIO('type Age = Int'),
+            StringIO('type Name = [Char]'),
+            StringIO('type Coordinate = (Int, Int)'),
+            StringIO('type Person = (Name, Age)')
+        ]
+
+        incorrect_examples = [
+            # New type does not start with a capital
+            StringIO('type number = Int'),
+            # Declared type is not a type
+            StringIO('type Integer = char'),
+            # Invalid new type name
+            StringIO('type * = Bool'),
+            # Cannot define new type is empty list.
+            StringIO('type List = []'),
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = TypeSyn.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.TYPESYN)
+
+                i += 1
+
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, TypeSyn.parse_strict, tks, t)
+
+                i += 1
 
     def test_stmtifelse_parser(self):
 
-        # Parses if (e) { stmts1 } else { stmts2 }
+        # Test parsing of IfElseStatement if (e) { stmts1 } else { stmts2 }
+        # where "if" is the if keyword;
+        # e is any Expression;
+        # "else" is the else keyword;
+        # stmts1 are any positive number of Statements;
+        # and stmts2 are any positive number of Statements.
 
-        pass
+        valid_examples = [
+            StringIO('if (a == 2) { print(a); } else { print("Error"); }'),
+            StringIO('if (b > 2 && d < 2) { break; } else { continue; }'),
+            StringIO('if (7 != y) { break; }'),
+            StringIO('if (x < 5) { break; } elif(x >= 5 && x < 10) { continue; } else { break; }'),
+            StringIO('if (x < 5) { break; } elif(x >= 5 && x < 10) { continue; }'),
+        ]
 
-    def test_stmtelif_parser(self):
+        incorrect_examples = [
+            # Missing close curly bracket
+            StringIO('if (True) { break; else { break; }'),
+            # Typo in else keyword
+            StringIO('if (True) { +a; } els { loop(); }'),
+        ]
 
-        # Parses elif (e) { stmts }
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = StmtIfElse.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.IFELSE)
 
-        pass
+                i += 1
 
-    def test_stmtelse_parser(self):
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, StmtIfElse.parse_strict, tks, t)
 
-        # Parses else { stmts }
-
-        pass
+                i += 1
 
     def test_stmtwhile_parser(self):
 
-        # Parses while (e) { stmts }
+        # Test parsing of statement while (e) { stmts } where
+        # while is the while keyword;
+        # e can be any Expression;
+        # stmts can be any positive number of statements
 
-        pass
+        valid_examples = [
+            StringIO('while(True) { print("For ever and ever"); }'),
+            StringIO('while(a > b) { a = a - 1; b = b + 1; }'),
+            StringIO('while(t) { c = t ** 2; }'),
+        ]
+
+        incorrect_examples = [
+            # Missing close paranthesis
+            StringIO('while(a < 100000 { ++a } '),
+            # Typo in while keyword
+            StringIO('whil (test) { break }'),
+            # Empty while statement
+            StringIO('while () { a(); }'),
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = StmtWhile.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.LOOP)
+
+                i += 1
+
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, StmtWhile.parse_strict, tks, t)
+
+                i += 1
 
     def test_stmtfor_parser(self):
 
-        # Parses for (init, cond, update ) { stmts }
+        # Test parsing of statement for (init ; cond ; upd) { stmts } where
+        # init can be any ActStmt;
+        # cond can be any Expression;
+        # upd can be any ActStmt;
+        # stmts can be any positive number of statements
+
+        valid_examples = [
+            StringIO('for (i=0;i <= 10; i = i + 1) { print(i); }'),
+            StringIO('for (j=0;j != 10; inc(j)) { j = j - 2; }'),
+            # No initial or update, which is allowed according to the lang specs.
+            StringIO('for (;k != 10;) { k = k * 2; }')
+        ]
+
+        incorrect_examples = [
+            # Expressions not allowed in update
+            StringIO('for (i=0;i <= 10; i = ++i) { print(i); }'),
+            # Empty body is not allowed
+            StringIO('for (j=0;i<3;j=j/2) { }'),
+            # Missing semi colon
+            StringIO('for (i=0;i <= 10 i = i + 1) { }'),
+            # There is no such thing as a foreach pleb
+            StringIO('foreach (i=0;i <= 10; i = ++i) { print(i); }'),
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = StmtFor.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.LOOP)
+
+                i += 1
+
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, StmtIfElse.parse_strict, tks, t)
+
+                i += 1
 
         pass
 
     def test_stmtret_parser(self):
 
-        # Parses ret exp
+        # Test parsing of statement return e where
+        # "return" is the return keyword;
+        # and e can be any Expression.
+
+        valid_examples = [
+            StringIO('return x < 5;'),
+            StringIO('return;'),
+            StringIO('return (True);'),
+
+        ]
+
+        incorrect_examples = [
+            # Statement after return
+            StringIO('return if'),
+            # No semicolon
+            StringIO('return'),
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = StmtRet.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.RETURN)
+
+                i += 1
+
+        i = 0
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, StmtRet.parse_strict, tks, t)
+
+                i += 1
 
         pass
 
     def test_exp_parser(self):
 
-        # Test expressions
-
-        tests = [
-            # Identifiers with accessors
-            [
-                Token(None, TOKEN.IDENTIFIER, "a"),
-                Token(None, TOKEN.ACCESSOR, ".snd"),
-                Token(None, TOKEN.OP_IDENTIFIER, "+"),
-                Token(None, TOKEN.IDENTIFIER, "b.hd"),
-                Token(None, TOKEN.ACCESSOR, ".hd")
-            ],
-            # Simple expressions
-            [
-                Token(None, TOKEN.IDENTIFIER, "first_val"),
-                Token(None, TOKEN.OP_IDENTIFIER, "%%"),
-                Token(None, TOKEN.IDENTIFIER, "second_val")
-            ],
-            # Boolean values
-            [
-                Token(None, TOKEN.BOOL, "False"),
-            ],
-            [
-                Token(None, TOKEN.BOOL, "True"),
-            ],
-            [
-                Token(None, TOKEN.EMPTY_LIST, "[]"),
-            ],
-            # Literals
-            [
-                Token(None, TOKEN.INT, "5314235241")
-            ],
-            [
-                Token(None, TOKEN.CHAR, "c"),
-            ],
-            [
-                Token(None, TOKEN.STRING, "a long piece of text"),
-            ],
-            # Nested expression
-            #[
-            #    Token(None, TOKEN.IDENTIFIER, "a"),
-            #    Token(None, TOKEN.OP_IDENTIFIER, "+"),
-            #    Token(None, TOKEN.PAR_OPEN, "("),
-            #    Token(None, TOKEN.INT, "5"),
-            #    Token(None, TOKEN.PAR_CLOSE, ")"),
-            #],
-            ## Function call
-            #[
-            #    Token(None, TOKEN.IDENTIFIER, "sum"),
-            #    Token(None, TOKEN.CURL_OPEN, "("),
-            #    Token(None, TOKEN.IDENTIFIER, "a"),
-            #    Token(None, TOKEN.OP_IDENTIFIER, ","),
-            #    Token(None, TOKEN.IDENTIFIER, "b"),
-            #    Token(None, TOKEN.CURL_CLOSE, ")"),
-            #],
+        # Test expressions, should all be correct
+        valid_examples = [
+            StringIO('''
+                a.snd && b.fst
+            '''),
+            StringIO('''
+                "Testing" == c.fst.tl
+            '''),
+            StringIO('''
+                False
+            '''),
+            StringIO('''
+                [] && []
+            '''),
+            StringIO('''
+                True
+            '''),
+            StringIO('''
+                []
+            '''),
+            StringIO('''
+                a + (5)
+            '''),
+            StringIO('''
+                sum(a, b)
+            '''),
+            StringIO('''
+                (a %% c) || (d ** a)
+            '''),
+            StringIO('''
+                a + -b
+            '''),
+            StringIO('''
+                f(a, b, c) && g(d, e)
+            '''),
+            StringIO('''
+                (((((((((a)))))))))
+            '''),
+            # Nested prefix
+            StringIO('''
+                a + + + b
+            '''),
+            # Whoever defines these prefixes aint right
+            StringIO('''
+                ((a + b) * c < (d ** %f) -- ^g)
+            ''')
         ]
 
-        res = [
-            [
-                {'token': TOKEN.IDENTIFIER, 'fields': [TOKEN.ACCESSOR]},
-                {'token': TOKEN.ACCESSOR},
-                {'token': TOKEN.IDENTIFIER, 'fields': [TOKEN.ACCESSOR]},
-            ],
-            [
-                {'token': TOKEN.IDENTIFIER, 'fields': None},
-                {'token': TOKEN.OP_IDENTIFIER},
-                {'token': TOKEN.IDENTIFIER, 'fields': None},
-            ],
-            [
-                {'token': TOKEN.BOOL}
-            ],
-            [
-                {'token': TOKEN.BOOL}
-            ],
-            [
-                {'token': TOKEN.EMPTY_LIST}
-            ],
-            [
-                {'token': TOKEN.INT}
-            ],
-            [
-                {'token': TOKEN.CHAR}
-            ],
-            [
-                {'token': TOKEN.STRING}
-            ],
+        incorrect_examples = [
+            # Cannot have statements in expressions
+            StringIO('''
+                if (a > b) { print(a); }
+            '''),
+            # Bracket mismatch
+            StringIO('''
+                (((((((a))))
+            '''),
+            # Unknown constant
+            StringIO('''
+                Talse
+            '''),
+            # Accessor, not a function call
+            StringIO('''
+                c.snd()
+            '''),
+            # Float TODO: Figure out why this produces a lexer error.
+            #StringIO('''
+            #    52452.1515
+            #''')
         ]
 
         i = 0
-        for t in tests:
+        for t in valid_examples:
             with self.subTest(i=i):
-                print(i)
                 try:
-                    parsed = Exp.parse_strict(t, "A" * 100)
+                    tks = list(tokenize(t))
+                    parsed = Exp.parse_strict(tks, t)
                 except Exception as e:
-                    print("EXCEPTION")
-                self.compare(parsed, res[i])
+                    print(e)
+                self.assertEqual(type(parsed), AST.DEFERREDEXPR)
+                i += 1
+
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+
+                self.assertRaises(ParseError, Exp.parse_strict, tks, t)
+
                 i += 1
 
 if __name__ == '__main__':
