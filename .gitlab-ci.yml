@@ -11,4 +11,9 @@ test_lexer:
   script: 
     - cd tests/ 
     - python3 LexerTester.py -v
-  allow_failure: true
+
+test_parser:
+  stage: test
+  script:
+    - cd tests/
+    - python3 ParserTester -v

@@ -19,9 +19,136 @@ class ParserTester(unittest.TestCase):
     However, we also have to supply the source code for error handling.
     """
 
+    # TODO: This is currently skipped because we need to figure out how to work with *.
+    @unittest.skip
+    def test_import_parser(self):
+
+        """
+        Test parsing of the import statements 'from m import x'
+            where "from" is the from keyword;
+            m is the module name (Identifier/TypeIdentifier);
+            "import" is the import keyword;
+            and x can be either *
+            or a comma seperated list of OpIdentifiers, Identifiers or TypeIdentifiers
+            where each of these can be aliased to another OpIdentifier, Identifier or TypeIdentifier respectively.
+        """
+
+        valid_examples = [
+            StringIO('''
+                from StdLib import String
+            '''),
+            StringIO('''
+                from Math import GreatestCommonDivisor as GCD, ** as &
+            '''),
+            StringIO('''
+                from Library import *
+            '''),
+            StringIO('''
+                from reallybadlibraryname import t as g, f as a, t
+            '''),
+            # Interesting scenario where you import operator * and alias it
+            StringIO('''
+                from StdLib import * as +
+            ''')
+        ]
+
+        incorrect_examples = [
+            # This aint python bro
+            StringIO('''
+                import test
+            '''),
+            # Not allowed to import everything and then alias one Identifier
+            StringIO('''
+                from StdLib import *, String as str
+            '''),
+            # Also not allowed the other way around
+            StringIO('''
+                from StdLib import String as str, *
+            ''')
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = ImportDecl.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.IMPORT)
+
+                i += 1
+
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, ImportDecl.parse_strict, tks, t)
+
+                i += 1
+
+    #
+    def test_fun_decl_parser(self):
+
+        """
+        Test parsing of the import statements 'f (a) :: x -> z { vardecls stmts }' where
+            f is the new function name (Identifier)
+            a can be a comma seperated list of arguments (Identifiers);
+            x can be a space separated list of argument types (TypeIdentifiers);
+            y is a return type (TypeIdentifier);
+            vardecls is a number of variable declarations (VarDecl);
+            stmts is a positive number of Statements.
+        """
+
+        valid_examples = [
+            StringIO('''
+               sum (a, b) :: Int Int -> Int { return a + b; }
+            '''),
+            StringIO('''
+               isElem (x, y) :: Int [Int] -> Bool { return True; }
+            '''),
+            StringIO('''
+               append (x, y) :: Int [Int] -> Void { y.hd = x; }
+            '''),
+            StringIO('''
+                gimme_five () :: -> Int { return 5; }
+            '''),
+            StringIO('''
+                absnothing () { break; }
+            ''')
+        ]
+
+        incorrect_examples = [
+            # :: Are necessary
+            StringIO('''
+                gimme_five () -> Int { return 5; }
+            '''),
+            # No statement, not allowed.
+            StringIO('''
+                empty_func () { Int a = 0; }
+            '''),
+            StringIO('''
+                mult (a, b) :: Int Int -> { Int r = 0; Int i = 0; for(;i<b;i=i+1) { r = r + a } return r } 
+            ''')
+        ]
+
+        i = 0
+        for t in valid_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                res = FunDecl.parse_strict(tks, t)
+                self.assertEqual(type(res), AST.FUNDECL)
+
+                i += 1
+
+        for t in incorrect_examples:
+            with self.subTest(i=i):
+                tks = list(tokenize(t))
+                self.assertRaises(ParseError, FunDecl.parse_strict, tks, t)
+
+                i += 1
+
     def test_id_parser(self):
 
-        # Test parsing of identifiers.
+        """
+            Test parsing of identifiers.
+        """
 
         tests = [
             StringIO("test"),
@@ -93,12 +220,14 @@ class ParserTester(unittest.TestCase):
 
     def test_infix_op_decl_parser(self):
 
-        # Test parsing of the definition of custom infix operator infix f o (a, b) { stmts } where
-        # infix can be either the keyword infixl or infixr;
-        # f is the fixity, a positive number;
-        # o is the operator identifier;
-        # a, b are Identifiers;
-        # stmts can be any positive number of Statements.
+        """
+        Test parsing of the definition of custom infix operator infix f o (a, b) { stmts } where
+            infix can be either the keyword infixl or infixr;
+            f is the fixity, a positive number;
+            o is the OpIdentifier.
+            a, b are Identifiers;
+            stmts can be any positive number of Statements.
+        """
 
         valid_examples = [
             StringIO('''
@@ -167,10 +296,12 @@ class ParserTester(unittest.TestCase):
 
     def test_var_decl_parser(self):
 
-        # Test parsing of variable declaration X i = e where
-        # X can be any Type;
-        # i is an Identifier;
-        # e can be any Expression.
+        """
+        Test parsing of variable declaration X i = e where
+            X can be any Type;
+            i is an Identifier;
+            e can be any Expression.
+        """
 
         valid_examples = [
             StringIO('Int b = 5 + c;'),
@@ -195,6 +326,10 @@ class ParserTester(unittest.TestCase):
             StringIO('''
                 String B = "test";
             '''),
+            # Empty declaration is not possible
+            StringIO('''
+                Char c;
+            '''),
         ]
 
         i = 0
@@ -213,7 +348,9 @@ class ParserTester(unittest.TestCase):
 
     def test_basic_type_parser(self):
 
-        # Test parsing of the basic types Int, Char, Bool
+        """
+        Test parsing of the basic types Int, Char, Bool.
+        """
 
         tests = [
             StringIO('Int'),
@@ -232,7 +369,9 @@ class ParserTester(unittest.TestCase):
 
     def test_tuple_type_parser(self):
 
-        # Test parsing of (a, b) where a, b can be any Type
+        """
+            Test parsing of (a, b) where a, b can be any Type
+        """
 
         valid_examples = [
             StringIO('(Int, B)'),
@@ -269,7 +408,9 @@ class ParserTester(unittest.TestCase):
 
     def test_list_type_parser(self):
 
-        # Test parsing of list [a] where a can be any type
+        """
+            Test parsing of list [a] where a can be any type
+        """
 
         valid_examples = [
             StringIO('[Int]'),
@@ -307,10 +448,12 @@ class ParserTester(unittest.TestCase):
 
     def test_type_syn_parser(self):
 
-        # Test parsing of type synonyms type T1 = T2
-        # where type is the type keyword
-        # T1 is your new Type
-        # T2 is the Type definition
+        """
+        Test parsing of type synonyms statement 'type T1 = T2' where
+            'type' is the type keyword
+            T1 is your new Type
+            T2 is the Type definition
+        """
 
         valid_examples = [
             StringIO('type Age = Int'),
@@ -349,12 +492,14 @@ class ParserTester(unittest.TestCase):
 
     def test_stmtifelse_parser(self):
 
-        # Test parsing of IfElseStatement if (e) { stmts1 } else { stmts2 }
-        # where "if" is the if keyword;
-        # e is any Expression;
-        # "else" is the else keyword;
-        # stmts1 are any positive number of Statements;
-        # and stmts2 are any positive number of Statements.
+        """
+        Test parsing of statement 'if (e) { stmts1 } else { stmts2 } '
+            where 'if' is the if keyword;
+            e is any Expression;
+            'else' is the else keyword;
+            stmts1 are any positive number of Statements;
+            and stmts2 are any positive number of Statements.
+        """
 
         valid_examples = [
             StringIO('if (a == 2) { print(a); } else { print("Error"); }'),
@@ -390,10 +535,12 @@ class ParserTester(unittest.TestCase):
 
     def test_stmtwhile_parser(self):
 
-        # Test parsing of statement while (e) { stmts } where
-        # while is the while keyword;
-        # e can be any Expression;
-        # stmts can be any positive number of statements
+        """
+        Test parsing of statement 'while (e) { stmts }' where
+            'while'is the while keyword;
+            e can be any Expression;
+            stmts can be any positive number of statements
+        """
 
         valid_examples = [
             StringIO('while(True) { print("For ever and ever"); }'),
@@ -429,11 +576,13 @@ class ParserTester(unittest.TestCase):
 
     def test_stmtfor_parser(self):
 
-        # Test parsing of statement for (init ; cond ; upd) { stmts } where
-        # init can be any ActStmt;
-        # cond can be any Expression;
-        # upd can be any ActStmt;
-        # stmts can be any positive number of statements
+        """
+        Test parsing of statement for (init ; cond ; upd) { stmts } where
+            init can be any ActStmt;
+            cond can be any Expression;
+            upd can be any ActStmt;
+            stmts can be any positive number of statements
+        """
 
         valid_examples = [
             StringIO('for (i=0;i <= 10; i = i + 1) { print(i); }'),
@@ -474,9 +623,11 @@ class ParserTester(unittest.TestCase):
 
     def test_stmtret_parser(self):
 
-        # Test parsing of statement return e where
-        # "return" is the return keyword;
-        # and e can be any Expression.
+        """
+        Test parsing of statement 'return e' where
+            'return' is the return keyword;
+            and e can be any Expression.
+        """
 
         valid_examples = [
             StringIO('return x < 5;'),
@@ -513,7 +664,10 @@ class ParserTester(unittest.TestCase):
 
     def test_exp_parser(self):
 
-        # Test expressions, should all be correct
+        """
+            Test expressions, which can be of various formats.
+        """
+
         valid_examples = [
             StringIO('''
                 a.snd && b.fst
