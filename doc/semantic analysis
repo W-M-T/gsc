@@ -1,0 +1,33 @@
+operator overloading met verschillende fixities?
+miss beter verbieden
+
+name resolution
+warnings bij shadowing
+error bij dubbele definitie
+warning bij ongebruikte variabelen
+error bij variabele die nergens gedefinieerd is (definite assignment analysis)
+
+rekening houden met imports hier
+
+onbereikbare code -> warning (i.e. na return of na break / continue in loop-context)
+
+type analysis:
+type-synoniem gebaseerde normalisatie?
+Wat doe je bij recursieve typedefinities?
+Als je een error geeft kan een user in principe geen lijst-achtige dingen definieren
+[a] = (a, [a])
+wat als een user trees wil kunnen definieren?
+Int_Tree = (Int, [Int_Tree])
+verboden
+
+verbieden void type variabelen / inference-resultaat
+
+bepalen of iets een typevar is of een echt type(synoniem)
+
+Geen bestaande types toestaan in typesynonym-target
+Geen void toestaan in tuptype, listtype of source van typesyn
+
+stdlib symboltable definieren
+Soort van een import maar geen source file: implementaties zijn machinecode
+
+verboden operator identifiers error geven
