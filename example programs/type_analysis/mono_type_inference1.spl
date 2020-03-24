@@ -1,0 +1,8 @@
+// Look ma, no type signature!
+facR(n) {
+    if (n<2) {
+        return 1;
+    } else {
+        return n*facR(n-1);
+    }
+}

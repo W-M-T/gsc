@@ -1,0 +1,7 @@
+// The following program leads to a type error, because the identity function can not be polymorphic
+id(x) { return x; }
+
+main() {
+    print(id(10));
+    print(id(True));
+}

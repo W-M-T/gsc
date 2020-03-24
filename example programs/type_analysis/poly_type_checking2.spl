@@ -1,0 +1,4 @@
+// This function should give a type error
+const(x, y) :: a b -> a {
+    return y;
+}

@@ -1,0 +1,22 @@
+// Internally, the type gets generalized to ∀a.a → a
+id(x) :: a -> a {
+    return x;
+}
+
+// You should now be able to write the polymorphic list reversal
+reverse(list) :: [a] -> [a] {
+    [a] res = [];
+    [a] iter = [];
+
+    for(iter=list; iter!=[]; iter=iter.tl) {
+        res = iter.hd : res;
+    }
+    return res;
+}
+
+main()
+{
+    // The type of id must be instantiated differently for each occurence
+    print(id(5));
+    print(id(True));
+}
