@@ -26,12 +26,21 @@ OPTABLE = {
 
 # Add customly defined operators to the operator table
 def complement_operator_table(ast):
+    custom_ops = {}
     for decl in ast.decls:
         if type(decl.val) == AST.FUNDECL and (decl.val.kind == FunKind.INFIXL or decl.val.kind == FunKind.INFIXR):
-            if decl.val.kind == FunKind.INFIXR:
-                OPTABLE[decl.val.id] = OPDATA(decl.val.fixity.val, 'right')
+            op = decl.val
+            precedence = "right" if op.kind == FunKind.INFIXR else "left"
+            if op.id.val in OPTABLE:
+                print("ERROR: Cannot define operator '" + op.id.val + "', as it is not possible to redefine an predefined operator.")
+            elif op.id.val in custom_ops and (custom_ops[op.id.val].fixity is not op.fixity.val or custom_ops[op.id.val].precedence is not precedence):
+                print("ERROR: Operator '" + op.id.val + "' was defined multiply times with varying fixity or precedence.")
             else:
-                OPTABLE[decl.val.id] = OPDATA(decl.val.fixity.val, 'left')
+                custom_ops[op.id.val] = OPDATA(op.fixity.val, precedence)
+
+    # Beautify this?
+    for k in custom_ops.keys():
+        OPTABLE[k] = custom_ops[k]
 
 # Parse expressions by performing precedence climbing algorithm.
 # TODO: Determine what we return here, do our ParsedExpr nodes contain a subtree?
@@ -58,6 +67,7 @@ infixl 7 % (a, b) :: Int Int -> Int {
     }
     return result;
 }
+
 fab (p, q) :: Int Int -> Int {
     Int n = 0;
     n = p % q;
