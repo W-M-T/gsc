@@ -7,4 +7,4 @@ Built in operator precence and associativity:
 5 |	: | 	Append to list | Right | 
 4 |	==, !=, <, <=, >=, > | 	Compare-operators | 
 3 |	&& | 	Logical AND | 	Right | 
-2 |	\|\| | 	Logical OR | 	Right | 
+2 | ⎮⎮ | 	Logical OR | 	Right | 

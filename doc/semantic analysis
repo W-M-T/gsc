@@ -1,3 +1,25 @@
+(Voorlopige) stappen van de semantische analyse:
+1. Expressies parseren d.m.v. het verwerken van de associativiteit/fixity van custom operators
+2. Volledig parseren van expressies door alle precendences te resolven m.b.v. shunting yard/precedence climbing?
+3. Omschrijven van type synoniemen naar (structuren van) basic types.
+4. Type inference, afleiden van polymorphische functies.
+5. Type checking, controleren of alles well-typed is en of er geen dubbele definities zijn.
+6. Andere optimalisaties:
+    6.1 Dead-code analysis
+        6.1.1 kijken of er statements zijn na return/continue/break statements.
+        6.1.2 Niet-gebruikte variablen.
+    6.2 ???
+
+1. Resultaat van stap 1:
+Alle custom gedefineerde operatoren worden aan de operator table toegeveogd
+2. Resultaat van stap 2:
+Expressies als a + b - c % d en a - b - (c % d) zijn omgeschreven naar respectievelijk a + (b - (c % d)) en (a - b) - (c % d)
+3. Resultaat van stap 3:
+String a = "test"; omschrijven naar [Char] a = "test";
+4.
+
+
+
 operator overloading met verschillende fixities?
 miss beter verbieden
 
