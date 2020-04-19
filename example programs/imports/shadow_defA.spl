@@ -1,4 +1,4 @@
-import shadow_defB.spl
+importall shadow_defB
 
 f () {
     print(g());

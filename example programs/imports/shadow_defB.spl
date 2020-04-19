@@ -1,4 +1,4 @@
-import shadow_defC.spl
+importall shadow_defC
 
 g () {
     return f();

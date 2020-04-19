@@ -3,6 +3,9 @@
 from AST import AST, FunKind, Accessor
 from parser import SPL
 from AST_prettyprinter import print_node
+import os
+
+IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
@@ -152,15 +155,61 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 
 '''
 
-def resolveImports(ast):
-    openlist = [ast]
+def resolveImports(ast, filename):
+    local_dir = os.path.dirname(os.path.realpath(filename))
+    print("Resolving imports")
+    file_graph = [] # Mapping of fully qualified filenames to fully qualified filenames
+
+    closedlist = []
+    openlist = [(ast, os.path.realpath(filename))] # list of "tree and file that tree is from that need to have their imports checked"
     while openlist:
         current = openlist.pop()
-        importlist = current.imports
-        print(importlist)
+        #print("Current",current)
+        cur_ast, cur_filename = current
 
-def analyse(ast):
-    resolveImports(ast)
+        cur_file_vertex = {"filename": cur_filename, "ast": cur_ast, "imports": set()}
+        importlist = cur_ast.imports
+
+        for imp in importlist:
+            resname = "{}/{}.spl".format(local_dir, imp.name.val) # TODO this is temp
+
+            cur_file_vertex["imports"].add(resname)
+
+            if resname in map(lambda x: x["filename"], file_graph):
+                # Already found, don't parse
+                continue
+
+            # Open file, parse, close and add to list of files to get imports of
+            file = resolveFileName(imp, local_dir)
+            tokenstream = tokenize(file)
+            tokenlist = list(tokenstream)
+
+            x = SPL.parse_strict(tokenlist, file) # Replace this method with the new one that doesn't use SPL
+            #print(x.tree_string())
+            openlist.append((x,resname))
+            file.close()
+        file_graph.append(cur_file_vertex)
+    for vertex in file_graph:
+        print(vertex)
+'''
+In order of priority:
+1: File specific compiler arg
+2: Library directory compiler arg
+3: Environment variable
+4: Local directory
+'''
+def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_mapping_arg=None, lib_dir_env=None):
+    #print(name.name.val,local_dir)
+    option = "{}/{}.spl".format(local_dir,name.name.val)
+    #print(os.path.isfile(option))
+    infile = open(option)
+    return infile
+
+
+
+
+def analyse(ast, filename):
+    resolveImports(ast, filename)
     exit()
     symbol_table = buildSymbolTable(ast)
     ast = resolveNames(ast, symbol_table)
@@ -176,6 +225,11 @@ if __name__ == "__main__":
 
 
     with open(args.infile, "r") as infile:
+        print(args.infile)
+        print(os.path.realpath(args.infile))
+        print(os.path.dirname(os.path.realpath(args.infile)))
+
+
         from io import StringIO
         testprog = StringIO('''
 infixl 7 % (a, b) :: Int Int -> Int {
@@ -187,16 +241,16 @@ infixl 7 % (a, b) :: Int Int -> Int {
     return result;
 }
 ''')
-        tokenstream = tokenize(testprog)
-        #tokenstream = tokenize(infile)
+        #tokenstream = tokenize(testprog)
+        tokenstream = tokenize(infile)
         tokenlist = list(tokenstream)
 
         x = SPL.parse_strict(tokenlist, infile)
 
-        #print(x.tree_string())
+        print(x.tree_string())
         #treemap(x, lambda x: x)
         #exit()
 
-        analyse(x)
+        analyse(x, args.infile)
 
         print("DONE")
