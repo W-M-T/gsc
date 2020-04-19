@@ -1,0 +1,6 @@
+import shadow_defB.spl
+
+f () {
+    print(g());
+    return 1;
+}
