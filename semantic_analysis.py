@@ -130,6 +130,7 @@ def resolveNames(ast, symbol_table):
 def fixExpression(ast, symbol_table):
     pass
 
+'''
 def treemap(ast, f):
     def unpack(val,f):
         if type(val) == list:
@@ -141,6 +142,7 @@ def treemap(ast, f):
     ast = f(ast)
     for attr in ast:
         unpack(attr,f)
+'''
 
 
 '''
@@ -150,7 +152,16 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 
 '''
 
+def resolveImports(ast):
+    openlist = [ast]
+    while openlist:
+        current = openlist.pop()
+        importlist = current.imports
+        print(importlist)
+
 def analyse(ast):
+    resolveImports(ast)
+    exit()
     symbol_table = buildSymbolTable(ast)
     ast = resolveNames(ast, symbol_table)
     ast = fixExpressions(ast, symbol_table)
@@ -183,8 +194,8 @@ infixl 7 % (a, b) :: Int Int -> Int {
         x = SPL.parse_strict(tokenlist, infile)
 
         #print(x.tree_string())
-        treemap(x, lambda x: x)
-        exit()
+        #treemap(x, lambda x: x)
+        #exit()
 
         analyse(x)
 
