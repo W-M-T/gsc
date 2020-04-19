@@ -1,4 +1,7 @@
 (Voorlopige) stappen van de semantische analyse:
+1. Opbouwen van de symbol table.
+
+
 1. Expressies parseren d.m.v. het verwerken van de associativiteit/fixity van custom operators
 2. Volledig parseren van expressies door alle precendences te resolven m.b.v. shunting yard/precedence climbing?
 3. Omschrijven van type synoniemen naar (structuren van) basic types.
