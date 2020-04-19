@@ -5,6 +5,8 @@ from parser import SPL
 from AST_prettyprinter import print_node
 import os
 
+IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
+
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
 # Vars with or without type. Should be able to add type to func params
@@ -154,22 +156,22 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 '''
 
 def resolveImports(ast, filename):
+    local_dir = os.path.dirname(os.path.realpath(filename))
     print("Resolving imports")
-    file_graph = []
+    file_graph = [] # Mapping of fully qualified filenames to fully qualified filenames
 
     closedlist = []
-    openlist = [(ast, filename)]
+    openlist = [(ast, os.path.realpath(filename))] # list of "tree and file that tree is from that need to have their imports checked"
     while openlist:
         current = openlist.pop()
         #print("Current",current)
         cur_ast, cur_filename = current
 
-        cur_file_vertex = {"filename": cur_filename, "imports": set()}
+        cur_file_vertex = {"filename": cur_filename, "ast": cur_ast, "imports": set()}
         importlist = cur_ast.imports
-        for imp in importlist:
-            path = os.path.dirname(os.path.realpath(filename))
 
-            resname = "{}/{}.spl".format(path,imp.name.val) # TODO this is temp
+        for imp in importlist:
+            resname = "{}/{}.spl".format(local_dir, imp.name.val) # TODO this is temp
 
             cur_file_vertex["imports"].add(resname)
 
@@ -178,11 +180,11 @@ def resolveImports(ast, filename):
                 continue
 
             # Open file, parse, close and add to list of files to get imports of
-            file = resolveFileName(imp, path)
+            file = resolveFileName(imp, local_dir)
             tokenstream = tokenize(file)
             tokenlist = list(tokenstream)
 
-            x = SPL.parse_strict(tokenlist, file)
+            x = SPL.parse_strict(tokenlist, file) # Replace this method with the new one that doesn't use SPL
             #print(x.tree_string())
             openlist.append((x,resname))
             file.close()
