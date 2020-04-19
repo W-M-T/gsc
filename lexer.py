@@ -158,7 +158,7 @@ def prefix_accessor(string):
         found, strippeddata = prefix_strip(string, keyword)
         if found:
             return (True, strippeddata, TOKEN.ACCESSOR, keyword)
-    return (False, None, None)
+    return (False, None, None, None)
 
 def tokenize(inputstream):
     FLAG_SKIPPED_WHITESPACE = True
