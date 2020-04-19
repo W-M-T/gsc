@@ -453,13 +453,10 @@ if __name__ == "__main__":
     with open(args.infile, "r") as infile:
         tokenstream = tokenize(infile)
         tokenlist = list(tokenstream)
-        print(tokenlist)
-        x = SPL.parse_strict(tokenlist, infile)
-        print(x.tree_string())
-        print(printAST(x))
-    exit()
-
-
+        #print(tokenlist)
+        #x = SPL.parse_strict(tokenlist, infile)
+        #print(x.tree_string())
+        #print(printAST(x))
 
 
     test1 = [
@@ -504,12 +501,20 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
         a + b + 5
     ''')
 
+    testerror = io.StringIO('''
+        prefix !! (x){
+            return (a + b;
+        }
+    ''')
+
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
 
-    tokens = list(tokenize(io.StringIO(extratest)))
+    print(dir(Exp.fn))
+
+    tokens = list(tokenize(testerror))
     print(tokens)
-    x = SPL.parse_strict(tokens)
+    x = SPL.parse_strict(tokens, testerror)
     print("PARSED X =============================")
     print(x.tree_string())
     #print(list(tokenize(testprog)))

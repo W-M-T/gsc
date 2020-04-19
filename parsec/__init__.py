@@ -9,25 +9,27 @@ __author__ = 'He Tao, sighingnow@gmail.com'
 
 from functools import wraps
 from collections import namedtuple
-from util import pointToPosition
+from util import pointToPosition, PRETTY_TOKEN
 
 ERROR_GLOBAL_INDEX = 0
 ERROR_GLOBAL_VAL = None
-ERROR_GLOBAL_SET = set()
+ERROR_GLOBAL_SET = []
 def hacky_error_log(failure):
     global ERROR_GLOBAL_INDEX, ERROR_GLOBAL_VAL, ERROR_GLOBAL_SET
     if failure.index > ERROR_GLOBAL_INDEX:
         ERROR_GLOBAL_INDEX = failure.index
         ERROR_GLOBAL_VAL = failure
-        ERROR_GLOBAL_SET = set()
+        ERROR_GLOBAL_SET = []
     if failure.index >= ERROR_GLOBAL_INDEX:
-        ERROR_GLOBAL_SET.add(failure.expected)
+        ERROR_GLOBAL_SET.append(failure.expected)
 
 def format_error(errors):
     if(len(errors) == 0):
         print("Somehow no possible not a single parsers tried and yet failed.")
 
-    return errors
+    #pretty_errors = [PRETTY_TOKEN[x](x) if x in PRETTY_TOKEN else x for x in errors]
+
+    return list(reversed(errors))
 
 ##########################################################################
 # Text.Parsec.Error
@@ -157,9 +159,9 @@ class Parser(object):
         else:
             #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
             #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
-            #print("An exception occured at ", pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
-            #print(format_error(ERROR_GLOBAL_SET))
-            #exit(1)
+            print("An exception occured at ", pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
+            print(format_error(ERROR_GLOBAL_SET))
+            exit(1)
 
             # Neccesary because missing last symbols (like semicolons) will return index == len(tokens) which means out of bounds if not adjusted
             index = res.index if len(text) > res.index else res.index - 1
