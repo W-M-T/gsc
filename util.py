@@ -36,6 +36,8 @@ class TOKEN(IntEnum): # auto() for python >3.5
     IMPORT          = 30
     FROM            = 31
     AS              = 32
+    FILENAME        = 33
+    IMPORTALL       = 34
 
 PRETTY_TOKEN = {
     TOKEN.VAR             : (lambda x : "var"),
@@ -70,6 +72,8 @@ PRETTY_TOKEN = {
     TOKEN.IMPORT          : (lambda x : "import"),
     TOKEN.FROM            : (lambda x : "from"),
     TOKEN.AS              : (lambda x : "as"),
+    TOKEN.FILENAME        : (lambda x : "(FILENAME){}".format(x.val)),
+    TOKEN.IMPORTALL       : (lambda x : "importall")
 }
 
 class Token():

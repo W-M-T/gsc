@@ -27,7 +27,8 @@ KEYWORDS = {
     "type"     : TOKEN.TYPESYN,
     "import"   : TOKEN.IMPORT,
     "from"     : TOKEN.FROM,
-    "as"       : TOKEN.AS
+    "as"       : TOKEN.AS,
+    "importall": TOKEN.IMPORTALL
 }
 BOOLS = {
     "True"  : TOKEN.BOOL,
@@ -68,6 +69,7 @@ REG_OP  = re.compile(r"[!#$%&*+/<=>?@\\\\^|:,~-]+")
 REG_INT = re.compile(r"\d+")
 REG_STR = re.compile(r"\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])*\"")# needs to be tested
 REG_CHR = re.compile(r"\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])\'")# needs to be tested
+REG_FIL = re.compile(r"[a-zA-Z0-9_-]+")
 
 REG_KEYWORD_END = re.compile(r"[^a-zA-Z0-9]|$")
 
@@ -125,6 +127,14 @@ def prefix_op_identifier(string):
         return (True, rest, TOKEN.OP_IDENTIFIER, found_id)
     return (False, None, None, None)
 
+def prefix_filename(string):
+    tempmatch = REG_FIL.match(string)
+    if tempmatch:
+        found_filename = tempmatch.group(0)
+        rest = string[len(found_filename):]
+        return (True, rest, TOKEN.FILENAME, found_filename)
+    return (False, None, None, None)
+
 def prefix_val_literal(string): # TODO improve this code
     tempmatch = REG_INT.match(string)
     if tempmatch:
@@ -153,6 +163,7 @@ def prefix_accessor(string):
 def tokenize(inputstream):
     FLAG_SKIPPED_WHITESPACE = True
     FLAG_MULTI_COMMENT      = False
+    FLAG_IN_IMPORT          = False
     ERRORS_OCCURED          = False
 
     pos = Position()
@@ -163,6 +174,7 @@ def tokenize(inputstream):
         curdata = line
 
         FLAG_SKIPPED_WHITESPACE = True # Newline is considered whitespace
+        FLAG_IN_IMPORT = False # No filename for import on new line
 
         while len(curdata) > 0:
             pos.col = len(line) - len(curdata) + 1
@@ -177,6 +189,7 @@ def tokenize(inputstream):
                 # Test for single comment
                 if curdata.startswith(COMMENT_SINGLE):
                     FLAG_SKIPPED_WHITESPACE = True
+                    FLAG_IN_IMPORT = False
                     break # We can discard the entire line from here on
 
                 # Test for multiline comment start
@@ -188,11 +201,26 @@ def tokenize(inputstream):
                     curdata = strippeddata
                     continue
 
+                # Test for filename if in import context
+                if FLAG_IN_IMPORT:
+                    found, strippeddata, temptoken, val = prefix_filename(curdata)
+                    if found:
+                        yield(Token(pos.copy(), temptoken, val))
+                        FLAG_SKIPPED_WHITESPACE = False
+                        FLAG_IN_IMPORT = False
+                        # Modify string
+                        curdata = strippeddata
+                        continue
+
                 # Test for keyword tokens
                 found, strippeddata, temptoken, val = prefix_keyword(curdata)
                 if found:
                     yield(Token(pos.copy(), temptoken, val))
                     FLAG_SKIPPED_WHITESPACE = False
+                    FLAG_IN_IMPORT = False
+
+                    if temptoken is KEYWORDS['from'] or temptoken is KEYWORDS['importall']:
+                        FLAG_IN_IMPORT = True
                     # Modify string
                     curdata = strippeddata
                     continue
@@ -202,6 +230,7 @@ def tokenize(inputstream):
                 if found:
                     yield(Token(pos.copy(), temptoken, None))
                     FLAG_SKIPPED_WHITESPACE = False
+                    FLAG_IN_IMPORT = False
                     # Modify string
                     curdata = strippeddata
                     continue
@@ -211,6 +240,7 @@ def tokenize(inputstream):
                 if found:
                     yield(Token(pos.copy(), temptoken, val))
                     FLAG_SKIPPED_WHITESPACE = False
+                    FLAG_IN_IMPORT = False
                     # Modify string
                     curdata = strippeddata
                     continue
@@ -220,6 +250,7 @@ def tokenize(inputstream):
                 if found:
                     yield(Token(pos.copy(), TOKEN.OP_IDENTIFIER, val))
                     FLAG_SKIPPED_WHITESPACE = False
+                    FLAG_IN_IMPORT = False
                     # Modify string
                     curdata = strippeddata
                     continue
@@ -229,6 +260,7 @@ def tokenize(inputstream):
                 if found:
                     yield(Token(pos.copy(), temptoken, val))
                     FLAG_SKIPPED_WHITESPACE = False
+                    FLAG_IN_IMPORT = False
                     # Modify string
                     curdata = strippeddata
                     continue
@@ -238,11 +270,10 @@ def tokenize(inputstream):
                     if found:
                         yield(Token(pos.copy(), temptoken, val))
                         FLAG_SKIPPED_WHITESPACE = False
+                        FLAG_IN_IMPORT = False
                         # Modify data
                         curdata = strippeddata
                         continue
-
-
 
             else:
                 # Test for multiline comment end

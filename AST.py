@@ -3,7 +3,7 @@
 import sys as _sys
 from keyword import iskeyword as _iskeyword
 from operator import itemgetter as _itemgetter
-from enum import IntEnum
+from enum import IntEnum, Enum
 
 def syntaxnode(typename, *field_names, module=None):
     # Factory method for syntax construct classes
@@ -131,7 +131,13 @@ class Accessor(IntEnum):
 # Where do we track type information of expressions / variables / functions?
 # Also: where do we document the types of the attributes of these nodes?
 class AST:
-    SPL     = syntaxnode("SPL", "imports", "decls")
+    def __contains__(self, item):
+        return item in vars(self)
+
+    def __iter__(self):
+        return [x for x in vars(self)]
+
+    SPL = syntaxnode("SPL", "imports", "decls")
 
     # NOTE: if importlist None then *
 
@@ -193,6 +199,7 @@ class AST:
 
     # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")
+
 
 
 if __name__ == "__main__":

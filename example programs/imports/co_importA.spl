@@ -1,0 +1,3 @@
+import co_importB.spl
+
+type A = Int

@@ -1,0 +1,5 @@
+import shadow_defC.spl
+
+g () {
+    return f();
+}
