@@ -157,8 +157,8 @@ class Parser(object):
         else:
             #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
             #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
-            #print("An exception occured at ", pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
-            #print(format_error(ERROR_GLOBAL_SET))
+            print("An exception occured at ", pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
+            print(format_error(ERROR_GLOBAL_SET))
             #exit(1)
 
             # Neccesary because missing last symbols (like semicolons) will return index == len(tokens) which means out of bounds if not adjusted

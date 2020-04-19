@@ -75,7 +75,7 @@ Or should we show the error that is "first" in the file?
 How would that work given that some errors in early parts of the program are the result of an analysis result in a later part of the program?
 '''
 def buildSymbolTable(ast):
-    symboltable = SymbolTable()
+    symbol_table = SymbolTable()
 
     # TODO Check for duplicates everywhere of course
 
@@ -114,6 +114,7 @@ def buildSymbolTable(ast):
                 # Check if already in locals
                 # If yes, give warning and shadow
                 # (Over)write in locals
+                pass
 
         elif type(val) is AST.TYPESYN:
             print("Type")
@@ -121,12 +122,25 @@ def buildSymbolTable(ast):
 
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
-def resolveNames(ast):
+def resolveNames(ast, symbol_table):
     pass
 
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
-def fixExpression(ast):
+def fixExpression(ast, symbol_table):
     pass
+
+def treemap(ast, f):
+    def unpack(val,f):
+        if type(val) == list:
+            for el in val:
+                unpack(el)
+        if type(val) in AST:# Require enumlike construct for AST
+            treemap(val,f)
+
+    ast = f(ast)
+    for attr in ast:
+        unpack(attr,f)
+
 
 '''
 symbol table bevat:
@@ -136,7 +150,9 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 '''
 
 def analyse(ast):
-    buildSymbolTable(ast)
+    symbol_table = buildSymbolTable(ast)
+    ast = resolveNames(ast, symbol_table)
+    ast = fixExpressions(ast, symbol_table)
 
 
 if __name__ == "__main__":
@@ -165,7 +181,9 @@ infixl 7 % (a, b) :: Int Int -> Int {
 
         x = SPL.parse_strict(tokenlist, infile)
 
-        print(x.tree_string())
+        #print(x.tree_string())
+        treemap(x, lambda x: x)
+        exit()
 
         analyse(x)
 
