@@ -5,9 +5,10 @@ Decl        = VarDecl
             | TypeSyn
             | OpDecl
 
-ImportDecl  = 'from' AnyId 'import' ImportList
+ImportDecl  = 'from' filename 'import' ImportList
+            | 'importall' filename
 
-ImportList  = '*' | ImportName (',' ImportName)*
+ImportList  = ImportName (',' ImportName)*
 
 ImportName  = AnyId [as AnyId]
 
@@ -88,6 +89,8 @@ char        = '\'' (ascii_without_esc_sequences | '\' escape_sequence_char) '\''
 id          = loweralpha ('_' | alphaNum)*
 
 type_id     = upperalpha ('_' | alphaNum)*
+
+filename    = ('_' | '-' | alphaNum)+
 
 loweralpha  = a..z
 

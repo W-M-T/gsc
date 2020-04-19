@@ -15,13 +15,20 @@ def SPL():
 AnyId = ps.token(TOKEN.IDENTIFIER) ^ ps.token(TOKEN.TYPE_IDENTIFIER) ^ ps.token(TOKEN.OP_IDENTIFIER)
 
 @ps.generate
-def ImportDecl():
+def SpecificImport():
     yield ps.token(TOKEN.FROM)
-    found_name = yield AnyId # TODO look at this
+    found_name = yield ps.token(TOKEN.FILENAME)
     yield ps.token(TOKEN.IMPORT)
-    found_importlist = yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "*")) ^ ImportListStrict
-    found_importlist = None if type(found_importlist) == Token else found_importlist
+    found_importlist = yield ImportListStrict
     return AST.IMPORT(name=found_name, importlist=found_importlist)
+
+@ps.generate
+def AllImport():
+    yield ps.token(TOKEN.IMPORTALL)
+    found_name = yield ps.token(TOKEN.FILENAME)
+    return AST.IMPORT(name=found_name, importlist=None)
+
+ImportDecl = SpecificImport ^ AllImport
 
 @ps.generate
 def ImportListStrict():
