@@ -125,6 +125,7 @@ def buildSymbolTable(ast):
 def resolveNames(ast, symbol_table):
     pass
 
+# Parse expressions by performing precedence climbing algorithm.
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, symbol_table):
     pass
