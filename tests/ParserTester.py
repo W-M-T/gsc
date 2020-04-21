@@ -746,6 +746,7 @@ class ParserTester(unittest.TestCase):
         for t in incorrect_examples:
             with self.subTest(i=i):
                 tks = list(tokenize(t))
+                Exp.parse_strict(tks, t)
                 self.assertRaises(ParseError, Exp.parse_strict, tks, t)
             i += 1
 

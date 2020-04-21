@@ -38,3 +38,33 @@ TOKEN_SYNTAX = {
     TOKEN.FILENAME        : "filename",
     TOKEN.IMPORTALL       : "importall"
 }
+
+class ParseErrorHandler():
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.error_index = -1
+        self.error_val = None
+        self.error_set = []
+
+    def push_error(self, failure):
+        if failure.index > self.error_index:
+            self.error_index = failure.index
+            self.error_val = failure
+            self.error_set = []
+        if failure.index >= self.error_index:
+            self.error_set.append(failure.expected)
+
+class ParseError(RuntimeError):
+    '''Parser error.'''
+
+    def __init__(self, expected, pos):
+        super(ParseError, self).__init__() # compatible with Python 2.
+        pretty_expected = ', '.join(list(reversed([TOKEN_SYNTAX[x] if x in TOKEN_SYNTAX else x for x in expected])))
+        self.expected = pretty_expected
+        self.pos = pos
+
+    def __str__(self):
+        return "An exception occured at{}\nExpected one of the following:\n{}".format(self.pos, self.expected)

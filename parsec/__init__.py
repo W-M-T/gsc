@@ -10,49 +10,13 @@ __author__ = 'He Tao, sighingnow@gmail.com'
 from functools import wraps
 from collections import namedtuple
 from util import pointToPosition
-from error_handler import TOKEN_SYNTAX
-
-ERROR_GLOBAL_INDEX = -1
-ERROR_GLOBAL_VAL = None
-ERROR_GLOBAL_SET = []
-
-def hacky_error_log(failure):
-    global ERROR_GLOBAL_INDEX, ERROR_GLOBAL_VAL, ERROR_GLOBAL_SET
-    if failure.index > ERROR_GLOBAL_INDEX:
-        ERROR_GLOBAL_INDEX = failure.index
-        ERROR_GLOBAL_VAL = failure
-        ERROR_GLOBAL_SET = []
-    if failure.index >= ERROR_GLOBAL_INDEX:
-        ERROR_GLOBAL_SET.append(failure.expected)
-
-def reset_errors():
-    global ERROR_GLOBAL_INDEX, ERROR_GLOBAL_VAL, ERROR_GLOBAL_SET
-    ERROR_GLOBAL_INDEX = -1
-    ERROR_GLOBAL_VAL = None
-    ERROR_GLOBAL_SET = []
-
-##########################################################################
-# Text.Parsec.Error
-##########################################################################
-
-
-class ParseError(RuntimeError):
-    '''Parser error.'''
-
-    def __init__(self, expected, pos):
-        super(ParseError, self).__init__() # compatible with Python 2.
-        pretty_expected = ', '.join(list(reversed([TOKEN_SYNTAX[x] if x in TOKEN_SYNTAX else x for x in expected])))
-        self.expected = pretty_expected
-        self.pos = pos
-        reset_errors()
-
-    def __str__(self):
-        return "An exception occured at{}\nExpected one of the following:\n{}".format(self.pos, self.expected)
+from error_handler import ParseErrorHandler, ParseError
 
 ##########################################################################
 # Definition the Value modelof parsec.py.
 ##########################################################################
 
+error_handler = ParseErrorHandler()
 
 class Value(namedtuple('Value', 'status index value expected')):
     '''Represent the result of the Parser.'''
@@ -63,9 +27,10 @@ class Value(namedtuple('Value', 'status index value expected')):
 
     @staticmethod
     def failure(index, expected):
+        global error_handler
         '''Create failure value.'''
         result = Value(False, index, None, expected)
-        hacky_error_log(result)
+        error_handler.push_error(result)
         return result
 
     def aggregate(self, other=None):
@@ -126,7 +91,7 @@ class Parser(object):
         return self.parse_partial(text)[0]
 
     def parse_partial(self, text, infile):
-        global HACKY_ERROR_GLOBAL
+        global error_handler
         '''Parse the longest possible prefix of a given string.
         Return a tuple of the result value and the rest of the string.
         If failed, raise a ParseError. '''
@@ -135,10 +100,10 @@ class Parser(object):
         if res.status:
             return (res.value, text[res.index:])
         else:
-            #print("An exception occured at", pointToPosition(infile, text, ERROR_GLOBAL_VAL.index))
-            #print("Expected one of the following:")
-            #print(format_error(ERROR_GLOBAL_SET))
-            raise ParseError(ERROR_GLOBAL_SET, pointToPosition(infile, text, ERROR_GLOBAL_VAL.index))
+            # Make error, reset error handler and raise error
+            error = ParseError(error_handler.error_set, pointToPosition(infile, text, error_handler.error_index))
+            error_handler.reset()
+            raise error
 
     def parse_strict(self, text, infile):
         '''Parse the longest possible prefix of the entire given string.
