@@ -1,0 +1,3 @@
+importall nonlocalB
+
+type IntAr = [Int]

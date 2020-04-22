@@ -1,0 +1,1 @@
+./semantic_analysis.py ./example\ programs/imports/nonlocalA.spl --im nonlocalB:./example\ programs/imports/nonlocal_import/nonlocalB.spl

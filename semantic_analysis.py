@@ -133,19 +133,19 @@ def resolveNames(ast, symbol_table):
 def fixExpression(ast, symbol_table):
     pass
 
-'''
+
 def treemap(ast, f):
     def unpack(val,f):
         if type(val) == list:
             for el in val:
                 unpack(el)
-        if type(val) in AST:# Require enumlike construct for AST
+        if type(val) in AST.nodes:# Require enumlike construct for AST
             treemap(val,f)
 
     ast = f(ast)
     for attr in ast:
         unpack(attr,f)
-'''
+
 
 
 '''
@@ -155,7 +155,7 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 
 '''
 
-def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
+def resolveImports(ast, filename, file_mapping_arg, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
 
     local_dir = os.path.dirname(os.path.realpath(filename))
 
@@ -184,7 +184,7 @@ def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider wh
 
             # Open file, parse, close and add to list of files to get imports of
             try:
-                filehandle, filename = resolveFileName(importname, local_dir, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+                filehandle, filename = resolveFileName(importname, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
                 tokenstream = tokenize(filehandle)
                 tokenlist = list(tokenstream)
 
@@ -214,6 +214,14 @@ def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, l
     #option = "{}/{}.spl".format(local_dir, name)
     #print(os.path.isfile(option))
 
+    # Try to import from the compiler argument-specified path for this specific import
+    if name in file_mapping_arg:
+        try:
+            option = file_mapping_arg[name]
+            infile = open(option)
+            return infile, option
+        except Exception as e:
+            print(e)
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
@@ -263,6 +271,9 @@ if __name__ == "__main__":
     if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
         print("Invalid import mapping")
         exit()
+    print(import_mapping)
+    import_mapping = {a:b for (a,b) in import_mapping}
+    print(import_mapping)
 
     if not args.infile.endswith(".spl"):
         print("Input file needs to be .spl")
@@ -296,7 +307,7 @@ infixl 7 % (a, b) :: Int Int -> Int {
         #treemap(x, lambda x: x)
         #exit()
 
-        file_mappings = resolveImports(x, args.infile, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
 
         exit()
         analyse(x, args.infile)
