@@ -159,38 +159,44 @@ def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider wh
 
     local_dir = os.path.dirname(os.path.realpath(filename))
 
-    print("Resolving imports")
+    filename_asimport = os.path.basename(filename).rstrip(".spl")
+
+    print("Resolving imports..")
 
     file_graph = [] # Mapping of fully qualified filenames to fully qualified filenames
 
     closedlist = []
-    openlist = [(ast, os.path.realpath(filename))] # list of "tree and file that tree is from that need to have their imports checked"
+    openlist = [(ast, filename_asimport, os.path.realpath(filename))] # list of "tree and file that tree is from that need to have their imports checked"
     while openlist:
         current = openlist.pop()
         #print("Current",current)
-        cur_ast, cur_filename = current
+        cur_ast, cur_importname, cur_filename = current
 
-        cur_file_vertex = {"filename": cur_filename, "ast": cur_ast, "imports": set()}
+        cur_file_vertex = {"filename": cur_filename, "importname": cur_importname, "ast": cur_ast, "imports": set()}
         importlist = cur_ast.imports
 
         for imp in importlist:
-            resname = "{}/{}.spl".format(local_dir, imp.name.val) # TODO this is temp
+            importname = imp.name.val
 
-            cur_file_vertex["imports"].add(resname)
+            cur_file_vertex["imports"].add(importname)
 
-            if resname in map(lambda x: x["filename"], file_graph):
+            if importname in map(lambda x: x["importname"], file_graph):
                 # Already found, don't parse
                 continue
 
             # Open file, parse, close and add to list of files to get imports of
-            file = resolveFileName(imp.name.val, local_dir, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
-            tokenstream = tokenize(file)
-            tokenlist = list(tokenstream)
+            try:
+                filehandle, filename = resolveFileName(importname, local_dir, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+                tokenstream = tokenize(filehandle)
+                tokenlist = list(tokenstream)
 
-            x = SPL.parse_strict(tokenlist, file) # Replace this method with the new one that doesn't use SPL
-            #print(x.tree_string())
-            openlist.append((x,resname))
-            file.close()
+                x = SPL.parse_strict(tokenlist, filehandle) # Replace this method with the new one that doesn't use SPL
+                #print(x.tree_string())
+                openlist.append((x, importname, filename))
+                filehandle.close()
+            except FileNotFoundError as e:
+                print("Could not locate import: {}".format(importname))
+                exit()
         file_graph.append(cur_file_vertex)
     for vertex in file_graph:
         print(vertex)
@@ -205,7 +211,7 @@ In order of priority:
 '''
 def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, lib_dir_env=None):
     #print(name.name.val,local_dir)
-    option = "{}/{}.spl".format(local_dir, name)
+    #option = "{}/{}.spl".format(local_dir, name)
     #print(os.path.isfile(option))
 
     # Try to import from the compiler argument-specified directory
@@ -213,7 +219,7 @@ def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, l
         try:
             option = "{}/{}.spl".format(lib_dir_path, name)
             infile = open(option)
-            return infile
+            return infile, option
         except Exception as e:
             pass
     # Try to import from the environment variable-specified directory
@@ -221,14 +227,14 @@ def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, l
         try:
             option = "{}/{}.spl".format(lib_dir_env, name)
             infile = open(option)
-            return infile
+            return infile, option
         except Exception as e:
             pass
     # Try to import from the same directory as our source file
     try:
         option = "{}/{}.spl".format(local_dir, name)
         infile = open(option)
-        return infile
+        return infile, option
     except Exception as e:
         pass
     raise FileNotFoundError
@@ -256,6 +262,10 @@ if __name__ == "__main__":
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
     if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
         print("Invalid import mapping")
+        exit()
+
+    if not args.infile.endswith(".spl"):
+        print("Input file needs to be .spl")
         exit()
 
 

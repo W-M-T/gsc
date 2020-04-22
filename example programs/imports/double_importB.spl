@@ -1,0 +1,3 @@
+importall double_importC
+
+type String = [Char]
