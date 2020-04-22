@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from AST import AST, FunKind, Accessor
-from parser import SPL
+from parser import parseTokenStream
 from AST_prettyprinter import print_node
 import os
 
@@ -163,13 +163,11 @@ def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider wh
 
     print("Resolving imports..")
 
-    file_graph = [] # Mapping of fully qualified filenames to fully qualified filenames
+    file_graph = [] # Mapping of checked imports to their path and their child imports.
 
-    closedlist = []
-    openlist = [(ast, filename_asimport, os.path.realpath(filename))] # list of "tree and file that tree is from that need to have their imports checked"
+    openlist = [(ast, filename_asimport, os.path.realpath(filename))] # list of imports that have been parsed but haven't had their imports checked yet
     while openlist:
         current = openlist.pop()
-        #print("Current",current)
         cur_ast, cur_importname, cur_filename = current
 
         cur_file_vertex = {"filename": cur_filename, "importname": cur_importname, "ast": cur_ast, "imports": set()}
@@ -190,7 +188,7 @@ def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider wh
                 tokenstream = tokenize(filehandle)
                 tokenlist = list(tokenstream)
 
-                x = SPL.parse_strict(tokenlist, filehandle) # Replace this method with the new one that doesn't use SPL
+                x = parseTokenStream(tokenstream, filehandle) # Replace this method with the new one that doesn't use SPL
                 #print(x.tree_string())
                 openlist.append((x, importname, filename))
                 filehandle.close()
@@ -198,8 +196,10 @@ def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider wh
                 print("Could not locate import: {}".format(importname))
                 exit()
         file_graph.append(cur_file_vertex)
+
+    print("Imported the following files:")
     for vertex in file_graph:
-        print(vertex)
+        print(vertex["importname"])
     return file_graph
 
 '''
@@ -289,9 +289,8 @@ infixl 7 % (a, b) :: Int Int -> Int {
 ''')
         #tokenstream = tokenize(testprog)
         tokenstream = tokenize(infile)
-        tokenlist = list(tokenstream)
 
-        x = SPL.parse_strict(tokenlist, infile)
+        x = parseTokenStream(tokenstream, infile)
 
         print(x.tree_string())
         #treemap(x, lambda x: x)
