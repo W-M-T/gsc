@@ -121,10 +121,7 @@ Then .decode("utf-8") to use the line
 Store a list containing the offsets for each line (or just use the first token that has a new one as a start of the line)
 You can use this offset to seek in this function in O(1) given that the file is in byte mode.
 '''
-def pointToPosition(instream, text, index): # Could be made O(1) instead of O(n) with some work
-    # Neccesary because missing last symbols (like semicolons) will return index == len(tokens) which means out of bounds if not adjusted
-    bounded_index = index if len(text) > index else len(text) - 1
-    position = text[bounded_index].pos
+def pointToPosition(instream, position): # Could be made O(1) instead of O(n) with some work
     instream.seek(0, SEEK_SET)
 
     for _ in range(position.line - 1):

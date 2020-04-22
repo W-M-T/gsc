@@ -101,7 +101,9 @@ class Parser(object):
             return (res.value, text[res.index:])
         else:
             # Make error, reset error handler and raise error
-            error = ParseError(error_handler.error_set, pointToPosition(infile, text, error_handler.error_index))
+            bounded_index = error_handler.error_index if len(text) > error_handler.error_index else len(text) - 1
+            position = text[bounded_index].pos
+            error = ParseError(error_handler.error_set, pointToPosition(infile, position))
             error_handler.reset()
             raise error
 
