@@ -155,7 +155,7 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 
 '''
 
-def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a parse error in one of the imports
+def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
 
     local_dir = os.path.dirname(os.path.realpath(filename))
 
@@ -188,7 +188,7 @@ def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider wh
                 tokenstream = tokenize(filehandle)
                 tokenlist = list(tokenstream)
 
-                x = parseTokenStream(tokenstream, filehandle) # Replace this method with the new one that doesn't use SPL
+                x = parseTokenStream(tokenstream, filehandle)
                 #print(x.tree_string())
                 openlist.append((x, importname, filename))
                 filehandle.close()
