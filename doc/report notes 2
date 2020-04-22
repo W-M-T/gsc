@@ -41,3 +41,12 @@ Functieargumenten en lokale variabelen shadowen globale variabelen
 
 Als je bij het importeren lexing / parsing fouten krijgt in imports dan verzamelt hij die ipv te crashen bij de eerste (TODO btw)
 
+imports kun je verder specificeren met de volgende argumenten (1 tot 3):
+'''
+In order of priority:
+1: File specific compiler arg
+2: Library directory compiler arg
+3: Environment variable
+4: Local directory
+'''
+Hij probeert ze in volgorde 1-4, eerste die werkt wordt gebruikt
