@@ -516,8 +516,6 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
     #print(list(tokenize(testprog)))
     #Type.parse(test2)
 
-    print(dir(Exp.fn))
-
     tokens = list(tokenize(testerror))
     print(tokens)
     x = SPL.parse_strict(tokens, testerror)

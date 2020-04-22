@@ -9,71 +9,14 @@ __author__ = 'He Tao, sighingnow@gmail.com'
 
 from functools import wraps
 from collections import namedtuple
-from util import pointToPosition, PRETTY_TOKEN
-
-ERROR_GLOBAL_INDEX = 0
-ERROR_GLOBAL_VAL = None
-ERROR_GLOBAL_SET = []
-def hacky_error_log(failure):
-    global ERROR_GLOBAL_INDEX, ERROR_GLOBAL_VAL, ERROR_GLOBAL_SET
-    if failure.index > ERROR_GLOBAL_INDEX:
-        ERROR_GLOBAL_INDEX = failure.index
-        ERROR_GLOBAL_VAL = failure
-        ERROR_GLOBAL_SET = []
-    if failure.index >= ERROR_GLOBAL_INDEX:
-        ERROR_GLOBAL_SET.append(failure.expected)
-
-def format_error(errors):
-    if(len(errors) == 0):
-        print("Somehow no possible not a single parsers tried and yet failed.")
-
-    #pretty_errors = [PRETTY_TOKEN[x](x) if x in PRETTY_TOKEN else x for x in errors]
-
-    return list(reversed(errors))
-
-##########################################################################
-# Text.Parsec.Error
-##########################################################################
-
-
-class ParseError(RuntimeError):
-    '''Parser error.'''
-
-    def __init__(self, expected, text, index, hint):
-        super(ParseError, self).__init__() # compatible with Python 2.
-        self.expected = expected
-        self.text = text
-        self.pos = index
-        self.hint = hint
-
-    
-    #@staticmethod
-    #def loc_info(text, index):
-    #    '''Location of `index` in source code `text`.'''
-    #    if index > len(text):
-    #        raise ValueError('Invalid index.')
-    #    line, last_ln = 0, 0
-    #    col = index - (last_ln + 1)
-    #    return (line, col)
-
-
-    #def loc(self):
-    #    '''Locate the error position in the source code text.'''
-    #    try:
-    #        return '{}:{}'.format(*ParseError.loc_info(self.text, self.index))
-    #    except ValueError:
-    #        return '<out of bounds index {!r}>'.format(self.index)
-    
-
-    def __str__(self):
-        return "unexpected token in definition:\n{}".format(self.hint)
-    #return 'expected {} at {}'.format(self.expected, ())
-
+from util import pointToPosition
+from error_handler import ParseErrorHandler, ParseError
 
 ##########################################################################
 # Definition the Value modelof parsec.py.
 ##########################################################################
 
+error_handler = ParseErrorHandler()
 
 class Value(namedtuple('Value', 'status index value expected')):
     '''Represent the result of the Parser.'''
@@ -84,9 +27,10 @@ class Value(namedtuple('Value', 'status index value expected')):
 
     @staticmethod
     def failure(index, expected):
+        global error_handler
         '''Create failure value.'''
         result = Value(False, index, None, expected)
-        hacky_error_log(result)
+        error_handler.push_error(result)
         return result
 
     def aggregate(self, other=None):
@@ -147,24 +91,19 @@ class Parser(object):
         return self.parse_partial(text)[0]
 
     def parse_partial(self, text, infile):
+        global error_handler
         '''Parse the longest possible prefix of a given string.
         Return a tuple of the result value and the rest of the string.
         If failed, raise a ParseError. '''
 
         res = self(text, 0)
-        #print(res)
         if res.status:
             return (res.value, text[res.index:])
         else:
-            #print(str(ParseError(res.expected, text, text[res.index].pos, infile)))
-            #print(ParseError(res.expected, text, text[res.index].pos, pointToPosition(infile, text[res.index].pos)))
-            print("An exception occured at ", pointToPosition(infile, text[ERROR_GLOBAL_VAL.index].pos))
-            print(format_error(ERROR_GLOBAL_SET))
-            exit(1)
-
-            # Neccesary because missing last symbols (like semicolons) will return index == len(tokens) which means out of bounds if not adjusted
-            index = res.index if len(text) > res.index else res.index - 1
-            raise ParseError(res.expected, text, text[index].pos, pointToPosition(infile, text[index].pos))
+            # Make error, reset error handler and raise error
+            error = ParseError(error_handler.error_set, pointToPosition(infile, text, error_handler.error_index))
+            error_handler.reset()
+            raise error
 
     def parse_strict(self, text, infile):
         '''Parse the longest possible prefix of the entire given string.

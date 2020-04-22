@@ -164,7 +164,7 @@ def tokenize(inputstream):
     FLAG_SKIPPED_WHITESPACE = True
     FLAG_MULTI_COMMENT      = False
     FLAG_IN_IMPORT          = False
-    ERRORS_OCCURED          = False
+    ERRORS_OCCURRED          = False
 
     pos = Position()
 
@@ -289,7 +289,7 @@ def tokenize(inputstream):
                     continue
 
             sys.stderr.write("Lexing error:\n{}\nInvalid syntax\n\n".format(pointToLine(line, pos)))
-            ERRORS_OCCURED = True
+            ERRORS_OCCURRED = True
             '''
             TODO
             Decide when to halt execution
@@ -301,7 +301,7 @@ def tokenize(inputstream):
 
         pos.line += 1
 
-    if ERRORS_OCCURED:
+    if ERRORS_OCCURRED:
         exit(1)
 
 
