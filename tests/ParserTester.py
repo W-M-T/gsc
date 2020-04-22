@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, '../')
 
 from parser import *
-from parsec import ParseError
+from error_handler import ParseError
 from io import StringIO
 from lexer import tokenize
 
@@ -746,7 +746,6 @@ class ParserTester(unittest.TestCase):
         for t in incorrect_examples:
             with self.subTest(i=i):
                 tks = list(tokenize(t))
-                Exp.parse_strict(tks, t)
                 self.assertRaises(ParseError, Exp.parse_strict, tks, t)
             i += 1
 
