@@ -147,7 +147,6 @@ class Parser(object):
         return self.parse_partial(text)[0]
 
     def parse_partial(self, text, infile):
-        global HACKY_ERROR_GLOBAL
         '''Parse the longest possible prefix of a given string.
         Return a tuple of the result value and the rest of the string.
         If failed, raise a ParseError. '''

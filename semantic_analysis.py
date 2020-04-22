@@ -155,9 +155,12 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 
 '''
 
-def resolveImports(ast, filename):
+def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a parse error in one of the imports
+
     local_dir = os.path.dirname(os.path.realpath(filename))
+
     print("Resolving imports")
+
     file_graph = [] # Mapping of fully qualified filenames to fully qualified filenames
 
     closedlist = []
@@ -180,7 +183,7 @@ def resolveImports(ast, filename):
                 continue
 
             # Open file, parse, close and add to list of files to get imports of
-            file = resolveFileName(imp, local_dir)
+            file = resolveFileName(imp.name.val, local_dir, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
             tokenstream = tokenize(file)
             tokenlist = list(tokenstream)
 
@@ -191,6 +194,8 @@ def resolveImports(ast, filename):
         file_graph.append(cur_file_vertex)
     for vertex in file_graph:
         print(vertex)
+    return file_graph
+
 '''
 In order of priority:
 1: File specific compiler arg
@@ -198,18 +203,41 @@ In order of priority:
 3: Environment variable
 4: Local directory
 '''
-def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_mapping_arg=None, lib_dir_env=None):
+def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, lib_dir_env=None):
     #print(name.name.val,local_dir)
-    option = "{}/{}.spl".format(local_dir,name.name.val)
+    option = "{}/{}.spl".format(local_dir, name)
     #print(os.path.isfile(option))
-    infile = open(option)
-    return infile
+
+    # Try to import from the compiler argument-specified directory
+    if lib_dir_path is not None:
+        try:
+            option = "{}/{}.spl".format(lib_dir_path, name)
+            infile = open(option)
+            return infile
+        except Exception as e:
+            pass
+    # Try to import from the environment variable-specified directory
+    if lib_dir_env is not None:
+        try:
+            option = "{}/{}.spl".format(lib_dir_env, name)
+            infile = open(option)
+            return infile
+        except Exception as e:
+            pass
+    # Try to import from the same directory as our source file
+    try:
+        option = "{}/{}.spl".format(local_dir, name)
+        infile = open(option)
+        return infile
+    except Exception as e:
+        pass
+    raise FileNotFoundError
 
 
 
 
 def analyse(ast, filename):
-    resolveImports(ast, filename)
+    file_mappings = resolveImports(ast, filename)
     exit()
     symbol_table = buildSymbolTable(ast)
     ast = resolveNames(ast, symbol_table)
@@ -221,11 +249,19 @@ if __name__ == "__main__":
     from lexer import tokenize
     argparser = ArgumentParser(description="SPL Semantic Analysis")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
+    argparser.add_argument("--lp", metavar="PATH", help="Directory to import libraries from", nargs="?", type=str)
+    argparser.add_argument("--im", metavar="LIBNAME:PATH,...", help="Comma-separated library_name:path mapping list, to explicitly specify import paths", type=str)
     args = argparser.parse_args()
+
+    import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
+    if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
+        print("Invalid import mapping")
+        exit()
 
 
     with open(args.infile, "r") as infile:
         print(args.infile)
+        print(args.lp)
         print(os.path.realpath(args.infile))
         print(os.path.dirname(os.path.realpath(args.infile)))
 
@@ -251,6 +287,9 @@ infixl 7 % (a, b) :: Int Int -> Int {
         #treemap(x, lambda x: x)
         #exit()
 
+        file_mappings = resolveImports(x, args.infile, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+
+        exit()
         analyse(x, args.infile)
 
         print("DONE")

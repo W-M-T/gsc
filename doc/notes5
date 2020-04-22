@@ -1,0 +1,3 @@
+Unifying return types
+Return type warning (niet error)
+In vardecl-assignment-expressie: als je een andere var gebruikt die nog niet gedefinieerd is een fout geven (i.e. vardecls hebben lokaal een volgorde, ookal zijn ze achteraf soortvan een set)
