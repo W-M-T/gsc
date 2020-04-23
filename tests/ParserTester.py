@@ -11,6 +11,7 @@ from error_handler import ParseError
 from io import StringIO
 from lexer import tokenize
 
+
 class ParserTester(unittest.TestCase):
 
     """

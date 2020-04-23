@@ -3,6 +3,7 @@
 from AST import AST, FunKind, Accessor
 from parser import SPL
 from AST_prettyprinter import print_node
+from util import pointToPosition
 import os
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
@@ -123,7 +124,6 @@ def buildSymbolTable(ast):
             print("Type")
             print_node(val)
 
-
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(ast, symbol_table):
     pass
@@ -132,6 +132,44 @@ def resolveNames(ast, symbol_table):
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, symbol_table):
     pass
+
+def analyseFuncStmts(statements, loop_depth, cond_depth):
+    # TODO: Improve errors/warnings.
+    for k in range(0, len(statements)):
+        stmt = statements[k].val
+        if type(stmt) is AST.IFELSE:
+            return_ctr = 0
+            for branch in stmt.condbranches:
+                return_ctr += analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
+
+            if return_ctr == len(stmt.condbranches):
+                if k is not len(statements) - 1:
+                    print("Warning: The statements after line can never be reached because all conditional branches yield a return value.")
+                else:
+                    return True
+            # TODO: Add a check that verifies that there is a return statement after an if-else statement in which atleast one of the branches does not return.
+
+        elif type(stmt) is AST.LOOP:
+            analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
+        elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
+            if loop_depth == 0:
+                print("Error: Using a break or continue statement out of a loop.")
+            else:
+                if k is not len(statements) - 1:
+                    print("Warning: The statements after line %x can never be reached because they are preceded by a break or continue.")
+        elif type(stmt) is AST.RETURN:
+            if k is not len(statements) - 1:
+                print("Warning: the statements after line %x can never be reached because of a return statement.")
+            return True
+
+    return False
+
+'''Given a function AST node, find dead code statements after return/break/continue and see if all paths return'''
+def analyseFunc(func_node):
+    statements = func_node.stmts
+
+    print("Analysing function %s\n" % func_node.id.val)
+    analyseFuncStmts(statements, 0, 0)
 
 '''
 def treemap(ast, f):
@@ -241,7 +279,7 @@ def analyse(ast, filename):
     exit()
     symbol_table = buildSymbolTable(ast)
     ast = resolveNames(ast, symbol_table)
-    ast = fixExpressions(ast, symbol_table)
+    ast = fixExpression(ast, symbol_table)
 
 
 if __name__ == "__main__":

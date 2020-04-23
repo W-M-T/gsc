@@ -1,0 +1,6 @@
+f(a, b) :: Int Int -> Int {
+    return a + b;
+    if (a > b) {
+        print("A bigger than b");
+    }
+}
