@@ -383,9 +383,8 @@ def ActStmt():
 
 
 
-def parseTokenStream(instream):
+def parseTokenStream(instream, infile):
     return SPL.parse_strict(list(instream), infile)
-
 
 prefixtest = '''
 

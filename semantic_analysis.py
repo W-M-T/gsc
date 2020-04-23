@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from AST import AST, FunKind, Accessor
-from parser import SPL
+from parser import parseTokenStream
 from AST_prettyprinter import print_node
 from util import pointToPosition
 import os
@@ -177,61 +177,62 @@ def treemap(ast, f):
         if type(val) == list:
             for el in val:
                 unpack(el)
-        if type(val) in AST:# Require enumlike construct for AST
+        if type(val) in AST.nodes:# Require enumlike construct for AST
             treemap(val,f)
 
     ast = f(ast)
     for attr in ast:
         unpack(attr,f)
-'''
 
-
-'''
 symbol table bevat:
 functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als in imports
-
-
 '''
 
-def resolveImports(ast, filename, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a parse error in one of the imports
+def resolveImports(ast, filename, file_mapping_arg, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
 
     local_dir = os.path.dirname(os.path.realpath(filename))
 
-    print("Resolving imports")
+    filename_asimport = os.path.basename(filename).rstrip(".spl")
 
-    file_graph = [] # Mapping of fully qualified filenames to fully qualified filenames
+    print("Resolving imports..")
 
-    closedlist = []
-    openlist = [(ast, os.path.realpath(filename))] # list of "tree and file that tree is from that need to have their imports checked"
+    file_graph = [] # Mapping of checked imports to their path and their child imports.
+
+    openlist = [(ast, filename_asimport, os.path.realpath(filename))] # list of imports that have been parsed but haven't had their imports checked yet
     while openlist:
         current = openlist.pop()
-        #print("Current",current)
-        cur_ast, cur_filename = current
+        cur_ast, cur_importname, cur_filename = current
 
-        cur_file_vertex = {"filename": cur_filename, "ast": cur_ast, "imports": set()}
+        cur_file_vertex = {"filename": cur_filename, "importname": cur_importname, "ast": cur_ast, "imports": set()}
         importlist = cur_ast.imports
 
         for imp in importlist:
-            resname = "{}/{}.spl".format(local_dir, imp.name.val) # TODO this is temp
+            importname = imp.name.val
 
-            cur_file_vertex["imports"].add(resname)
+            cur_file_vertex["imports"].add(importname)
 
-            if resname in map(lambda x: x["filename"], file_graph):
+            if importname in map(lambda x: x["importname"], file_graph):
                 # Already found, don't parse
                 continue
 
             # Open file, parse, close and add to list of files to get imports of
-            file = resolveFileName(imp.name.val, local_dir, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
-            tokenstream = tokenize(file)
-            tokenlist = list(tokenstream)
+            try:
+                filehandle, filename = resolveFileName(importname, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+                tokenstream = tokenize(filehandle)
+                tokenlist = list(tokenstream)
 
-            x = SPL.parse_strict(tokenlist, file) # Replace this method with the new one that doesn't use SPL
-            #print(x.tree_string())
-            openlist.append((x,resname))
-            file.close()
+                x = parseTokenStream(tokenstream, filehandle)
+                #print(x.tree_string())
+                openlist.append((x, importname, filename))
+                filehandle.close()
+            except FileNotFoundError as e:
+                print("Could not locate import: {}".format(importname))
+                exit()
         file_graph.append(cur_file_vertex)
+
+    print("Imported the following files:")
     for vertex in file_graph:
-        print(vertex)
+        print(vertex["importname"])
     return file_graph
 
 '''
@@ -243,15 +244,23 @@ In order of priority:
 '''
 def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, lib_dir_env=None):
     #print(name.name.val,local_dir)
-    option = "{}/{}.spl".format(local_dir, name)
+    #option = "{}/{}.spl".format(local_dir, name)
     #print(os.path.isfile(option))
 
+    # Try to import from the compiler argument-specified path for this specific import
+    if name in file_mapping_arg:
+        try:
+            option = file_mapping_arg[name]
+            infile = open(option)
+            return infile, option
+        except Exception as e:
+            print(e)
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
             option = "{}/{}.spl".format(lib_dir_path, name)
             infile = open(option)
-            return infile
+            return infile, option
         except Exception as e:
             pass
     # Try to import from the environment variable-specified directory
@@ -259,14 +268,14 @@ def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, l
         try:
             option = "{}/{}.spl".format(lib_dir_env, name)
             infile = open(option)
-            return infile
+            return infile, option
         except Exception as e:
             pass
     # Try to import from the same directory as our source file
     try:
         option = "{}/{}.spl".format(local_dir, name)
         infile = open(option)
-        return infile
+        return infile, option
     except Exception as e:
         pass
     raise FileNotFoundError
@@ -295,6 +304,13 @@ if __name__ == "__main__":
     if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
         print("Invalid import mapping")
         exit()
+    print(import_mapping)
+    import_mapping = {a:b for (a,b) in import_mapping}
+    print(import_mapping)
+
+    if not args.infile.endswith(".spl"):
+        print("Input file needs to be .spl")
+        exit()
 
 
     with open(args.infile, "r") as infile:
@@ -317,15 +333,14 @@ infixl 7 % (a, b) :: Int Int -> Int {
 ''')
         #tokenstream = tokenize(testprog)
         tokenstream = tokenize(infile)
-        tokenlist = list(tokenstream)
 
-        x = SPL.parse_strict(tokenlist, infile)
+        x = parseTokenStream(tokenstream, infile)
 
         print(x.tree_string())
         #treemap(x, lambda x: x)
         #exit()
 
-        file_mappings = resolveImports(x, args.infile, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
 
         exit()
         analyse(x, args.infile)

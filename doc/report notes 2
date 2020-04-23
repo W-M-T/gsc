@@ -1,0 +1,52 @@
+Parser gebruikt parsec, maar aangepast om met tokens te werken ipv strings
+Produceert custom namedtuple-achtige objecten als AST nodes, waar alle attributen en named arguments (van de init) corresponderen tot de kind-nodes en waarden van AST vertices
+
+de parser probeert telkens regels toe te passen en als die falen gaat hij door naar de volgende
+Elke failure wordt bijgehouden in een globale error-structuur
+Wanneer failures naarboven bubblen (i.e. alle kind-parsers falen) dan faalt de volledige parser
+Op dat moment produceren we de lijst van errors die het verst gevorderd waren in  de lijst van tokens + wat daar verwacht werd.
+Nooit meer dan 1 (of 2? Uitzoeken) tokens backtrack nodig.
+
+zaken als For en while parsen naar dezelfde ast node, ook if, elif en else.
+
+
+
+
+Semantische analyse:
+
+
+imports werken als volgt:
+Je verzamelt de lijst van imports uit je huidige bestand
+Je gaat al die namen resolven tot bestanden die je opent
+Daarvan kijk je weer wat de imports zijn
+Als die imports nog niet geresolved en geparsed zijn wordt dat gedaan
+Dit gebeurt totdat alle imports geresolved zijn tot bestanden, en die geparseerd zijn
+
+Mbt name resolution: alle functies en expressies hebben alleen toegang tot de names uit wat je direct import.
+I.e. als
+A import B
+dan kan B geen namen uit A gebruiken, maar A wel namen uit B.
+
+Als je hebt:
+A importeert B
+B importeert C
+Dan kan A niet bij de namen uit C zonder zelf ook C te importeren.
+
+Als je met een definitie in dit bestand een definitie uit een import shadowt (i.e. zelfde naam voor TypeSyn, zelfde globale variabelenaam, zelfde functienaam-typesignatuur-combinatie, dan geven we een warning en gebruiken we de definitie uit het huidige bestand.
+
+
+Lokale variabelen shadowen functieargumenten,
+Functieargumenten en lokale variabelen shadowen globale variabelen
+(shadowen geeft warnings)
+
+Als je bij het importeren lexing / parsing fouten krijgt in imports dan verzamelt hij die ipv te crashen bij de eerste (TODO btw)
+
+imports kun je verder specificeren met de volgende argumenten (1 tot 3):
+'''
+In order of priority:
+1: File specific compiler arg
+2: Library directory compiler arg
+3: Environment variable
+4: Local directory
+'''
+Hij probeert ze in volgorde 1-4, eerste die werkt wordt gebruikt

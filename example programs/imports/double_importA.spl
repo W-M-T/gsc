@@ -1,0 +1,4 @@
+importall double_importB
+importall double_importC
+
+type String = [Char]

@@ -1,0 +1,38 @@
+we werken met python omdat we daar bekend / comfortabel mee zijn
+er is een parser combinator library
+deze werkt met strings en regexes ipv tokens
+wij hebben dit aangepast zodat het met tokens werkt en werken met een lexer
+waarom? maakt de parser conceptueel makkelijker: hoeft niet tegelijk lexerfouten en parserfouten te debuggen
+
+lexer is left to right single pass, lazy
+gegeven huidige index greedy tokens consumeren volgens prioriteitenlijst van soorten tokens kijken of het matcht
+keywords / regexes
+2 bits aan staat + 1 bit voor errors
+voor comments
+en of er whitespace is geweest of niet (verplicht dat accessors geen whitespace ervoor hebben)
+whitespace in het algemeen geen betekenis
+
+bij een error skipt naar de volgende regel
+In principe zou je kunnen skippen naar het volgende karakter oid / de volgende whitespace
+volgende karakter zou fouten geven die er niet per se zijn
+volgende whitespace zou wel kunnen werken: er zijn niet echt tokens met spaties erin: gaat echter mis bij string literals die spaties kunnen bevatten
+
+
+grammar aangepast:
+alle left-recursion is convergent gemaakt:
+oftewel het consumeert altijd symbolen bij recursie
+
+verder geen symbolen die zichzelf gebruiken waar mogelijk: wordt eerder via een kleene star oid gevat zodat de parser zo min mogelijk infinite recursie heeft
+het kan nog wel diep de recursie in in expressies waar je niet echt omheen kunt:
+functiecalls met expressies als argumenten en haakjes om expressies
+
+De taal is zodanig herschreven dat na het consumeren van 1 symbool al duidelijk is welke regel er actief is: backtrack van 1 in principe genoeg. (parsec ondersteunt meer)
+
+De extensions die we willen doen hebben ook al gevolgen gehad in de grammar:
+import-gerelateerde keywords:
+prefix en infix functiedefinities met bindingssterkte
+operator parsing kan dus niet zomaar in de parser omdat de operatoren nog niet bekend zijn:
+volgorde wordt achteraf gefixt
+
+types en typevariabelen met hoofdletter, variabelen en functies lowercase
+maakt dingen iets makkelijker, maar in principe kan lowercase typevariabelen ook wel

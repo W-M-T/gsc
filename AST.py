@@ -131,12 +131,6 @@ class Accessor(IntEnum):
 # Where do we track type information of expressions / variables / functions?
 # Also: where do we document the types of the attributes of these nodes?
 class AST:
-    def __contains__(self, item):
-        return item in vars(self)
-
-    def __iter__(self):
-        return [x for x in vars(self)]
-
     SPL = syntaxnode("SPL", "imports", "decls")
 
     # NOTE: if importlist None then *
@@ -199,6 +193,35 @@ class AST:
 
     # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")
+
+    # Create node list to support __contains__ and __iter__: TODO make this not hacky
+    nodes = [
+        SPL,
+        IMPORT,
+        IMPORTNAME,
+        DECL,
+        VARDECL,
+        FUNDECL,
+        TYPESYN,
+        TYPE,
+        BASICTYPE,
+        TUPLETYPE,
+        LISTTYPE,
+        FUNTYPE,
+        STMT,
+        IFELSE,
+        CONDBRANCH,
+        LOOP,
+        ACTSTMT,
+        RETURN,
+        BREAK,
+        CONTINUE,
+        ASSIGNMENT,
+        FUNCALL,
+        DEFERREDEXPR,
+        PARSEDEXPR,
+        VARREF
+    ]
 
 
 

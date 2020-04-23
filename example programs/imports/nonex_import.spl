@@ -1,0 +1,3 @@
+importall magic
+
+type A = Int
