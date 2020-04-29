@@ -137,20 +137,28 @@ def typecheck(return_stmt):
     pass
 
 def analyseFuncStmts(statements, loop_depth, cond_depth):
+    returns = False
+    return_exp = False
     for k in range(0, len(statements)):
         stmt = statements[k].val
         if type(stmt) is AST.IFELSE:
             return_ctr = 0
             for branch in stmt.condbranches:
-                return_ctr += analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
+                does_return, rexp = analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
+                return_exp = return_exp or rexp
+                return_ctr += does_return
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     print("Warning: The statements after line %d can never be reached because all conditional branches yield a return value.")
-                return True
+                return True, return_exp
+            elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
+                return_exp = True
 
         elif type(stmt) is AST.LOOP:
-            analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
+            returns, return_exp = analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
+            if return_exp:
+                returns = False
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
                 print("Error: Using a break or continue statement out of a loop at line %d.")
@@ -161,11 +169,17 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
             typecheck(stmt)
             if k is not len(statements) - 1:
                 print("Warning: the statements after line %d can never be reached because of a return statement.")
-            return True
+            return True, True
 
-    return False
+    if return_exp and cond_depth == 0:
+        print("Error: Not all paths lead to a (certain) return.")
 
-'''Given a function AST node, find dead code statements after return/break/continue and see if all paths return'''
+    return returns, return_exp
+
+'''
+    Given a function AST node, find dead code statements after return/break/continue and see if all paths return
+    Additionally, type check all return statements.
+'''
 def analyseFunc(func_node):
     statements = func_node.stmts
 
