@@ -5,20 +5,44 @@ from parser import parseTokenStream
 from AST_prettyprinter import print_node
 from util import pointToPosition
 import os
+from enum import IntEnum
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
+
+
+class FunUniq(IntEnum):
+    FUNC   = 1
+    PREFIX = 2
+    INFIX  = 3
+
+def FunKindToUniq(kind):
+    return {FunKind.FUNC: FunUniq.FUNC,
+            FunKind.PREFIX: FunUniq.PREFIX,
+            FunKind.INFIXL: FunUniq.INFIX,
+            FunKind.INFIXR: FunUniq.INFIX}[kind]
 
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
 # Vars with or without type. Should be able to add type to func params
 class SymbolTable():
-    def __init__(self, global_names = [], local_dict = [], type_syns = {}):
-        self.global_names = global_names
-        self.local_dict = local_dict
+    def __init__(self, global_vars = {}, functions = {FunUniq.FUNC: {}, FunUniq.PREFIX: {}, FunUniq.INFIX: {}}, local_vars = {}, type_syns = {}):
+        self.global_vars = global_vars
+        self.functions = functions # FunUniq -> dicts
+        self.local_vars = local_vars
         self.type_syns = type_syns
 
+    def repr_short(self):
+        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nLocals: {}\nType synonyms: {}".format(
+            list(self.global_vars.keys()),
+            "\nRegular: {}\nPrefix: {}\nInfix {}".format(
+                list(self.functions[FunUniq.FUNC].keys()),
+                list(self.functions[FunUniq.PREFIX].keys()),
+                list(self.functions[FunUniq.INFIX].keys())),
+            list(self.local_vars.keys()),
+            list(self.type_syns.keys()))
+
     def __repr__(self):
-        return "Globals: {}\nLocals: {}\nType synonyms: {}".format(self.global_names, self.local_dict, self.type_syns)
+        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.local_vars, self.type_syns)
 
 ''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
 I think it would be best if you didn't have to explicitly import dependencies of a function you're importing to have it work, but you also don't want that dependency to end up in the namespace
@@ -82,16 +106,27 @@ def buildSymbolTable(ast):
     symbol_table = SymbolTable()
 
     # TODO Check for duplicates everywhere of course
-
+    print("Imports")
     for el in ast.imports:
-        print("Import")
         print(el)
+    print("Decls")
     for decl in ast.decls:
         val = decl.val
-        print("Decl")
         if type(val) is AST.VARDECL:
             print("Var")
-            print_node(val)
+            var_id = val.id.val
+            print(var_id)
+            if not var_id in symbol_table.global_vars:
+                if False: # TODO test if it exists in other module
+                    # TODO give warning (doesn't need to be instant, can be collected)
+                    print("This variable was already defined in another module, which is now shadowed")
+                else:
+                    symbol_table.global_vars[var_id] = val
+            else:
+                print("[ERROR] Global variable identifier already used.")
+                # TODO point to both definitions
+                exit()
+            #print_node(val)
 
         elif type(val) is AST.FUNDECL:
             print("Function")
@@ -99,18 +134,28 @@ def buildSymbolTable(ast):
             print("params")
             print(val.params)
 
+            uniq_kind = FunKindToUniq(val.kind)
+
+            if uniq_kind == FunUniq.INFIX:
+                pass
+
+            # Test if argument count and type count match
             if val.type is not None:
                 from_types = val.type.from_types
                 if len(from_types) != len(val.params):
-                    # TODO type mismatches param count
+                    print("ERROR: Argument count doesn't match type")
+                    exit()
+            
+            # Test if this function is already defined
+            fun_id = val.id.val
+            print(fun_id)
+            if not fun_id in symbol_table.functions[uniq_kind]:
+                if False: # TODO test if it is already defined in other module
                     pass
-                for par in val.params:
-                    # TODO add typed version of param to local vars
-                    pass
-            else:
-                for par in val.params:
-                    # TODO add untyped version of param to local vars
-                    pass
+                else: # Completely new name
+                    symbol_table.functions[uniq_kind][fun_id] = val
+            else: # Already defined in the table, check for overloading
+                pass
 
             print("vars")
             print(val.vardecls)
@@ -122,7 +167,26 @@ def buildSymbolTable(ast):
 
         elif type(val) is AST.TYPESYN:
             print("Type")
-            print_node(val)
+            type_id = val.type_id.val
+            def_type = val.def_type
+
+            if type_id in BUILTIN_TYPES:
+                print("ERROR: Reserved type identifier: {}".format(type_id))
+                exit()
+
+            if not type_id in symbol_table.type_syns:
+                if False: # TODO Test if it exists in another module
+                    # TODO give warning (doesn't need to be instant, can be collected)
+                    print("This type was already defined in another module, which is now shadowed")
+                else:
+                    symbol_table.type_syns[type_id] = def_type
+            else:
+                # TODO Give collectable error
+                print("ERROR: Type identifier already defined")
+                # TODO point to both definitions
+                exit()
+    print(symbol_table.repr_short())
+
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(ast, symbol_table):
@@ -284,8 +348,8 @@ def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, l
 
 
 def analyse(ast, filename):
-    file_mappings = resolveImports(ast, filename)
-    exit()
+    #file_mappings = resolveImports(ast, filename)
+    #exit()
     symbol_table = buildSymbolTable(ast)
     ast = resolveNames(ast, symbol_table)
     ast = fixExpression(ast, symbol_table)
@@ -322,6 +386,9 @@ if __name__ == "__main__":
 
         from io import StringIO
         testprog = StringIO('''
+Int pi = 3;
+type Chara = Int
+type String = [Char]
 infixl 7 % (a, b) :: Int Int -> Int {
     Int result = a;
     Int a = 2;
@@ -331,8 +398,8 @@ infixl 7 % (a, b) :: Int Int -> Int {
     return result;
 }
 ''')
-        #tokenstream = tokenize(testprog)
-        tokenstream = tokenize(infile)
+        tokenstream = tokenize(testprog)
+        #tokenstream = tokenize(infile)
 
         x = parseTokenStream(tokenstream, infile)
 
@@ -340,8 +407,8 @@ infixl 7 % (a, b) :: Int Int -> Int {
         #treemap(x, lambda x: x)
         #exit()
 
-        file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-
+        #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        symbol_table = buildSymbolTable(x)
         exit()
         analyse(x, args.infile)
 

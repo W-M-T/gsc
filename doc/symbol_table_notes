@@ -1,0 +1,25 @@
+Symbol table:
+Per module:
+attribuut voor types
+attribuut voor functienamen
+attribuut voor variabelenamen
+
+
+Functie al gedefinieerd met ander aantal argumenten -> Error
+
+Types moeten resolvebaar (mag niet cyclisch)
+
+varnamen zijn uniek
+
+typesyn checkt of het een builtin type probeert te herdefinieren
+
+
+
+Twee bestanden importeren die dezelfde naam definieren geeft een conflict (error)
+
+Double definition of operator with different associativity not allowed
+Double definition of operator with different fixity not allowed
+
+Double definition of a function with different argument is allowed
+Double definition of a function with same type not allowed
+	W.r.t. type syns: this check is performed after building the symbol table, after rewriting types to their canonical names
