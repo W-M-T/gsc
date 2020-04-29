@@ -133,8 +133,10 @@ def resolveNames(ast, symbol_table):
 def fixExpression(ast, symbol_table):
     pass
 
+def typecheck(return_stmt):
+    pass
+
 def analyseFuncStmts(statements, loop_depth, cond_depth):
-    # TODO: Improve errors/warnings.
     for k in range(0, len(statements)):
         stmt = statements[k].val
         if type(stmt) is AST.IFELSE:
@@ -143,23 +145,22 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
                 return_ctr += analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
 
             if return_ctr == len(stmt.condbranches):
-                if k is not len(statements) - 1:
-                    print("Warning: The statements after line can never be reached because all conditional branches yield a return value.")
-                else:
-                    return True
-            # TODO: Add a check that verifies that there is a return statement after an if-else statement in which atleast one of the branches does not return.
+                if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
+                    print("Warning: The statements after line %d can never be reached because all conditional branches yield a return value.")
+                return True
 
         elif type(stmt) is AST.LOOP:
             analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
-                print("Error: Using a break or continue statement out of a loop.")
+                print("Error: Using a break or continue statement out of a loop at line %d.")
             else:
                 if k is not len(statements) - 1:
-                    print("Warning: The statements after line %x can never be reached because they are preceded by a break or continue.")
+                    print("Warning: The statements after line %d can never be reached because they are preceded by a break or continue.")
         elif type(stmt) is AST.RETURN:
+            typecheck(stmt)
             if k is not len(statements) - 1:
-                print("Warning: the statements after line %x can never be reached because of a return statement.")
+                print("Warning: the statements after line %d can never be reached because of a return statement.")
             return True
 
     return False

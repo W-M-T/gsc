@@ -11,12 +11,20 @@ def main():
     f(a, b) :: Int Int -> Int {
         Int c = 5;
         if(a > 1) {
-            return false;
+            if(c == 3) {
+                return true;
+            }
+            elif(c == 2) {
+                return false;
+            }
+            else {
+                a = a + 3;
+            }
+            b = b + 2;
         }
         else {
-            return true;
+            t = t + 1;
         }
-        a = a + 3;
     }
     ''')
     tokenstream = tokenize(testprog)
