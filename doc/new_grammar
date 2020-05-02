@@ -33,7 +33,7 @@ RetType     = Type
             | 'Void'
 
 Type        = BasicType
-            | '(' Type ',' Type ')'
+            | '(' Type ',' Type ')' # Note: this is different from in expressions, where parentheses are not required
             | '[' Type ']'
             | type_id
 

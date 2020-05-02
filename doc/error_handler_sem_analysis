@@ -1,0 +1,7 @@
+Error handler object
+Call a function on it to add an error or warning
+File defines enumeration of error types with corresponding error messages
+
+Fancy way to handle errors is to see the imports as a graph, where vertices have a value of their state in the compilation process, and they can only go further if all their dependencies are in the same state or further, to produce as many errors as possible
+
+This is too much work though, so we'll see all our imports conceptually as a single file with declarations annotated as their source, so all imports go through the analysis steps at the same time.
