@@ -1,0 +1,43 @@
+Verzameling aan functies binnen een bestand is "meest waar"
+Oftewel f callt g en g callt f is cyclisch binnen hetzelfde bestand ookal wordt de een na de ander gedefinieerd
+
+Variabelen en types zijn sequentie: oftewel lokaal in die definities kan de hogere (uit andere module) nog in scope zijn
+
+Functies die globale variabelen gebruiken gebruiken altijd de definitie uit deze module als die er is.
+
+Voorbeelden:
+
+bestand 1:
+Int PI = 2;
+bestand 2:
+Int a = PI;
+Int PI = 3;
+a is 2
+PI is 3
+
+If file 2 didn't import file 1, the definition of "a" would have complained about PI not being defined.
+----------------------------------------------
+f(x) return g(x-2);
+g(x) return f(x-1);
+(imagine base cases)
+This works
+
+If this file imported a file that defines g, still the local definition of g will be used
+-------------------------
+Bestand 1
+var PI = 2;
+Bestand 2
+import bestand 1
+var alt = PI;
+f(x) return PI;
+var PI = 3;
+
+f returnt 3
+alt is 2
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Conceptueel:
+1 pass sequentieel om alle variabelen en types te resolven, deze zijn daarna in scope
+1 pass om alle functienamen te vinden, die zijn daarna in scope
+Resolve de typenamen van die functies
+Dan alle expressies, functiecalls en typenamen in functies resolven

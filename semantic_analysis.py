@@ -24,6 +24,7 @@ def FunKindToUniq(kind):
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
 # Vars with or without type. Should be able to add type to func params
+# Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
 class SymbolTable():
     def __init__(self, global_vars = {}, functions = {FunUniq.FUNC: {}, FunUniq.PREFIX: {}, FunUniq.INFIX: {}}, local_vars = {}, type_syns = {}):
         self.global_vars = global_vars
@@ -190,6 +191,36 @@ def buildSymbolTable(ast):
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(ast, symbol_table):
+    glob_vardecl_counter = 0
+    for decl in ast.decls:
+        val = decl.val
+        if type(val) is AST.VARDECL:
+            print("Global var decl",glob_vardecl_counter,val)
+            val.expr = resolveExprNames(val.expr, symbol_table, glob=True, counter=glob_vardecl_counter)
+            glob_vardecl_counter += 1
+
+        elif type(val) is AST.FUNDECL:
+            loc_vardecl_counter = 0
+
+            vardecls = val.vardecls
+            for vardecl in vardecls:
+                print("Local var decl", loc_vardecl_counter, vardecl)
+                vardecl.expr = resolveExprNames(vardecl.expr, symbol_table, glob=False, counter=loc_vardecl_counter)
+                loc_vardecl_counter +=1
+
+            for stmt in val.stmts:
+                print("Stmt")
+                # Should do some kind of mapping function here to generalize the recursion over branching and loops
+
+        elif type(val) is AST.TYPESYN:
+            pass
+    '''
+    Funcall naar module, (FunUniq, id) (nog geen type)
+    Varref naar module, scope (global of local + naam of arg + naam)
+    Type-token naar module, naam of forall type
+    '''
+
+def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
     pass
 
 def parseAtom(symbol_table, exp, index, min_precedence):
@@ -242,50 +273,35 @@ def typecheck(return_stmt):
     pass
 
 def analyseFuncStmts(statements, loop_depth, cond_depth):
-    returns = False
-    return_exp = False
     for k in range(0, len(statements)):
         stmt = statements[k].val
         if type(stmt) is AST.IFELSE:
             return_ctr = 0
             for branch in stmt.condbranches:
-                does_return, rexp = analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
-                return_exp = return_exp or rexp
-                return_ctr += does_return
+                return_ctr += analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     print("Warning: The statements after line %d can never be reached because all conditional branches yield a return value.")
-                return True, return_exp
-            elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
-                return_exp = True
+                return True
 
         elif type(stmt) is AST.LOOP:
-            returns, return_exp = analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
-            if return_exp:
-                returns = False
+            analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
                 print("Error: Using a break or continue statement out of a loop at line %d.")
             else:
                 if k is not len(statements) - 1:
                     print("Warning: The statements after line %d can never be reached because they are preceded by a break or continue.")
-                    return False, return_exp
         elif type(stmt) is AST.RETURN:
             typecheck(stmt)
             if k is not len(statements) - 1:
                 print("Warning: the statements after line %d can never be reached because of a return statement.")
-            return True, True
+            return True
 
-    if return_exp and cond_depth == 0:
-        print("Error: Not all paths lead to a (certain) return.")
+    return False
 
-    return returns, return_exp
-
-'''
-    Given a function AST node, find dead code statements after return/break/continue and see if all paths return
-    Additionally, type check all return statements.
-'''
+'''Given a function AST node, find dead code statements after return/break/continue and see if all paths return'''
 def analyseFunc(func_node):
     statements = func_node.stmts
 
@@ -454,6 +470,11 @@ infixl 7 % (a, b) :: Int Int -> Int {
     }
     return result;
 }
+f (x) :: Int -> Int {
+    Int x2 = x;
+    Int x = 2;
+    return x;
+}
 ''')
         tokenstream = tokenize(testprog)
         #tokenstream = tokenize(infile)
@@ -466,6 +487,8 @@ infixl 7 % (a, b) :: Int Int -> Int {
 
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         symbol_table = buildSymbolTable(x)
+        print("RESOLVING NAMES ====================")
+        resolveNames(x, symbol_table)
         exit()
         analyse(x, args.infile)
 
