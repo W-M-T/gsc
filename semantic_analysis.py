@@ -26,24 +26,27 @@ def FunKindToUniq(kind):
 # Vars with or without type. Should be able to add type to func params
 # Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
 class SymbolTable():
-    def __init__(self, global_vars = {}, functions = {FunUniq.FUNC: {}, FunUniq.PREFIX: {}, FunUniq.INFIX: {}}, local_vars = {}, type_syns = {}):
+    def __init__(self, global_vars = {}, functions = {}, funarg_vars = {}, local_vars = {}, type_syns = {}):
         self.global_vars = global_vars
-        self.functions = functions # FunUniq -> dicts
+        # (FunUniq, id) as function identifier key
+        self.functions = functions
+        self.funarg_vars = funarg_vars
         self.local_vars = local_vars
         self.type_syns = type_syns
 
     def repr_short(self):
-        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nLocals: {}\nType synonyms: {}".format(
+        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(
             list(self.global_vars.keys()),
             "\nRegular: {}\nPrefix: {}\nInfix {}".format(
-                list(self.functions[FunUniq.FUNC].keys()),
-                list(self.functions[FunUniq.PREFIX].keys()),
-                list(self.functions[FunUniq.INFIX].keys())),
-            list(self.local_vars.keys()),
+                list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.FUNC, self.functions.items()))),
+                list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.PREFIX, self.functions.items()))),
+                list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.INFIX, self.functions.items())))),
+            self.funarg_vars,
+            self.local_vars,
             list(self.type_syns.keys()))
 
     def __repr__(self):
-        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.local_vars, self.type_syns)
+        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.funarg_vars, self.local_vars, self.type_syns)
 
 ''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
 I think it would be best if you didn't have to explicitly import dependencies of a function you're importing to have it work, but you also don't want that dependency to end up in the namespace
@@ -150,20 +153,33 @@ def buildSymbolTable(ast):
             # Test if this function is already defined
             fun_id = val.id.val
             print(fun_id)
-            if not fun_id in symbol_table.functions[uniq_kind]:
+            if not (uniq_kind, fun_id) in symbol_table.functions:
                 if False: # TODO test if it is already defined in other module
                     pass
                 else: # Completely new name
-                    symbol_table.functions[uniq_kind][fun_id] = val
-            else: # Already defined in the table, check for overloading
-                pass
+                    symbol_table.functions[(uniq_kind,fun_id)] = val
 
-            print("vars")
-            print(val.vardecls)
-            for var in val.vardecls:
-                # Check if already in locals
-                # If yes, give warning and shadow
-                # (Over)write in locals
+                    funarg_vars = {}
+                    local_vars = {}
+                    for arg in val.params:
+                        if not arg.val in funarg_vars:
+                            funarg_vars[arg.val] = arg
+                        else:
+                            print("ERROR: Duplicate argument name",arg.val)
+                            exit() # TODO actually include position and information
+                    for vardecl in val.vardecls:
+                        if vardecl.id.val in funarg_vars:
+                            print("WARNING: Shadowing function argument",vardecl.id.val) # TODO add information
+                        if not vardecl.id.val in local_vars:
+                            local_vars[vardecl.id.val] = vardecl.id
+                        else:
+                            print("ERROR: Duplicate variable definition",vardecl.id.val)
+                            exit()
+
+                    symbol_table.funarg_vars[(uniq_kind,fun_id)] = funarg_vars
+                    symbol_table.local_vars[(uniq_kind,fun_id)] = local_vars
+
+            else: # Already defined in the table, check for overloading
                 pass
 
         elif type(val) is AST.TYPESYN:
@@ -186,12 +202,16 @@ def buildSymbolTable(ast):
                 print("ERROR: Type identifier already defined")
                 # TODO point to both definitions
                 exit()
+    print("--------------------------")
     print(symbol_table.repr_short())
+    return symbol_table
 
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(ast, symbol_table):
     glob_vardecl_counter = 0
+    glob_typesyn_counter = 0
+
     for decl in ast.decls:
         val = decl.val
         if type(val) is AST.VARDECL:
@@ -213,12 +233,47 @@ def resolveNames(ast, symbol_table):
                 # Should do some kind of mapping function here to generalize the recursion over branching and loops
 
         elif type(val) is AST.TYPESYN:
+            print("Let's go BITCHESSSSS!!!!!!!!!!")
+            print(resolveTypeName(val.def_type, symbol_table).tree_string())
             pass
     '''
     Funcall naar module, (FunUniq, id) (nog geen type)
     Varref naar module, scope (global of local + naam of arg + naam)
     Type-token naar module, naam of forall type
     '''
+
+# TODO this works differently for typesyns as opposed to other types: typesyns don't allow foralls
+def resolveTypeName(typ, symbol_table, counter=-1):
+    if type(typ) is AST.TYPE:
+        typ.val = resolveTypeName(typ.val, symbol_table, counter=counter)
+        return typ
+    elif type(typ) is AST.BASICTYPE:
+        return typ
+    elif type(typ) is AST.TUPLETYPE:
+        typ.a = resolveTypeName(typ.a, symbol_table, counter=counter)
+        typ.b = resolveTypeName(typ.b, symbol_table, counter=counter)
+        return typ
+    elif type(typ) is AST.LISTTYPE:
+        typ.type = resolveTypeName(typ.type, symbol_table, counter=counter)
+        return typ
+    elif type(typ) is Token:
+        print("GOT A DAMN TOKEN")
+        print(typ.val)
+        if typ.val in symbol_table.type_syns:
+            print(typ, "IS IN THE TABLE!!!!!!!!!!!!!!")
+            # Check if it is in scope
+            if True: # TODO
+                return AST.RES_TYPE(module=None, type_id=typ)
+        #Either not in the symbol table or not in scope yet
+        if False: # Test if exists in other modules
+            pass
+        else: # Doesn't exist in other modules either, interpret as forall
+            raise Exception("Forall type not implemented")
+
+    else:
+        print("GOT SOMETHING ELSE")
+        print(typ)
+
 
 def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
     pass
@@ -453,9 +508,9 @@ if __name__ == "__main__":
     if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
         print("Invalid import mapping")
         exit()
-    print(import_mapping)
+    #print(import_mapping)
     import_mapping = {a:b for (a,b) in import_mapping}
-    print(import_mapping)
+    print("Imports:",import_mapping)
 
     if not args.infile.endswith(".spl"):
         print("Input file needs to be .spl")
@@ -463,17 +518,19 @@ if __name__ == "__main__":
 
 
     with open(args.infile, "r") as infile:
+        '''
         print(args.infile)
         print(args.lp)
         print(os.path.realpath(args.infile))
         print(os.path.dirname(os.path.realpath(args.infile)))
-
+        '''
 
         from io import StringIO
         testprog = StringIO('''
 Int pi = 3;
 type Chara = Int
 type String = [Char]
+type StringList = [(([String], Int), Chara)]
 infixl 7 % (a, b) :: Int Int -> Int {
     Int result = a;
     Int a = 2;
