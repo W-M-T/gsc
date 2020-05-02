@@ -223,51 +223,48 @@ def resolveNames(ast, symbol_table):
 def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
     pass
 
-def parseAtom(symbol_table, exp, index, min_precedence):
-    if type(exp[index]) is AST.VARREF:
-        return exp[index]
-    elif type(exp[index]) is AST.DEFERREDEXPR:
-        print("We are going recursive")
-        return parseExpression(symbol_table, exp, index + 1, min_precedence)
-    elif type(exp[index] is Token):
-        return exp[index]
+# This is really ugly, need to fix this somehow...
+index = 0
+
+''' Parse atoms (literals, identifiers or sub expressions) '''
+def parseAtom(symbol_table, exp):
+    global index
+    if type(exp[index]) is AST.VARREF or type(exp[index]) is Token:     # Literal / identifier
+        res = exp[index]
+        index += 1
+        return res
+    elif type(exp[index]) is AST.DEFERREDEXPR:     # Sub expression
+        saved_index = index
+        index = 0
+        res = parseExpression(symbol_table, exp[saved_index].contents, 1)
+        index = saved_index + 1
+        return res
     else:
-        print("I have this thing:")
-        print(type(exp[index]))
+        print("Error: unexpected token encountered while parsing expression.")
 
-def parseExpression(symbol_table, exp, index, min_precedence):
-    print("running")
-    result = parseAtom(symbol_table, exp, index, min_precedence)
-    print(result)
+''' Parse expressions by performing precedence climbing algorithm. '''
+def parseExpression(symbol_table, exp, min_precedence):
+    global index
+    result = parseAtom(symbol_table, exp)
 
-    if (index + 1) >= len(exp):
-        print("Out of range - returning")
-        return result
-    else:
-        print("%d, %d" % ((index + 1), len(exp)))
-        prec, assoc = BUILTIN_INFIX_OPS[exp[index + 1].val][1], BUILTIN_INFIX_OPS[exp[index + 1].val][2]
-        print(prec)
-        print(assoc)
-        while prec > min_precedence:
-            if assoc == 'L':
-                next_min_prec = prec + 1
-            else:
-                next_min_prec = prec
+    while True:
+        if (index >= len(exp) or BUILTIN_INFIX_OPS[exp[index].val][1] < min_precedence):
+            break
 
-            rh_expr = parseExpression(symbol_table, exp, index + 2, next_min_prec)
-            result = AST.PARSEDEXPR(fun=exp[index + 1], arg1=result, arg2=rh_expr)
+        if BUILTIN_INFIX_OPS[exp[index].val][2] == 'L':
+            next_min_prec = BUILTIN_INFIX_OPS[exp[index].val][1] + 1
+        else:
+            next_min_prec = BUILTIN_INFIX_OPS[exp[index].val][1]
+        op = exp[index]
+        index += 1
+        rh_expr = parseExpression(symbol_table, exp, next_min_prec)
+        result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
 
-        return result
+    return result
 
-# Parse expressions by performing precedence climbing algorithm.
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, symbol_table):
-    print(ast)
-    for decl in ast.decls:
-        if type(decl) is AST.VARDECL:
-            pass
-        elif type(decl) is AST.FUNDECL:
-            pass
+    pass
 
 def typecheck(return_stmt):
     pass
