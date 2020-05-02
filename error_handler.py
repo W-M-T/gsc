@@ -67,4 +67,4 @@ class ParseError(RuntimeError):
         self.pos = pos
 
     def __str__(self):
-        return "An exception occured at{}\nExpected one of the following:\n{}".format(self.pos, self.expected)
+        return "An exception occured at {}\nExpected one of the following:\n{}".format(self.pos, self.expected)
