@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+
 from lib.analysis.imports import resolveImports
+from lib.analysis.error_handler import ERROR_HANDLER
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
 from AST_prettyprinter import print_node
@@ -463,7 +465,8 @@ f (x) :: Int -> Int {
         #treemap(x, lambda x: x)
         #exit()
 
-        #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
         print("RESOLVING NAMES ====================")
         resolveNames(x, symbol_table)
