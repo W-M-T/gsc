@@ -122,10 +122,14 @@ class FunKind(IntEnum):
     INFIXR = 4
 
 class Accessor(IntEnum):
-    HD = 1
-    TL = 2
+    HD  = 1
+    TL  = 2
     FST = 3
     SND = 4
+
+class NonGlobalScope(IntEnum):
+    ARG   = 1
+    LOCAL = 2
 
 
 # Where do we track type information of expressions / variables / functions?
@@ -193,6 +197,22 @@ class AST:
 
     # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")
+
+
+    # Name Resolution nodes ===========================================================
+    # module :: string of module name or None for Built in, id :: TOKEN, uniq :: FunUniq, args :: [AST.EXPR]
+    RES_FUNCALL = syntaxnode("RES_FUNCALL", "module", "id", "uniq", "args")
+
+    # val :: AST.RES_GLOBAL or AST.RES_NONGLOBAL
+    RES_VARREF = syntaxnode("RES_VARREF", "val")
+
+    # module :: string of module name or None for Built in, id :: TOKEN, fields :: [Accessor]
+    RES_GLOBAL = syntaxnode("RES_GLOBAL", "module", "id", "fields")
+
+    # scope :: NonGlobalScope, id :: TOKEN, fields :: [Accessor]
+    RES_NONGLOBAL = syntaxnode("RES_NONGLOBAL", "scope", "id", "fields")
+
+
 
     # Create node list to support __contains__ and __iter__: TODO make this not hacky
     nodes = [
