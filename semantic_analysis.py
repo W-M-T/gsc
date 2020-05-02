@@ -165,6 +165,7 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
             else:
                 if k is not len(statements) - 1:
                     print("Warning: The statements after line %d can never be reached because they are preceded by a break or continue.")
+                    return False, return_exp
         elif type(stmt) is AST.RETURN:
             typecheck(stmt)
             if k is not len(statements) - 1:

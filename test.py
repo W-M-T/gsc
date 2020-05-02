@@ -10,11 +10,9 @@ def main():
     testprog = StringIO('''
     f(a, b) :: Int Int -> Int {
         Int c = 5;
-        if(a = 2) {
+        while(true) {
+            break;
             return 5;
-        }
-        else {
-            return 25;
         }
         a = a + 1;
     }
