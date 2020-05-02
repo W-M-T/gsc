@@ -8,21 +8,19 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-    f(a, b) :: Int Int -> Int {
-        Int c = 5;
-        while(true) {
-            break;
-            return 5;
-        }
-        a = a + 1;
-    }
+    Int pi = 3;
+    Int t = pi * 4;
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
 
     x = SPL.parse_strict(tokenlist, testprog)
 
-    analyseFunc(x.decls[0].val)
+    symbol_table = buildSymbolTable(x)
+
+    print(x.decls[1].val.expr)
+
+    parseExpression(symbol_table, x.decls[1].val.expr.contents, 0, 1)
 
 if __name__ == "__main__":
     main()

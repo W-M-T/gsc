@@ -3,7 +3,7 @@
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
 from AST_prettyprinter import print_node
-from util import pointToPosition
+from util import Token
 import os
 from enum import IntEnum
 
@@ -69,22 +69,22 @@ BUILTIN_FUNCTIONS = [
 ]
 
 # TODO finalize the info in here
-BUILTIN_INFIX_OPS = [
-    ("*", "T T -> T", 7, "L"),
-    ("/", "T T -> T", 7, "L"),
-    ("%", "T T -> T", 7, "L"),
-    ("+", "T T -> T", 6, "L"),# Should these actually have types T? It is in the spec but only defined for a couple of types, so maybe it's better to seperate those
-    ("-", "T T -> T", 6, "L"),
-    (":", "T [T] -> [T]", 5, "L"),
-    ("==", "T T -> Bool", 4, "??"),# How should comparision operators work for lists and tuples? Should they at all?
-    ("<", "T T -> Bool", 4, "??"),
-    (">", "T T -> Bool", 4, "??"),
-    ("<=", "T T -> Bool", 4, "??"),
-    (">=", "T T -> Bool", 4, "??"),
-    ("!=", "T T -> Bool", 4, "??"),
-    ("&&", "Bool Bool -> Bool", 3, "R"),
-    ("||", "Bool Bool -> Bool", 2, "R")
-]
+BUILTIN_INFIX_OPS = {
+    "*": ("T T -> T", 7, "L"),
+    "/":  ("T T -> T", 7, "L"),
+    "%": ("T T -> T", 7, "L"),
+    "+": ("T T -> T", 6, "L"),# Should these actually have types T? It is in the spec but only defined for a couple of types, so maybe it's better to seperate those
+    "-": ("T T -> T", 6, "L"),
+    ":": ("T [T] -> [T]", 5, "L"),
+    "==": ("T T -> Bool", 4, "??"),# How should comparision operators work for lists and tuples? Should they at all?
+    "<": ("T T -> Bool", 4, "??"),
+    ">": ("T T -> Bool", 4, "??"),
+    "<=": ("T T -> Bool", 4, "??"),
+    ">=": ("T T -> Bool", 4, "??"),
+    "!=": ("T T -> Bool", 4, "??"),
+    "&&": ("Bool Bool -> Bool", 3, "R"),
+    "||": ("Bool Bool -> Bool", 2, "R")
+}
 
 BUILTIN_PREFIX_OPS = [
     ("!", "Bool -> Bool"),
@@ -192,10 +192,51 @@ def buildSymbolTable(ast):
 def resolveNames(ast, symbol_table):
     pass
 
+def parseAtom(symbol_table, exp, index, min_precedence):
+    if type(exp[index]) is AST.VARREF:
+        return exp[index]
+    elif type(exp[index]) is AST.DEFERREDEXPR:
+        print("We are going recursive")
+        return parseExpression(symbol_table, exp, index + 1, min_precedence)
+    elif type(exp[index] is Token):
+        return exp[index]
+    else:
+        print("I have this thing:")
+        print(type(exp[index]))
+
+def parseExpression(symbol_table, exp, index, min_precedence):
+    print("running")
+    result = parseAtom(symbol_table, exp, index, min_precedence)
+    print(result)
+
+    if (index + 1) >= len(exp):
+        print("Out of range - returning")
+        return result
+    else:
+        print("%d, %d" % ((index + 1), len(exp)))
+        prec, assoc = BUILTIN_INFIX_OPS[exp[index + 1].val][1], BUILTIN_INFIX_OPS[exp[index + 1].val][2]
+        print(prec)
+        print(assoc)
+        while prec > min_precedence:
+            if assoc == 'L':
+                next_min_prec = prec + 1
+            else:
+                next_min_prec = prec
+
+            rh_expr = parseExpression(symbol_table, exp, index + 2, next_min_prec)
+            result = AST.PARSEDEXPR(fun=exp[index + 1], arg1=result, arg2=rh_expr)
+
+        return result
+
 # Parse expressions by performing precedence climbing algorithm.
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, symbol_table):
-    pass
+    print(ast)
+    for decl in ast.decls:
+        if type(decl) is AST.VARDECL:
+            pass
+        elif type(decl) is AST.FUNDECL:
+            pass
 
 def typecheck(return_stmt):
     pass
@@ -367,7 +408,7 @@ def analyse(ast, filename):
     #file_mappings = resolveImports(ast, filename)
     #exit()
     symbol_table = buildSymbolTable(ast)
-    ast = resolveNames(ast, symbol_table)
+    #ast = resolveNames(ast, symbol_table)
     ast = fixExpression(ast, symbol_table)
 
 
