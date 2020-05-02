@@ -24,6 +24,7 @@ def FunKindToUniq(kind):
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
 # Vars with or without type. Should be able to add type to func params
+# Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
 class SymbolTable():
     def __init__(self, global_vars = {}, functions = {FunUniq.FUNC: {}, FunUniq.PREFIX: {}, FunUniq.INFIX: {}}, local_vars = {}, type_syns = {}):
         self.global_vars = global_vars
@@ -191,6 +192,10 @@ def buildSymbolTable(ast):
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(ast, symbol_table):
     pass
+    '''
+    Funcall naar module, (FunUniq, id) (nog geen type)
+    Varref naar module, scope (global of local + naam of arg + naam)
+    '''
 
 # Parse expressions by performing precedence climbing algorithm.
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''

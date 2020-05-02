@@ -23,3 +23,4 @@ Double definition of operator with different fixity not allowed
 Double definition of a function with different argument is allowed
 Double definition of a function with same type not allowed
 	W.r.t. type syns: this check is performed after building the symbol table, after rewriting types to their canonical names
+EXECUTIVE DECISION: No general overloading allowed because of time constraints, may revisit this
