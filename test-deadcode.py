@@ -10,21 +10,11 @@ def main():
     testprog = StringIO('''
     f(a, b) :: Int Int -> Int {
         Int c = 5;
-        if(a > 1) {
-            if(c == 3) {
-                return true;
-            }
-            elif(c == 2) {
-                return false;
-            }
-            else {
-                a = a + 3;
-            }
-            b = b + 2;
+        while(true) {
+            break;
+            return 5;
         }
-        else {
-            t = t + 1;
-        }
+        a = a + 1;
     }
     ''')
     tokenstream = tokenize(testprog)
