@@ -195,6 +195,9 @@ class AST:
 
     # contents :: [literal token or operator token or funcall or identifier or AST.DEFERREDEXPR]
     DEFERREDEXPR = syntaxnode("DEFERREDEXPR", "contents")
+
+    # a :: AST.EXPR, b :: AST.EXPR
+    TUPLE = syntaxnode("TUPLE", "a", "b")
     # val :: AST.FUNCALL or literal or identifier
     PARSEDEXPR = syntaxnode("PARSEDEXPR", "fun", "arg1", "arg2") # TODO evaluate this
 

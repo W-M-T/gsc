@@ -29,15 +29,16 @@ class TOKEN(IntEnum): # auto() for python >3.5
     BRACK_OPEN      = 23
     BRACK_CLOSE     = 24
     SEMICOLON       = 25
-    ACCESSOR        = 26
-    IDENTIFIER      = 27
-    OP_IDENTIFIER   = 28
-    TYPE_IDENTIFIER = 29
-    IMPORT          = 30
-    FROM            = 31
-    AS              = 32
-    FILENAME        = 33
-    IMPORTALL       = 34
+    COMMA           = 26
+    ACCESSOR        = 27
+    IDENTIFIER      = 28
+    OP_IDENTIFIER   = 29
+    TYPE_IDENTIFIER = 30
+    IMPORT          = 31
+    FROM            = 32
+    AS              = 33
+    FILENAME        = 34
+    IMPORTALL       = 35
 
 PRETTY_TOKEN = {
     TOKEN.VAR             : (lambda x : "var"),
@@ -65,6 +66,7 @@ PRETTY_TOKEN = {
     TOKEN.BRACK_OPEN      : (lambda x : "["),
     TOKEN.BRACK_CLOSE     : (lambda x : "]"),
     TOKEN.SEMICOLON       : (lambda x : ";"),
+    TOKEN.COMMA           : (lambda x : ","),
     TOKEN.ACCESSOR        : (lambda x : "(ACC){}".format(x.val)),
     TOKEN.IDENTIFIER      : (lambda x : "(ID){}".format(x.val)),
     TOKEN.OP_IDENTIFIER   : (lambda x : "(OP){}".format(x.val)),

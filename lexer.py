@@ -28,7 +28,7 @@ KEYWORDS = {
     "import"   : TOKEN.IMPORT,
     "from"     : TOKEN.FROM,
     "as"       : TOKEN.AS,
-    "importall": TOKEN.IMPORTALL
+    "importall": TOKEN.IMPORTALL,
 }
 BOOLS = {
     "True"  : TOKEN.BOOL,
@@ -49,6 +49,7 @@ SCOPING_SYMBOLS = {
     "["  : TOKEN.BRACK_OPEN,
     "]"  : TOKEN.BRACK_CLOSE,
     ";"  : TOKEN.SEMICOLON,
+    ","  : TOKEN.COMMA,
 }
 ACCESSORS = {
     ".hd"  : TOKEN.ACCESSOR,
@@ -65,7 +66,7 @@ COMMENT_END    = "*/"
 
 REG_ID  = re.compile(r"[a-z][a-zA-Z0-9_]*")
 REG_TYP = re.compile(r"[A-Z][a-zA-Z0-9_]*")
-REG_OP  = re.compile(r"[!#$%&*+/<=>?@\\\\^|:,~-]+")
+REG_OP  = re.compile(r"[!#$%&*+/<=>?@\\\\^|:~-]+")
 REG_INT = re.compile(r"\d+")
 REG_STR = re.compile(r"\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])*\"")# needs to be tested
 REG_CHR = re.compile(r"\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])\'")# needs to be tested

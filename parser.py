@@ -33,7 +33,7 @@ ImportDecl = SpecificImport ^ AllImport
 @ps.generate
 def ImportListStrict():
     n = yield ImportName
-    ns = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == ",")) >> ImportName)
+    ns = yield ps.many(ps.token(TOKEN.COMMA) >> ImportName)
     return [n, *ns]
 
 @ps.generate
@@ -91,7 +91,7 @@ def InfixOpDecl():
     operator = yield ps.token(TOKEN.OP_IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
     a = yield ps.token(TOKEN.IDENTIFIER)
-    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
+    yield ps.token(TOKEN.COMMA)
     b = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_CLOSE)
     typesig = yield ps.times(InfFunTypeSig,0,1)
@@ -130,7 +130,7 @@ def FunDecl():
 @ps.generate
 def FArgs():
     x = yield ps.token(TOKEN.IDENTIFIER)
-    xs = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER, (lambda x : x == ",")) >> ps.token(TOKEN.IDENTIFIER))
+    xs = yield ps.many(ps.token(TOKEN.COMMA) >> ps.token(TOKEN.IDENTIFIER))
     return [x, *xs]
 
 @ps.generate
@@ -159,7 +159,7 @@ def BasicType():
 def TupType():
     yield ps.token(TOKEN.PAR_OPEN)
     el1 = yield Type
-    yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ","))
+    yield ps.token(TOKEN.COMMA)
     el2 = yield Type
     yield ps.token(TOKEN.PAR_CLOSE)
     return AST.TUPLETYPE(a=el1, b=el2)
@@ -351,8 +351,17 @@ def ExpSub():
     return subexp
 
 @ps.generate
+def ExpTup():
+    yield ps.token(TOKEN.PAR_OPEN)
+    a = yield Exp
+    yield ps.token(TOKEN.COMMA) # komma gaan we volledig verbieden binnen alle operators, wordt apart tokentype
+    b = yield Exp
+    yield ps.token(TOKEN.PAR_CLOSE)
+    return AST.TUPLE(a=a, b=b)
+
+@ps.generate
 def ConvExp():
-    a = yield FunCall ^ IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub
+    a = yield FunCall ^ IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub ^ ExpTup
     return a
 
 # STATEMENTS ====================================================
@@ -369,7 +378,7 @@ def FunCall():
 @ps.generate
 def ActArgs():
     a = yield Exp
-    b = yield ps.many(ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x : x == ',')) >> Exp)
+    b = yield ps.many(ps.token(TOKEN.COMMA) >> Exp)
     return [a, *b]
 
 @ps.generate
@@ -511,7 +520,7 @@ a + + b - 2 * "heyo" - - False + (2*2) - []
 
     testerror = io.StringIO('''
         prefix !! (x){
-            return (a + b;
+            return (a + b);
         }
     ''')
 
