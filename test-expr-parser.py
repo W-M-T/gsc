@@ -8,8 +8,9 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
+    
     Int pi = 3;
-    Int t = pi * 4;
+    Int t = pi * (4 + 2) * 3;
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
@@ -20,7 +21,8 @@ def main():
 
     print(x.decls[1].val.expr)
 
-    parseExpression(symbol_table, x.decls[1].val.expr.contents, 0, 1)
+    print(parseExpression(symbol_table, x.decls[1].val.expr.contents, 1))
+    #print(x.tree_string())
 
 if __name__ == "__main__":
     main()
