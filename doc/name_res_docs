@@ -41,3 +41,11 @@ Conceptueel:
 1 pass om alle functienamen te vinden, die zijn daarna in scope
 Resolve de typenamen van die functies
 Dan alle expressies, functiecalls en typenamen in functies resolven
+
+
+\\\\\\\\\\\\\\\
+Werkelijke implementatie:
+Vind alle declaraties en zet deze in de symbol table
+	tijdens dit normaliseren we de typesynoniemen-definities
+	sequentialiteit van typesynomymen wordt hiermee gegarandeerd
+Hierna normaliseren we de types van functiedefinities
