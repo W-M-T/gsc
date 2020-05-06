@@ -28,13 +28,19 @@ def FunKindToUniq(kind):
 # Vars with or without type. Should be able to add type to func params
 # Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
 class SymbolTable():
-    def __init__(self, global_vars = {}, functions = {}, funarg_vars = {}, local_vars = {}, type_syns = {}):
+    def __init__(self, global_vars = {}, functions = {}, type_syns = {}):
         self.global_vars = global_vars
-        # (FunUniq, id) as function identifier key
+
+        # (FunUniq, id) as identifier key
+        # maps to list of (type, dict)
+        # dict has keys "def", "funarg_vars", "local_vars"
         self.functions = functions
-        self.funarg_vars = funarg_vars
-        self.local_vars = local_vars
         self.type_syns = type_syns
+
+    def getFunc(self, uniq, fid, normaltype):
+        flist = self.functions[(uniq, fid)]
+        #x for x in flist if 
+        return 
 
     def repr_short(self):
         return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(
@@ -65,6 +71,9 @@ BUILTIN_TYPES = [
     "Char",
     "Int",
     "Bool",
+    "Void"
+]
+VOID_TYPE = [
     "Void"
 ]
 
@@ -103,6 +112,57 @@ ILLEGAL_OP_IDENTIFIERS = [
     "=",
     "*/"
 ]
+
+
+'''
+Replace all type synonyms in type with their definition, until the base case.
+Circularity is no concern because that is caught in the name resolution step for type synonyms.
+We prevent pointer problems by rewriting type syns directly when they are added to to the symbol table
+This also means that we should never need to recurse after rewriting a type syn once, because the rewrite result should already be normalized.
+'''
+def normalizeType(inputtype, symbol_table):
+    if type(inputtype) is AST.TYPE:
+        inputtype.val = normalizeType(inputtype.val, symbol_table)
+        if type(inputtype.val) is AST.TYPE: # Unwrap so we don't have double occurrences of TYPE nodes
+            return inputtype.val
+        else:
+            return inputtype
+    if type(inputtype) is AST.BASICTYPE:
+        return inputtype
+    elif type(inputtype) is AST.TUPLETYPE:
+        inputtype.a = normalizeType(inputtype.a, symbol_table)
+        inputtype.b = normalizeType(inputtype.b, symbol_table)
+        return inputtype
+    elif type(inputtype) is AST.LISTTYPE:
+        inputtype.type = normalizeType(inputtype.type, symbol_table)
+        return inputtype
+    elif type(inputtype) is AST.FUNTYPE:
+        inputtype.from_types = list(map(lambda x: normalizeType(x, symbol_table), inputtype.from_types))
+        inputtype.to_type = normalizeType(inputtype.to_type, symbol_table)
+        return inputtype
+    elif type(inputtype) is Token: # TODO If we decide to implement polymorphism, if it is not found here it, is a forall type
+        if inputtype.val in symbol_table.type_syns:
+            normalised_type = symbol_table.type_syns[inputtype.val]
+            return normalised_type
+        elif inputtype.val in VOID_TYPE:
+            return inputtype
+        else:
+            print("Typename {} not defined!".format(inputtype.val))
+            exit()
+    else:
+        print("Case not captured:",inputtype)
+        exit()
+
+def normalizeAllTypes(symbol_table):
+    # Normalize function types and find duplicates
+    for key, func in symbol_table.functions.items():
+        print(key)
+        print(func.tree_string())
+
+
+
+
+
 ''' TODO how should we handle errors / warnings?
 E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
 Or should we show the error that is "first" in the file?
@@ -125,7 +185,7 @@ def buildSymbolTable(ast):
             if not var_id in symbol_table.global_vars:
                 if False: # TODO test if it exists in other module
                     # TODO give warning (doesn't need to be instant, can be collected)
-                    print("This variable was already defined in another module, which is now shadowed")
+                    print("[ERROR] This variable was already defined in another module, which is now shadowed")
                 else:
                     symbol_table.global_vars[var_id] = val
             else:
@@ -140,6 +200,8 @@ def buildSymbolTable(ast):
             print("params")
             print(val.params)
 
+            # Types are not normalised here yet, because we don't yet have all type syns
+
             uniq_kind = FunKindToUniq(val.kind)
 
             if uniq_kind == FunUniq.INFIX:
@@ -149,7 +211,7 @@ def buildSymbolTable(ast):
             if val.type is not None:
                 from_types = val.type.from_types
                 if len(from_types) != len(val.params):
-                    print("ERROR: Argument count doesn't match type")
+                    print("[ERROR] Argument count doesn't match type")
                     exit()
             
             # Test if this function is already defined
@@ -167,15 +229,15 @@ def buildSymbolTable(ast):
                         if not arg.val in funarg_vars:
                             funarg_vars[arg.val] = arg
                         else:
-                            print("ERROR: Duplicate argument name",arg.val)
+                            print("[ERROR] Duplicate argument name",arg.val)
                             exit() # TODO actually include position and information
                     for vardecl in val.vardecls:
                         if vardecl.id.val in funarg_vars:
-                            print("WARNING: Shadowing function argument",vardecl.id.val) # TODO add information
+                            print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
                         if not vardecl.id.val in local_vars:
                             local_vars[vardecl.id.val] = vardecl.id
                         else:
-                            print("ERROR: Duplicate variable definition",vardecl.id.val)
+                            print("[ERROR] Duplicate variable definition",vardecl.id.val)
                             exit()
 
                     symbol_table.funarg_vars[(uniq_kind,fun_id)] = funarg_vars
@@ -185,23 +247,24 @@ def buildSymbolTable(ast):
                 pass
 
         elif type(val) is AST.TYPESYN:
-            print("Type")
+            #print("Type")
             type_id = val.type_id.val
             def_type = val.def_type
 
             if type_id in BUILTIN_TYPES:
-                print("ERROR: Reserved type identifier: {}".format(type_id))
+                print("[ERROR] Reserved type identifier: {}".format(type_id))
                 exit()
 
             if not type_id in symbol_table.type_syns:
                 if False: # TODO Test if it exists in another module
                     # TODO give warning (doesn't need to be instant, can be collected)
-                    print("This type was already defined in another module, which is now shadowed")
+                    print("[ERROR] This type was already defined in another module, which is now shadowed")
                 else:
-                    symbol_table.type_syns[type_id] = def_type
+                    normalized_type = normalizeType(def_type, symbol_table)
+                    symbol_table.type_syns[type_id] = normalized_type
             else:
                 # TODO Give collectable error
-                print("ERROR: Type identifier already defined")
+                print("[ERROR] Type identifier already defined")
                 # TODO point to both definitions
                 exit()
     print("--------------------------")
@@ -434,16 +497,20 @@ if __name__ == "__main__":
         testprog = StringIO('''
 Int pi = 3;
 type Chara = Int
+//type Void = Int
 type String = [Char]
+type OtherInt = Int
+type OtherListInt = [OtherInt]
 type StringList = [(([String], Int), Chara)]
-infixl 7 % (a, b) :: Int Int -> Int {
-    Int result = a;
+infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
+    OtherInt result = a;
     Int a = 2;
     while(result > b) {
         result = result - b;
     }
     return result;
 }
+
 f (x) :: Int -> Int {
     Int x2 = x;
     Int x = 2;
@@ -454,14 +521,16 @@ f (x) :: Int -> Int {
         #tokenstream = tokenize(infile)
 
         x = parseTokenStream(tokenstream, infile)
-
         print(x.tree_string())
         #treemap(x, lambda x: x)
         #exit()
 
         file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-        print(ERROR_HANDLER)
+        #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
+        print("NORMALIZING TYPES ==================")
+        symbol_table = normalizeAllTypes(symbol_table)
+        exit()
         print("RESOLVING NAMES ====================")
         resolveNames(x, symbol_table)
         exit()

@@ -59,7 +59,7 @@ Ass         = id Field* '=' Exp
 Exp         = ConvExp (op ConvExp)*
 
 ConvExp     = id Field*
-            | op Exp
+            | op ConvExp
             | int
             | char
             | string

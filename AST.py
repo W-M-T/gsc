@@ -4,6 +4,7 @@ import sys as _sys
 from keyword import iskeyword as _iskeyword
 from operator import itemgetter as _itemgetter
 from enum import IntEnum, Enum
+from util import Token
 
 def syntaxnode(typename, *field_names, module=None):
     # Factory method for syntax construct classes
@@ -132,6 +133,8 @@ class NonGlobalScope(IntEnum):
     LOCAL = 2
 
 
+
+
 # Where do we track type information of expressions / variables / functions?
 # Also: where do we document the types of the attributes of these nodes?
 class AST:
@@ -200,8 +203,8 @@ class AST:
 
 
     # Name Resolution nodes ===========================================================
-    # module :: string of module name or None for Built in, id :: TOKEN, uniq :: FunUniq, args :: [AST.EXPR]
-    RES_FUNCALL = syntaxnode("RES_FUNCALL", "module", "id", "uniq", "args")
+    # id :: TOKEN, uniq :: FunUniq, args :: [AST.EXPR]
+    RES_FUNCALL = syntaxnode("RES_FUNCALL", "id", "uniq", "args")
 
     # val :: AST.RES_GLOBAL or AST.RES_NONGLOBAL
     RES_VARREF = syntaxnode("RES_VARREF", "val")
@@ -245,6 +248,32 @@ class AST:
         PARSEDEXPR,
         VARREF
     ]
+
+    def equalVals(node1, node2): # Same structure and values (not necessarily same tokens)
+        if type(node1) == type(node2):
+            if type(node1) in AST.nodes:
+                list1 = list(node1)
+                list2 = list(node2)
+                if len(list1) == len(list2):
+                    return all(map(lambda x: AST.equalVals(x[0],x[1]), zip(list1,list2)))
+                else:
+                    return False
+
+            elif type(node1) is Token:
+                return node1.val == node2.val
+            elif type(node1) is list:
+                if len(node1) == len(node2):
+                    return all(map(lambda x: AST.equalVals(x[0],x[1]), zip(node1,node2)))
+                else:
+                    return False
+            elif type(node1) in [FunKind, Accessor, type(None)]:
+                return node1 == node2
+            else:
+                raise Exception("AST.equalVals encountered type {}".format(type(node1)))
+
+        else:
+            return False
+
 
 
 

@@ -171,9 +171,12 @@ def ListType():
     yield ps.token(TOKEN.BRACK_CLOSE)
     return AST.LISTTYPE(type=a)
 
-# Check this:
-# results in type id token instead of type node with type id token
-RetType = ps.token(TOKEN.TYPE_IDENTIFIER, cond=(lambda x: x == "Void")) ^ Type
+@ps.generate
+def VoidType():
+    a = yield ps.token(TOKEN.TYPE_IDENTIFIER, cond=(lambda x: x == "Void"))
+    return AST.TYPE(val=a)
+
+RetType = VoidType ^ Type
 
 @ps.generate
 def FunType():
@@ -332,7 +335,7 @@ def ExpMore():
 @ps.generate
 def PrefixOpExp():
     op = yield ps.token(TOKEN.OP_IDENTIFIER)
-    exp = yield Exp
+    exp = yield ConvExp
     return AST.FUNCALL(kind=FunKind.PREFIX, id=op, args=[exp])
 
 @ps.generate
