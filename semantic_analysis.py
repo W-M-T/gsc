@@ -32,8 +32,8 @@ class SymbolTable():
         self.global_vars = global_vars
 
         # (FunUniq, id) as identifier key
-        # maps to list of (type, dict)
-        # dict has keys "def", "funarg_vars", "local_vars"
+        # maps to list of dicts
+        # dict has keys "type", "def", "arg_vars", "local_vars"
         self.functions = functions
         self.type_syns = type_syns
 
@@ -42,19 +42,32 @@ class SymbolTable():
         #x for x in flist if 
         return 
 
+
+    def repr_funcs(self):
+        temp = "\n=Regular:{}\n=Prefix:{}\n=Infix:{}"
+        filtered_uniqs = list(map(lambda y: list(filter(lambda x: x[0][0] == y, self.functions.items())), FunUniq))
+        filtered_uniqs = list(map(lambda x: "".join(list(map(SymbolTable.repr_func_uniq, x))), filtered_uniqs))
+        return temp.format(*filtered_uniqs)
+
+    def repr_func_uniq(func):
+        deflist = "\n".join(list(map(lambda x:
+                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], print_node(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
+            func[1])))
+        return "\n"+deflist
+
     def repr_short(self):
-        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(
+        return "=== Symbol table:\n== Global vars: {}\n== Functions: {}\n== Type synonyms: {}".format(
             list(self.global_vars.keys()),
-            "\nRegular: {}\nPrefix: {}\nInfix {}".format(
-                list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.FUNC, self.functions.items()))),
-                list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.PREFIX, self.functions.items()))),
-                list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.INFIX, self.functions.items())))),
-            self.funarg_vars,
-            self.local_vars,
-            list(self.type_syns.keys()))
+            self.repr_funcs(),
+            "".join(list(map(lambda x: "\n{} = {}".format(x[0], print_node(x[1])), sorted(self.type_syns.items())))))
 
     def __repr__(self):
+        return self.repr_short()
+
+    '''
+    def __repr__(self):
         return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.funarg_vars, self.local_vars, self.type_syns)
+    '''
 
 ''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
 I think it would be best if you didn't have to explicitly import dependencies of a function you're importing to have it work, but you also don't want that dependency to end up in the namespace
@@ -221,7 +234,8 @@ def buildSymbolTable(ast):
                 if False: # TODO test if it is already defined in other module
                     pass
                 else: # Completely new name
-                    symbol_table.functions[(uniq_kind,fun_id)] = val
+                    symbol_table.functions[(uniq_kind,fun_id)] = []
+                    temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
 
                     funarg_vars = {}
                     local_vars = {}
@@ -240,11 +254,34 @@ def buildSymbolTable(ast):
                             print("[ERROR] Duplicate variable definition",vardecl.id.val)
                             exit()
 
-                    symbol_table.funarg_vars[(uniq_kind,fun_id)] = funarg_vars
-                    symbol_table.local_vars[(uniq_kind,fun_id)] = local_vars
+                    temp_entry["arg_vars"] = funarg_vars
+                    temp_entry["local_vars"]  = local_vars
+                    symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
             else: # Already defined in the table, check for overloading
-                pass
+                # TODO Dedupe code
+                temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
+
+                funarg_vars = {}
+                local_vars = {}
+                for arg in val.params:
+                    if not arg.val in funarg_vars:
+                        funarg_vars[arg.val] = arg
+                    else:
+                        print("[ERROR] Duplicate argument name",arg.val)
+                        exit() # TODO actually include position and information
+                for vardecl in val.vardecls:
+                    if vardecl.id.val in funarg_vars:
+                        print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
+                    if not vardecl.id.val in local_vars:
+                        local_vars[vardecl.id.val] = vardecl.id
+                    else:
+                        print("[ERROR] Duplicate variable definition",vardecl.id.val)
+                        exit()
+
+                temp_entry["arg_vars"] = funarg_vars
+                temp_entry["local_vars"]  = local_vars
+                symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -563,7 +600,11 @@ infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
     }
     return result;
 }
-
+f (x) :: Char -> Int {
+    Int x2 = x;
+    Int x = 2;
+    return x;
+}
 f (x) :: Int -> Int {
     Int x2 = x;
     Int x = 2;
@@ -581,6 +622,7 @@ f (x) :: Int -> Int {
         file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
+        exit()
         print("NORMALIZING TYPES ==================")
         symbol_table = normalizeAllTypes(symbol_table)
         exit()
