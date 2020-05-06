@@ -395,9 +395,6 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 '''
 
 
-
-
-
 def analyse(ast, filename):
     #file_mappings = resolveImports(ast, filename)
     #exit()
