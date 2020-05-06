@@ -3,4 +3,4 @@ builds/
 *.swp
 *.swo
 *.swn
-*.idea
+.idea/
