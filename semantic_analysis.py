@@ -169,11 +169,30 @@ def normalizeType(inputtype, symbol_table):
 
 def normalizeAllTypes(symbol_table):
     # Normalize function types and find duplicates
-    for key, func in symbol_table.functions.items():
-        print(key)
-        print(func.tree_string())
+    flag = False # Handle this in the error handler
+    for key, func_list in symbol_table.functions.items():
+        found_typesigs = []
 
+        for func in func_list:
+            func['type'] = normalizeType(func['type'], symbol_table)
+            found_typesigs.append((func['type'], func))
 
+        # Test if multiple functions have the same (normalized) type
+        
+        while len(found_typesigs) > 0:
+            cur = found_typesigs.pop()
+
+            find_match = [x for x in found_typesigs if AST.equalVals(x[0],cur[0])]
+            if find_match: # TODO error handler collect + have it show it in order
+                flag = True
+                print('[ERROR] Overloaded function "{}" has multiple definitions with the same type:'.format(key[1]))
+                print(cur[1]["def"].id)
+                for el in find_match:
+                    print(el[1]["def"].id)
+                    found_typesigs.remove(el)
+
+    if flag:
+        exit()
 
 
 
@@ -566,6 +585,7 @@ type Chara = Int
 //type Void = Int
 type String = [Char]
 type OtherInt = Int
+type TotallyNotChar = Char
 type OtherListInt = [OtherInt]
 type StringList = [(([String], Int), Chara)]
 infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
@@ -576,7 +596,20 @@ infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
     }
     return result;
 }
+infixl 7 % (a, b) :: Char Void -> OtherListInt {
+    OtherInt result = a;
+    Int a = 2;
+    while(result > b) {
+        result = result - b;
+    }
+    return result;
+}
 f (x) :: Char -> Int {
+    Int x2 = x;
+    Int x = 2;
+    return x;
+}
+f (x) :: Void -> Int {
     Int x2 = x;
     Int x = 2;
     return x;
@@ -598,7 +631,7 @@ f (x) :: Int -> Int {
         file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
-        exit()
+        #exit()
         print("NORMALIZING TYPES ==================")
         symbol_table = normalizeAllTypes(symbol_table)
         exit()
