@@ -8,8 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Int pi = 2 + 3;
-        Int a = 5 * 4 - 2;
+        Int a = f(a * 3, 2 *** 5);
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)

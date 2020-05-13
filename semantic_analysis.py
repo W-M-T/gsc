@@ -424,7 +424,10 @@ def parseExpression(ops, exp, min_precedence = 1):
     result = parseAtom(ops, exp)
 
     while True:
-        if (exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence):
+        if exp_index < len(exp) and exp[exp_index].val not in ops:
+            print("[ERROR] Operator " + exp[exp_index].val + " is not defined.")
+            break
+        elif exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence:
             break
 
         if ops[exp[exp_index].val][2] == 'L':
