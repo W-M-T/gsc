@@ -383,40 +383,40 @@ def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
 # This is really ugly, need to fix this somehow...
 exp_index = 0
 
-''' Parse atoms (literals, identifiers or sub expressions) '''
+''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
 def parseAtom(ops, exp):
     global exp_index
-    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token:     # Literal / identifier
+
+    def recurse(ops, exp):
+        global exp_index
+        saved_index = exp_index
+        exp_index = 0
+        recurse_res = parseExpression(ops, exp)
+        exp_index = saved_index + 1
+        return recurse_res
+
+    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token: # Literal / identifier
         res = exp[exp_index]
         exp_index += 1
         return res
-    elif type(exp[exp_index]) is AST.DEFERREDEXPR:     # Sub expression
-        saved_index = exp_index
-        exp_index = 0
-        res = parseExpression(ops, exp[saved_index].contents)
-        exp_index = saved_index + 1
-        return res
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
+    elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
+        return recurse(ops, exp[exp_index].contents)
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Function call
         prefix = exp[exp_index]
-        saved_index = exp_index
-        exp_index = 0
-        sub_expr = parseExpression(ops, prefix.args)
-        exp_index = saved_index + 1
-        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr)
+        sub_expr = recurse(ops, prefix.args)
+        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr) # Prefix
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1:
         func_args = []
         funcall = exp[exp_index]
         for arg in funcall.args:
-            saved_index = exp_index
-            exp_index = 0
-            sub_exp = parseExpression(ops, arg.contents)
-            exp_index = saved_index + 1
+            sub_exp = recurse(ops, arg.contents)
             func_args.append(sub_exp)
         exp_index += 1
 
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args)
     else:
-        print("Error: unexpected token encountered while parsing expression.")
+        # This should never happen
+        print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
 def parseExpression(ops, exp, min_precedence = 1):
@@ -465,7 +465,7 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    print("Warning: The statements after line %d can never be reached because all conditional branches yield a return value.")
+                    print("[WARNING] The statements after line %d can never be reached because all conditional branches yield a return value.")
                 return True, return_exp
             elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
                 return_exp = True
@@ -476,19 +476,19 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
                 returns = False
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
-                print("Error: Using a break or continue statement out of a loop at line %d.")
+                print("[ERROR] Using a break or continue statement out of a loop at line %d.")
             else:
                 if k is not len(statements) - 1:
-                    print("Warning: The statements after line %d can never be reached because they are preceded by a break or continue.")
+                    print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
                     return False, return_exp
         elif type(stmt) is AST.RETURN:
             typecheck(stmt)
             if k is not len(statements) - 1:
-                print("Warning: the statements after line %d can never be reached because of a return statement.")
+                print("[WARNING] the statements after line %d can never be reached because of a return statement.")
             return True, True
 
     if return_exp and cond_depth == 0:
-        print("Error: Not all paths lead to a (certain) return.")
+        print("[ERROR] Not all paths lead to a (certain) return.")
 
     return returns, return_exp
 

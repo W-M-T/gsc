@@ -8,7 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Int a = f(a * 3, 2 *** 5);
+        Bool a = 3 * -((2 + 3) * 5);
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
