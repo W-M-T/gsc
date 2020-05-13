@@ -58,6 +58,12 @@ def syntaxnode(typename, *field_names, module=None):
         'Return a nicely formatted representation string'
         return self.__class__.__name__ + repr_fmt.format(**{key: getattr(self,key) for key in self._fields})
 
+    def __setitem__(self, key, value):
+        if not key in field_names:
+            raise KeyError("No such attribute name")
+        setattr(self, key, value)
+
+
     def tree_string(self):
         def sub_tree_str(x):
             attr = getattr(self, x)
@@ -85,7 +91,7 @@ def syntaxnode(typename, *field_names, module=None):
 
     # Modify function metadata to help with introspection and debugging
 
-    for method in (__new__, __init__, __iter__, __repr__, tree_string , items):
+    for method in (__new__, __init__, __iter__, __repr__, __setitem__, tree_string , items):
         method.__qualname__ = '{}.{}'.format(typename, method.__name__)
 
     # Build-up the class namespace dictionary
@@ -97,6 +103,7 @@ def syntaxnode(typename, *field_names, module=None):
         '__init__':__init__,
         '__iter__':__iter__,
         '__repr__': __repr__,
+        '__setitem__':__setitem__,
         'tree_string': tree_string,
         'items': items
     }
