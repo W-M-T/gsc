@@ -85,6 +85,7 @@ BUILTIN_FUNCTIONS = [
 
 # TODO finalize the info in here
 BUILTIN_INFIX_OPS = {
+    "**": ("T t -> T", 8, "R"),
     "*": ("T T -> T", 7, "L"),
     "/":  ("T T -> T", 7, "L"),
     "%": ("T T -> T", 7, "L"),
@@ -344,101 +345,70 @@ def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
     pass
 
 # This is really ugly, need to fix this somehow...
-index = 0
+exp_index = 0
 
 ''' Parse atoms (literals, identifiers or sub expressions) '''
 def parseAtom(ops, exp):
-    global index
-    if type(exp[index]) is AST.VARREF or type(exp[index]) is Token:     # Literal / identifier
-        res = exp[index]
-        index += 1
+    global exp_index
+    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token:     # Literal / identifier
+        res = exp[exp_index]
+        exp_index += 1
         return res
-    elif type(exp[index]) is AST.DEFERREDEXPR:     # Sub expression
-        saved_index = index
-        index = 0
-        res = parseExpression(ops, exp[saved_index].contents, 1)
-        index = saved_index + 1
+    elif type(exp[exp_index]) is AST.DEFERREDEXPR:     # Sub expression
+        saved_index = exp_index
+        exp_index = 0
+        res = parseExpression(ops, exp[saved_index].contents)
+        exp_index = saved_index + 1
         return res
-    elif type(exp[index]) is AST.FUNCALL and exp[index].kind == 2:
-        print("Prefix operator")
-        prefix = exp[index]
-        sub_expr = parseExpression(ops, prefix.args, 1)
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
+        prefix = exp[exp_index]
+        saved_index = exp_index
+        exp_index = 0
+        sub_expr = parseExpression(ops, prefix.args)
+        exp_index = saved_index + 1
         return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr)
-    elif type(exp[index]) is AST.FUNCALL and exp[index].kind == 1:
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1:
         func_args = []
-        funcall = exp[index]
+        funcall = exp[exp_index]
         for arg in funcall.args:
-            print(arg)
-            sub_exp = parseExpression(ops, arg, 1)
-            args.append(sub_exp)
+            saved_index = exp_index
+            exp_index = 0
+            sub_exp = parseExpression(ops, arg.contents)
+            exp_index = saved_index + 1
+            func_args.append(sub_exp)
+        exp_index += 1
 
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args)
     else:
         print("Error: unexpected token encountered while parsing expression.")
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(ops, exp, min_precedence):
-    global index
+def parseExpression(ops, exp, min_precedence = 1):
+    global exp_index
     result = parseAtom(ops, exp)
 
     while True:
-        if (index >= len(exp) or ops[exp[index].val][1] < min_precedence):
+        if (exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence):
             break
 
-        if ops[exp[index].val][2] == 'L':
-            next_min_prec = ops[exp[index].val][1] + 1
+        if ops[exp[exp_index].val][2] == 'L':
+            next_min_prec = ops[exp[exp_index].val][1] + 1
         else:
-            next_min_prec = ops[exp[index].val][1]
-        op = exp[index]
-        index += 1
+            next_min_prec = ops[exp[exp_index].val][1]
+        op = exp[exp_index]
+        exp_index += 1
         rh_expr = parseExpression(ops, exp, next_min_prec)
         result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
 
     return result
 
-def parseExpression2(ops, exp):
-    min_precedence = 1
-    index = 0
-
-    while index < len(exp):
-        if type(exp[index]) is Token and exp[index].val in ops:
-            if ops[exp[index].val][1] < min_precedence:
-                break
-
-            if ops[exp[index].val][2] == 'L':
-                min_precedence = ops[exp[index].val][1] + 1
-            else:
-                min_precedence = ops[exp[index].val][1]
-
-        if type(exp[index]) is AST.VARREF or type(exp[index]) is Token:
-            lhs = exp[index]
-        elif type(exp[index]) is AST.DEFERREDEXPR:  # Sub expression
-            lhs = parseExpression2(ops, exp[index].contents)
-        elif type(exp[index]) is AST.FUNCALL and exp[index].kind == 2:
-            sub_expr = parseExpression2(ops, exp[index].args)
-            lhs = AST.FUNCALL(id=exp[index].id, kind=2, args=sub_expr)
-        else:
-            print("Unknown token:")
-
-        print(type(exp[index]))
-        print(index)
-        index += 1
-
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
-def fixExpression(ast, symbol_table):
+def fixExpression(exp):
+    global exp_index
     operators = BUILTIN_INFIX_OPS
 
-    print("Parsing expression:" )
-    print(ast)
-
-    for f in symbol_table.functions.items():
-        if f[0][0] == 3:
-            precedence = 'L' if f[1].kind == FunKind.INFIXL else 'R'
-            operators[f[0][1]] = ('Int Int -> Int', f[1].fixity.val, precedence)
-
-    #parseExpression2(operators, ast)
-
-    return parseExpression(operators, ast, 1)
+    exp_index = 0
+    return parseExpression(operators, exp.contents)
 
 def typecheck(return_stmt):
     pass
@@ -491,19 +461,25 @@ def analyseFunc(func_node):
     print("Analysing function %s\n" % func_node.id.val)
     analyseFuncStmts(statements, 0, 0)
 
-'''
-def treemap(ast, f):
-    def unpack(val,f):
+def selectiveApply(**args):
+    if type(args['node']) is args['type']:
+        print(args['node'])
+        return args['f'](args['node'])
+    return args['node']
+
+def treemap(ast, f, args):
+    def unpack(val,f,args):
         if type(val) == list:
             for el in val:
-                unpack(el)
+                unpack(el,f,args)
         if type(val) in AST.nodes:# Require enumlike construct for AST
-            treemap(val,f)
+            treemap(val,f,args)
 
-    ast = f(ast)
+    ast = f(**args, node=ast)
     for attr in ast:
-        unpack(attr,f)
+        unpack(attr,f,args)
 
+'''
 symbol table bevat:
 functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als in imports
 '''
