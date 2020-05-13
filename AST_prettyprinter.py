@@ -175,6 +175,7 @@ LOOKUP = {
     AST.VARREF : (lambda x:
             "{}{}".format(x.id.val, "".join(map(lambda y: ACC_STR[y], x.fields)))
         ),
+    #type(None) : ""
 }
 
 def printAST(root):

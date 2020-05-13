@@ -11,6 +11,7 @@ from enum import IntEnum
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
+# TODO Just realised that most of this assumes that fundecl types are not None. How to handle this?
 
 class FunUniq(IntEnum):
     FUNC   = 1
@@ -34,6 +35,8 @@ class SymbolTable():
         # (FunUniq, id) as identifier key
         # maps to list of dicts
         # dict has keys "type", "def", "arg_vars", "local_vars"
+        # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
+        # local_vars is dict of identifiers to vardecl def nodes
         self.functions = functions
         self.type_syns = type_syns
 
@@ -155,8 +158,8 @@ def normalizeType(inputtype, symbol_table):
         return inputtype
     elif type(inputtype) is Token: # TODO If we decide to implement polymorphism, if it is not found here it, is a forall type
         if inputtype.val in symbol_table.type_syns:
-            normalised_type = symbol_table.type_syns[inputtype.val]
-            return normalised_type
+            normalized_type = symbol_table.type_syns[inputtype.val]
+            return normalized_type
         elif inputtype.val in VOID_TYPE:
             return inputtype
         else:
@@ -171,7 +174,7 @@ def normalizeAllTypes(symbol_table):
     flag = False # Handle this in the error handler
     for key, func_list in symbol_table.functions.items():
         found_typesigs = []
-
+        #print(len(func_list))
         for func in func_list:
             func['type'] = normalizeType(func['type'], symbol_table)
             found_typesigs.append((func['type'], func))
@@ -192,6 +195,23 @@ def normalizeAllTypes(symbol_table):
 
     if flag:
         exit()
+
+    # Normalize global var types
+    for glob_var in symbol_table.global_vars.items():
+        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
+        print(glob_var)
+
+    # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
+    for func_key, func_list in symbol_table.functions.items():
+        #print(len(func_list))
+        for func in func_list:
+            print("FUNCTION LOCAL VARS OF", func['def'].id.val)
+            for local_var_key, local_var in func['local_vars'].items():
+                local_var.type = normalizeType(local_var.type, symbol_table)
+            print(func['local_vars'])
+            print("FUNCTION ARG VARS OF", func['def'].id.val)
+            # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
+            print(func['arg_vars'])
 
 
 
@@ -258,9 +278,10 @@ def buildSymbolTable(ast):
 
                     funarg_vars = {}
                     local_vars = {}
-                    for arg in val.params:
+                    for ix, arg in enumerate(val.params):
                         if not arg.val in funarg_vars:
-                            funarg_vars[arg.val] = arg
+                            found_type = val.type.from_types[ix] if val.type is not None else None
+                            funarg_vars[arg.val] = {"id":arg, "type":found_type}
                         else:
                             print("[ERROR] Duplicate argument name",arg.val)
                             exit() # TODO actually include position and information
@@ -268,24 +289,31 @@ def buildSymbolTable(ast):
                         if vardecl.id.val in funarg_vars:
                             print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
                         if not vardecl.id.val in local_vars:
-                            local_vars[vardecl.id.val] = vardecl.id
+                            local_vars[vardecl.id.val] = vardecl
                         else:
                             print("[ERROR] Duplicate variable definition",vardecl.id.val)
                             exit()
 
                     temp_entry["arg_vars"] = funarg_vars
                     temp_entry["local_vars"]  = local_vars
+
+                    #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+                    #exit()
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
             else: # Already defined in the table, check for overloading
                 # TODO Dedupe code
+                #print("Rewrite this stuff to a single function and call that instead of duplicating code")
+                #exit()
+                #symbol_table.functions[(uniq_kind,fun_id)] = []
                 temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
 
                 funarg_vars = {}
                 local_vars = {}
-                for arg in val.params:
+                for ix, arg in enumerate(val.params):
                     if not arg.val in funarg_vars:
-                        funarg_vars[arg.val] = arg
+                        found_type = val.type.from_types[ix] if val.type is not None else None
+                        funarg_vars[arg.val] = {"id":arg, "type":found_type}
                     else:
                         print("[ERROR] Duplicate argument name",arg.val)
                         exit() # TODO actually include position and information
@@ -293,13 +321,16 @@ def buildSymbolTable(ast):
                     if vardecl.id.val in funarg_vars:
                         print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
                     if not vardecl.id.val in local_vars:
-                        local_vars[vardecl.id.val] = vardecl.id
+                        local_vars[vardecl.id.val] = vardecl
                     else:
                         print("[ERROR] Duplicate variable definition",vardecl.id.val)
                         exit()
 
                 temp_entry["arg_vars"] = funarg_vars
                 temp_entry["local_vars"]  = local_vars
+
+                #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+                #exit()
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
         elif type(val) is AST.TYPESYN:
@@ -585,6 +616,7 @@ if __name__ == "__main__":
         from io import StringIO
         testprog = StringIO('''
 Int pi = 3;
+String aaa = 2;
 type Chara = Int
 //type Void = Int
 type String = [Char]
@@ -623,6 +655,10 @@ f (x) :: Int -> Int {
     Int x = 2;
     return x;
 }
+/*
+g (x) {
+    return 2;
+}//*/
 ''')
         tokenstream = tokenize(testprog)
         #tokenstream = tokenize(infile)
