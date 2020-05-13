@@ -62,14 +62,14 @@ COMMENT_START  = "/*"
 COMMENT_END    = "*/"
 
 
-# Regexes (need to be checked)
+# Regexes
 
 REG_ID  = re.compile(r"[a-z][a-zA-Z0-9_]*")
 REG_TYP = re.compile(r"[A-Z][a-zA-Z0-9_]*")
 REG_OP  = re.compile(r"[!#$%&*+/<=>?@\\\\^|:~-]+")
 REG_INT = re.compile(r"\d+")
-REG_STR = re.compile(r"\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])*\"")# needs to be tested
-REG_CHR = re.compile(r"\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])\'")# needs to be tested
+REG_STR = re.compile(r"\"([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])*\"")
+REG_CHR = re.compile(r"\'([^\0\a\b\f\n\r\t\v\\\'\"]|\\[0abfnrtv\\\"\'])\'")
 REG_FIL = re.compile(r"[a-zA-Z0-9_-]+")
 
 REG_KEYWORD_END = re.compile(r"[^a-zA-Z0-9]|$")
@@ -165,7 +165,7 @@ def tokenize(inputstream):
     FLAG_SKIPPED_WHITESPACE = True
     FLAG_MULTI_COMMENT      = False
     FLAG_IN_IMPORT          = False
-    ERRORS_OCCURRED          = False
+    ERRORS_OCCURRED         = False
 
     pos = Position()
 

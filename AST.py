@@ -248,8 +248,14 @@ class AST:
         ASSIGNMENT,
         FUNCALL,
         DEFERREDEXPR,
+        TUPLE,
         PARSEDEXPR,
-        VARREF
+        VARREF,
+        RES_FUNCALL,
+        RES_VARREF,
+        RES_GLOBAL,
+        RES_NONGLOBAL,
+        RES_TYPE
     ]
 
     def equalVals(node1, node2): # Same structure and values (not necessarily same tokens)

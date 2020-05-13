@@ -51,7 +51,7 @@ class LexerTester(unittest.TestCase):
         Test regex that is used to match operators
 
         """
-        op_chars = ['!','#','$','%','&','*','+','/','<','=','>','?','@','\\','^','|','-','~',',',':']
+        op_chars = ['!','#','$','%','&','*','+','/','<','=','>','?','@','\\','^','|','-','~',':']
         for k in range(1, 4):
             for op in op_chars:
                 operator = op * k

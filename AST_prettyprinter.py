@@ -168,6 +168,9 @@ LOOKUP = {
     AST.DEFERREDEXPR : (lambda x:
             " ".join(list(map(subprint_expr, x.contents)))
         ),
+    AST.TUPLE : (lambda x:
+            "({},{})".format(print_node(x.a),print_node(x.b))
+        ),
     AST.PARSEDEXPR : [],
     AST.VARREF : (lambda x:
             "{}{}".format(x.id.val, "".join(map(lambda y: ACC_STR[y], x.fields)))
