@@ -502,16 +502,23 @@ def selectiveApply(typ, node, f):
     return node
 
 def treemap(ast, f):
-    def unpack(val,f):
+    def unpack(val, f):
         if type(val) == list:
+            mapped_list = []
             for el in val:
-                unpack(el,f)
-        if type(val) in AST.nodes:# Require enumlike construct for AST
-            treemap(val,f)
+                mapped_list.append(unpack(el, f))
+            return mapped_list
+        elif type(val) in AST.nodes:# Require enumlike construct for AST
+            return treemap(val, f)
+        else:
+            return val
 
-    f(ast)
-    for attr in ast:
-        unpack(attr,f)
+    ast = f(ast)
+    if type(ast) is not Token:
+        for attr in ast.items():
+            ast[attr[0]] = unpack(attr[1], f)
+
+    return ast
 
 '''
 symbol table bevat:
