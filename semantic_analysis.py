@@ -98,7 +98,6 @@ BUILTIN_FUNCTIONS = [
 
 # TODO finalize the info in here
 BUILTIN_INFIX_OPS = {
-    "**": ("T t -> T", 8, "R"),
     "*": ("T T -> T", 7, "L"),
     "/":  ("T T -> T", 7, "L"),
     "%": ("T T -> T", 7, "L"),
@@ -459,12 +458,11 @@ def parseExpression(ops, exp, min_precedence = 1):
     return result
 
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
-def fixExpression(exp):
+def fixExpression(exp, ops):
     global exp_index
-    operators = BUILTIN_INFIX_OPS
-
     exp_index = 0
-    return parseExpression(operators, exp.contents)
+
+    return parseExpression(ops, exp.contents)
 
 def typecheck(return_stmt):
     pass
@@ -517,23 +515,29 @@ def analyseFunc(func_node):
     print("Analysing function %s\n" % func_node.id.val)
     analyseFuncStmts(statements, 0, 0)
 
-def selectiveApply(**args):
-    if type(args['node']) is args['type']:
-        print(args['node'])
-        return args['f'](args['node'])
-    return args['node']
+def selectiveApply(typ, node, f):
+    if type(node) is typ:
+        return f(node)
+    return node
 
-def treemap(ast, f, args):
-    def unpack(val,f,args):
+def treemap(ast, f):
+    def unpack(val, f):
         if type(val) == list:
+            mapped_list = []
             for el in val:
-                unpack(el,f,args)
-        if type(val) in AST.nodes:# Require enumlike construct for AST
-            treemap(val,f,args)
+                mapped_list.append(unpack(el, f))
+            return mapped_list
+        elif type(val) in AST.nodes:# Require enumlike construct for AST
+            return treemap(val, f)
+        else:
+            return val
 
-    ast = f(**args, node=ast)
-    for attr in ast:
-        unpack(attr,f,args)
+    ast = f(ast)
+    if type(ast) is not Token:
+        for attr in ast.items():
+            ast[attr[0]] = unpack(attr[1], f)
+
+    return ast
 
 '''
 symbol table bevat:
