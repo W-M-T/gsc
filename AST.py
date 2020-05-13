@@ -139,12 +139,6 @@ class Accessor(IntEnum):
     FST = 3
     SND = 4
 
-class NonGlobalScope(IntEnum):
-    ARG   = 1
-    LOCAL = 2
-
-
-
 
 # Where do we track type information of expressions / variables / functions?
 # Also: where do we document the types of the attributes of these nodes?
