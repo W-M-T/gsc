@@ -85,7 +85,7 @@ def syntaxnode(typename, *field_names, module=None):
 
     # Modify function metadata to help with introspection and debugging
 
-    for method in (__new__, __init__, __iter__, __repr__, tree_string ):
+    for method in (__new__, __init__, __iter__, __repr__, tree_string , items):
         method.__qualname__ = '{}.{}'.format(typename, method.__name__)
 
     # Build-up the class namespace dictionary
@@ -98,6 +98,7 @@ def syntaxnode(typename, *field_names, module=None):
         '__iter__':__iter__,
         '__repr__': __repr__,
         'tree_string': tree_string,
+        'items': items
     }
 
 
