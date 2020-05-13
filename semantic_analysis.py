@@ -4,7 +4,7 @@ from lib.analysis.imports import resolveImports
 from lib.analysis.error_handler import ERROR_HANDLER
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
-from AST_prettyprinter import print_node
+from AST_prettyprinter import print_node, subprint_type
 from util import Token
 import os
 from enum import IntEnum
@@ -54,7 +54,7 @@ class SymbolTable():
 
     def repr_func_uniq(func):
         deflist = "\n".join(list(map(lambda x:
-                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], print_node(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
+                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], subprint_type(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
             func[1])))
         return "\n"+deflist
 
@@ -176,8 +176,10 @@ def normalizeAllTypes(symbol_table):
         found_typesigs = []
         #print(len(func_list))
         for func in func_list:
-            func['type'] = normalizeType(func['type'], symbol_table)
-            found_typesigs.append((func['type'], func))
+            if func['type'] is not None: # TODO if it is none it is kind of a weird edge case. Doing type checking instead of type derivation prevents this from becoming a problem
+                # If you would choose to do both type derivation and name overloading you need to really watch out here
+                func['type'] = normalizeType(func['type'], symbol_table)
+                found_typesigs.append((func['type'], func))
 
         # Test if multiple functions have the same (normalized) type
         
@@ -655,7 +657,7 @@ f (x) :: Int -> Int {
     Int x = 2;
     return x;
 }
-/*
+///*
 g (x) {
     return 2;
 }//*/
