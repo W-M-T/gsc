@@ -79,6 +79,9 @@ def syntaxnode(typename, *field_names, module=None):
         indented = "\n".join(list(map(lambda x: "\n".join(map(lambda y: "    " + y, x.rstrip().split("\n"))), substrings)))
         return "{}:\n{}".format(self.__class__.__name__, indented)
 
+    def items(self):
+        key_values = list(map(lambda x: (x, getattr(self, x)), field_names))
+        return iter(key_values)
 
     # Modify function metadata to help with introspection and debugging
 
