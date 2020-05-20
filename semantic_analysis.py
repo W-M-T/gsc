@@ -392,48 +392,37 @@ def buildOperatorTable(symbol_table):
 
     return op_table
 
-# This is really ugly, need to fix this somehow...
-exp_index = 0
-
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
-def parseAtom(ops, exp):
-    global exp_index
+def parseAtom(ops, exp, exp_index):
 
     def recurse(ops, exp):
-        global exp_index
-        saved_index = exp_index
-        exp_index = 0
-        recurse_res = parseExpression(ops, exp)
-        exp_index = saved_index + 1
+        recurse_res, _ = parseExpression(ops, exp)
         return recurse_res
 
     if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token: # Literal / identifier
         res = exp[exp_index]
-        exp_index += 1
-        return res
+        return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        return recurse(ops, exp[exp_index].contents)
+        return recurse(ops, exp[exp_index].contents), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Function call
         prefix = exp[exp_index]
         sub_expr = recurse(ops, prefix.args)
-        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr) # Prefix
+        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1 # Prefix
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1:
         func_args = []
         funcall = exp[exp_index]
         for arg in funcall.args:
             sub_exp = recurse(ops, arg.contents)
             func_args.append(sub_exp)
-        exp_index += 1
 
-        return AST.FUNCALL(id=funcall.id, kind=1, args=func_args)
+        return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
         # This should never happen
         print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(ops, exp, min_precedence = 1):
-    global exp_index
-    result = parseAtom(ops, exp)
+def parseExpression(ops, exp, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(ops, exp, exp_index)
 
     while True:
         if exp_index < len(exp) and exp[exp_index].val not in ops:
@@ -448,17 +437,17 @@ def parseExpression(ops, exp, min_precedence = 1):
             next_min_prec = ops[exp[exp_index].val][1]
         op = exp[exp_index]
         exp_index += 1
-        rh_expr = parseExpression(ops, exp, next_min_prec)
+        rh_expr, exp_index = parseExpression(ops, exp, next_min_prec, exp_index)
         result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
 
-    return result
+    return result, exp_index
 
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(exp, ops):
-    global exp_index
-    exp_index = 0
 
-    return parseExpression(ops, exp.contents)
+    parsed_expr, _ = parseExpression(ops, exp.contents)
+
+    return parsed_expr
 
 def typecheck(return_stmt):
     pass
