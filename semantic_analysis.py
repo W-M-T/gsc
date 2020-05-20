@@ -4,13 +4,14 @@ from lib.analysis.imports import resolveImports
 from lib.analysis.error_handler import ERROR_HANDLER
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
-from AST_prettyprinter import print_node
+from AST_prettyprinter import print_node, subprint_type
 from util import Token
 import os
 from enum import IntEnum
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
+# TODO Just realised that most of this assumes that fundecl types are not None. How to handle this?
 
 class FunUniq(IntEnum):
     FUNC   = 1
@@ -34,6 +35,8 @@ class SymbolTable():
         # (FunUniq, id) as identifier key
         # maps to list of dicts
         # dict has keys "type", "def", "arg_vars", "local_vars"
+        # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
+        # local_vars is dict of identifiers to vardecl def nodes
         self.functions = functions
         self.type_syns = type_syns
 
@@ -51,7 +54,7 @@ class SymbolTable():
 
     def repr_func_uniq(func):
         deflist = "\n".join(list(map(lambda x:
-                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], print_node(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
+                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], subprint_type(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
             func[1])))
         return "\n"+deflist
 
@@ -155,8 +158,8 @@ def normalizeType(inputtype, symbol_table):
         return inputtype
     elif type(inputtype) is Token: # TODO If we decide to implement polymorphism, if it is not found here it, is a forall type
         if inputtype.val in symbol_table.type_syns:
-            normalised_type = symbol_table.type_syns[inputtype.val]
-            return normalised_type
+            normalized_type = symbol_table.type_syns[inputtype.val]
+            return normalized_type
         elif inputtype.val in VOID_TYPE:
             return inputtype
         else:
@@ -168,11 +171,49 @@ def normalizeType(inputtype, symbol_table):
 
 def normalizeAllTypes(symbol_table):
     # Normalize function types and find duplicates
-    for key, func in symbol_table.functions.items():
-        print(key)
-        print(func.tree_string())
+    flag = False # Handle this in the error handler
+    for key, func_list in symbol_table.functions.items():
+        found_typesigs = []
+        #print(len(func_list))
+        for func in func_list:
+            if func['type'] is not None: # TODO if it is none it is kind of a weird edge case. Doing type checking instead of type derivation prevents this from becoming a problem
+                # If you would choose to do both type derivation and name overloading you need to really watch out here
+                func['type'] = normalizeType(func['type'], symbol_table)
+                found_typesigs.append((func['type'], func))
 
+        # Test if multiple functions have the same (normalized) type
+        
+        while len(found_typesigs) > 0:
+            cur = found_typesigs.pop()
 
+            find_match = [x for x in found_typesigs if AST.equalVals(x[0],cur[0])]
+            if find_match: # TODO error handler collect + have it show it in order
+                flag = True
+                print('[ERROR] Overloaded function "{}" has multiple definitions with the same type:'.format(key[1]))
+                print(cur[1]["def"].id)
+                for el in find_match:
+                    print(el[1]["def"].id)
+                    found_typesigs.remove(el)
+
+    if flag:
+        exit()
+
+    # Normalize global var types
+    for glob_var in symbol_table.global_vars.items():
+        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
+        print(glob_var)
+
+    # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
+    for func_key, func_list in symbol_table.functions.items():
+        #print(len(func_list))
+        for func in func_list:
+            print("FUNCTION LOCAL VARS OF", func['def'].id.val)
+            for local_var_key, local_var in func['local_vars'].items():
+                local_var.type = normalizeType(local_var.type, symbol_table)
+            print(func['local_vars'])
+            print("FUNCTION ARG VARS OF", func['def'].id.val)
+            # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
+            print(func['arg_vars'])
 
 
 
@@ -239,9 +280,10 @@ def buildSymbolTable(ast):
 
                     funarg_vars = {}
                     local_vars = {}
-                    for arg in val.params:
+                    for ix, arg in enumerate(val.params):
                         if not arg.val in funarg_vars:
-                            funarg_vars[arg.val] = arg
+                            found_type = val.type.from_types[ix] if val.type is not None else None
+                            funarg_vars[arg.val] = {"id":arg, "type":found_type}
                         else:
                             print("[ERROR] Duplicate argument name",arg.val)
                             exit() # TODO actually include position and information
@@ -249,24 +291,31 @@ def buildSymbolTable(ast):
                         if vardecl.id.val in funarg_vars:
                             print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
                         if not vardecl.id.val in local_vars:
-                            local_vars[vardecl.id.val] = vardecl.id
+                            local_vars[vardecl.id.val] = vardecl
                         else:
                             print("[ERROR] Duplicate variable definition",vardecl.id.val)
                             exit()
 
                     temp_entry["arg_vars"] = funarg_vars
                     temp_entry["local_vars"]  = local_vars
+
+                    #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+                    #exit()
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
             else: # Already defined in the table, check for overloading
                 # TODO Dedupe code
+                #print("Rewrite this stuff to a single function and call that instead of duplicating code")
+                #exit()
+                #symbol_table.functions[(uniq_kind,fun_id)] = []
                 temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
 
                 funarg_vars = {}
                 local_vars = {}
-                for arg in val.params:
+                for ix, arg in enumerate(val.params):
                     if not arg.val in funarg_vars:
-                        funarg_vars[arg.val] = arg
+                        found_type = val.type.from_types[ix] if val.type is not None else None
+                        funarg_vars[arg.val] = {"id":arg, "type":found_type}
                     else:
                         print("[ERROR] Duplicate argument name",arg.val)
                         exit() # TODO actually include position and information
@@ -274,13 +323,16 @@ def buildSymbolTable(ast):
                     if vardecl.id.val in funarg_vars:
                         print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
                     if not vardecl.id.val in local_vars:
-                        local_vars[vardecl.id.val] = vardecl.id
+                        local_vars[vardecl.id.val] = vardecl
                     else:
                         print("[ERROR] Duplicate variable definition",vardecl.id.val)
                         exit()
 
                 temp_entry["arg_vars"] = funarg_vars
                 temp_entry["local_vars"]  = local_vars
+
+                #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+                #exit()
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
         elif type(val) is AST.TYPESYN:
@@ -569,13 +621,23 @@ if __name__ == "__main__":
         from io import StringIO
         testprog = StringIO('''
 Int pi = 3;
+String aaa = 2;
 type Chara = Int
 //type Void = Int
 type String = [Char]
 type OtherInt = Int
+type TotallyNotChar = Char
 type OtherListInt = [OtherInt]
 type StringList = [(([String], Int), Chara)]
 infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
+    OtherInt result = a;
+    Int a = 2;
+    while(result > b) {
+        result = result - b;
+    }
+    return result;
+}
+infixl 7 % (a, b) :: Char Void -> OtherListInt {
     OtherInt result = a;
     Int a = 2;
     while(result > b) {
@@ -588,11 +650,20 @@ f (x) :: Char -> Int {
     Int x = 2;
     return x;
 }
+f (x) :: Void -> Int {
+    Int x2 = x;
+    Int x = 2;
+    return x;
+}
 f (x) :: Int -> Int {
     Int x2 = x;
     Int x = 2;
     return x;
 }
+///*
+g (x) {
+    return 2;
+}//*/
 ''')
         tokenstream = tokenize(testprog)
         #tokenstream = tokenize(infile)
@@ -605,7 +676,7 @@ f (x) :: Int -> Int {
         file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
-        exit()
+        #exit()
         print("NORMALIZING TYPES ==================")
         symbol_table = normalizeAllTypes(symbol_table)
         exit()

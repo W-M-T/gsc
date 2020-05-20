@@ -38,6 +38,8 @@ def subprint_expr(el):
 def subprint_type(el):
     if type(el) == Token:
         return el.val
+    elif el == None:
+        return ""
     else:
         return print_node(el)
 
@@ -47,10 +49,10 @@ INFIX_LOOKUP = (lambda x:
 
 FUN_LOOKUP = {
     FunKind.FUNC : (lambda x:
-            "{} ({}) {}{{".format(x.id.val, ", ".join(map(lambda y: y.val, x.params)), ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+            "{} ({}) {}{{".format(x.id.val, ", ".join(map(lambda y: y.val, x.params)), ":: {} ".format(subprint_type(x.type)))
         ),
     FunKind.PREFIX : (lambda x:
-            "prefix {} ({}) {}{{".format(x.id.val, x.params[0].val, ":: {} ".format(print_node(x.type)) if x.type is not None else "")
+            "prefix {} ({}) {}{{".format(x.id.val, x.params[0].val, ":: {} ".format(subprint_type(x.type)))
         ),
     FunKind.INFIXL : INFIX_LOOKUP,
     FunKind.INFIXR : INFIX_LOOKUP,
@@ -175,6 +177,7 @@ LOOKUP = {
     AST.VARREF : (lambda x:
             "{}{}".format(x.id.val, "".join(map(lambda y: ACC_STR[y], x.fields)))
         ),
+    #type(None) : ""
 }
 
 def printAST(root):
@@ -280,6 +283,18 @@ if __name__ == "__main__":
                         )
                     )
                 ),
+                vardecls=[],
+                stmts=[]
+            ),
+            AST.FUNDECL(
+                kind=FunKind.INFIXL,
+                fixity=Token(None,TOKEN.INT, 4),
+                id=Token(None,TOKEN.OP_IDENTIFIER, "%%"),
+                params=[
+                    Token(None,TOKEN.IDENTIFIER, "x"),
+                    Token(None,TOKEN.IDENTIFIER, "y")
+                ],
+                type=None,
                 vardecls=[],
                 stmts=[]
             ),
