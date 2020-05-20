@@ -404,11 +404,11 @@ def parseAtom(ops, exp, exp_index):
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         return recurse(ops, exp[exp_index].contents), exp_index + 1
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Function call
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
         prefix = exp[exp_index]
         sub_expr = recurse(ops, prefix.args)
-        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1 # Prefix
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1:
+        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
         func_args = []
         funcall = exp[exp_index]
         for arg in funcall.args:
@@ -444,7 +444,6 @@ def parseExpression(ops, exp, min_precedence = 1, exp_index = 0):
 
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(exp, ops):
-
     parsed_expr, _ = parseExpression(ops, exp.contents)
 
     return parsed_expr
