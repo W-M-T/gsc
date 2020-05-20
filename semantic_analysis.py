@@ -380,6 +380,18 @@ def resolveTypeName(typ, symbol_table, counter=-1):
 def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
     pass
 
+def buildOperatorTable(symbol_table):
+    op_table = BUILTIN_INFIX_OPS
+
+    for x in symbol_table.functions:
+        f = symbol_table.functions[x]
+        if x[0] is FunUniq.INFIX:
+            precedence = 'L' if f[0]['def'].kind == FunKind.INFIXL else 'R'
+            # TODO: Do something about this T T -> T thingie
+            op_table[x[1]] = ("T T -> T", f[0]['def'].fixity.val, precedence)
+
+    return op_table
+
 # This is really ugly, need to fix this somehow...
 exp_index = 0
 

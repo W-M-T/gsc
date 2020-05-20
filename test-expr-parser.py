@@ -8,7 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Bool a = 3 * -((2 + 3) * 5);
+        Bool a = 3 + 4;
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
@@ -16,13 +16,7 @@ def main():
     parse_res = SPL.parse_strict(tokenlist, testprog)
 
     symbol_table = buildSymbolTable(parse_res)
-    op_table = BUILTIN_INFIX_OPS
-
-    for x in symbol_table.functions:
-        f = symbol_table.functions[x]
-        if x[0] is FunUniq.INFIX:
-            precedence = 'L' if f[0]['def'].kind == FunKind.INFIXL else 'R'
-            op_table[x[1]] = ("T T -> T", f[0]['def'].fixity.val, precedence)
+    op_table = buildOperatorTable(symbol_table)
 
     print("Initial")
     print(parse_res)
