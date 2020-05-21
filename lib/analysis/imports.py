@@ -4,7 +4,6 @@ from lib.analysis.error_handler import ERROR_HANDLER
 import os
 
 def resolveImports(ast, filename, file_mapping_arg, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
-    ERROR_HANDLER["TEST"] = "THIS WORKS?"
     local_dir = os.path.dirname(os.path.realpath(filename))
 
     filename_asimport = os.path.basename(filename).rstrip(".spl")

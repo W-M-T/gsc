@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.analysis.imports import resolveImports
-from lib.analysis.error_handler import ERROR_HANDLER
+from lib.analysis.error_handler import *
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
 from AST_prettyprinter import print_node, subprint_type
@@ -239,13 +239,12 @@ def buildSymbolTable(ast):
             if not var_id in symbol_table.global_vars:
                 if False: # TODO test if it exists in other module
                     # TODO give warning (doesn't need to be instant, can be collected)
-                    print("[ERROR] This variable was already defined in another module, which is now shadowed")
+                    # print("[ERROR] This variable was already defined in another module, which is now shadowed")
+                    ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
                 else:
                     symbol_table.global_vars[var_id] = val
             else:
-                print("[ERROR] Global variable identifier already used.")
-                # TODO point to both definitions
-                exit()
+                ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
             #print_node(val)
 
         elif type(val) is AST.FUNDECL:
@@ -265,9 +264,8 @@ def buildSymbolTable(ast):
             if val.type is not None:
                 from_types = val.type.from_types
                 if len(from_types) != len(val.params):
-                    print("[ERROR] Argument count doesn't match type")
-                    exit()
-            
+                    ERROR_HANDLER.addError(ERR.ArgCountDoesNotMatchSign, [from_types[0].val.type_id])
+
             # Test if this function is already defined
             fun_id = val.id.val
             print(fun_id)
@@ -285,16 +283,14 @@ def buildSymbolTable(ast):
                             found_type = val.type.from_types[ix] if val.type is not None else None
                             funarg_vars[arg.val] = {"id":arg, "type":found_type}
                         else:
-                            print("[ERROR] Duplicate argument name",arg.val)
-                            exit() # TODO actually include position and information
+                            ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
                     for vardecl in val.vardecls:
                         if vardecl.id.val in funarg_vars:
-                            print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
+                            ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
                         if not vardecl.id.val in local_vars:
                             local_vars[vardecl.id.val] = vardecl
                         else:
-                            print("[ERROR] Duplicate variable definition",vardecl.id.val)
-                            exit()
+                            ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
                     temp_entry["arg_vars"] = funarg_vars
                     temp_entry["local_vars"]  = local_vars
@@ -317,16 +313,14 @@ def buildSymbolTable(ast):
                         found_type = val.type.from_types[ix] if val.type is not None else None
                         funarg_vars[arg.val] = {"id":arg, "type":found_type}
                     else:
-                        print("[ERROR] Duplicate argument name",arg.val)
-                        exit() # TODO actually include position and information
+                        ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
                 for vardecl in val.vardecls:
                     if vardecl.id.val in funarg_vars:
-                        print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
+                        ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
                     if not vardecl.id.val in local_vars:
                         local_vars[vardecl.id.val] = vardecl
                     else:
-                        print("[ERROR] Duplicate variable definition",vardecl.id.val)
-                        exit()
+                        ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
                 temp_entry["arg_vars"] = funarg_vars
                 temp_entry["local_vars"]  = local_vars
@@ -341,8 +335,7 @@ def buildSymbolTable(ast):
             def_type = val.def_type
 
             if type_id in BUILTIN_TYPES:
-                print("[ERROR] Reserved type identifier: {}".format(type_id))
-                exit()
+                ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
 
             if not type_id in symbol_table.type_syns:
                 if False: # TODO Test if it exists in another module
@@ -352,10 +345,8 @@ def buildSymbolTable(ast):
                     normalized_type = normalizeType(def_type, symbol_table)
                     symbol_table.type_syns[type_id] = normalized_type
             else:
-                # TODO Give collectable error
-                print("[ERROR] Type identifier already defined")
-                # TODO point to both definitions
-                exit()
+                ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id])
+
     print("--------------------------")
     print(symbol_table.repr_short())
     return symbol_table
@@ -478,7 +469,8 @@ def parseExpression(ops, exp, min_precedence = 1, exp_index = 0):
 
     while True:
         if exp_index < len(exp) and exp[exp_index].val not in ops:
-            print("[ERROR] Operator " + exp[exp_index].val + " is not defined.")
+            # TODO: Check that this works
+            ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
         elif exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence:
             break
