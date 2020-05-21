@@ -1,0 +1,5 @@
+need 1 main function, of typesig :: -> Void.
+may be imported main, as long as there is exactly 1.
+
+throw error with int literals that don't fit in the memory representation
+throw error with char / string literals that don't fit in the memory representation. (Will probably end up at ascii)
