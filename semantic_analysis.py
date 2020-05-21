@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.analysis.imports import resolveImports
-from lib.analysis.error_handler import ERROR_HANDLER
+from lib.analysis.error_handler import *
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
 from AST_prettyprinter import print_node, subprint_type
@@ -318,15 +318,14 @@ def buildSymbolTable(ast):
             if not var_id in symbol_table.global_vars:
                 if False: # TODO test if it exists in other module
                     # TODO give warning (doesn't need to be instant, can be collected)
-                    print("[ERROR] This variable was already defined in another module, which is now shadowed")
+                    # print("[ERROR] This variable was already defined in another module, which is now shadowed")
+                    ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
                 else:
                     symbol_table.global_vars[var_id] = val
                     symbol_table.order_mapping["global_vars"][var_id] = index_global_var
                     index_global_var += 1
             else:
-                print("[ERROR] Global variable identifier already used.")
-                # TODO point to both definitions
-                exit()
+                ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
             #print_node(val)
 
         elif type(val) is AST.FUNDECL:
@@ -346,9 +345,8 @@ def buildSymbolTable(ast):
             if val.type is not None:
                 from_types = val.type.from_types
                 if len(from_types) != len(val.params):
-                    print("[ERROR] Argument count doesn't match type")
-                    exit()
-            
+                    ERROR_HANDLER.addError(ERR.ArgCountDoesNotMatchSign, [from_types[0].val.type_id])
+
             # Test if this function is already defined
             fun_id = val.id.val
             print(fun_id)
@@ -366,16 +364,14 @@ def buildSymbolTable(ast):
                             found_type = val.type.from_types[ix] if val.type is not None else None
                             funarg_vars[arg.val] = {"id":arg, "type":found_type}
                         else:
-                            print("[ERROR] Duplicate argument name",arg.val)
-                            exit() # TODO actually include position and information
+                            ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
                     for vardecl in val.vardecls:
                         if vardecl.id.val in funarg_vars:
-                            print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
+                            ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
                         if not vardecl.id.val in local_vars:
                             local_vars[vardecl.id.val] = vardecl
                         else:
-                            print("[ERROR] Duplicate variable definition",vardecl.id.val)
-                            exit()
+                            ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
                     temp_entry["arg_vars"] = funarg_vars
                     temp_entry["local_vars"]  = local_vars
@@ -398,16 +394,14 @@ def buildSymbolTable(ast):
                         found_type = val.type.from_types[ix] if val.type is not None else None
                         funarg_vars[arg.val] = {"id":arg, "type":found_type}
                     else:
-                        print("[ERROR] Duplicate argument name",arg.val)
-                        exit() # TODO actually include position and information
+                        ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
                 for vardecl in val.vardecls:
                     if vardecl.id.val in funarg_vars:
-                        print("[WARNING] Shadowing function argument",vardecl.id.val) # TODO add information
+                        ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
                     if not vardecl.id.val in local_vars:
                         local_vars[vardecl.id.val] = vardecl
                     else:
-                        print("[ERROR] Duplicate variable definition",vardecl.id.val)
-                        exit()
+                        ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
                 temp_entry["arg_vars"] = funarg_vars
                 temp_entry["local_vars"]  = local_vars
@@ -422,8 +416,7 @@ def buildSymbolTable(ast):
             def_type = val.def_type
 
             if type_id in BUILTIN_TYPES:
-                print("[ERROR] Reserved type identifier: {}".format(type_id))
-                exit()
+                ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
 
             if not type_id in symbol_table.type_syns:
                 if False: # TODO Test if it exists in another module
@@ -435,10 +428,8 @@ def buildSymbolTable(ast):
                     symbol_table.order_mapping["type_syns"][type_id] = index_typesyn
                     index_typesyn += 1
             else:
-                # TODO Give collectable error
-                print("[ERROR] Type identifier already defined")
-                # TODO point to both definitions
-                exit()
+                ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id])
+
     print("--------------------------")
     print(symbol_table.repr_short())
     return symbol_table
@@ -545,51 +536,56 @@ Functions are always in scope
 def resolveExprNames(expr, symbol_table, in_scope_globals=[], in_scope_locals=[]):
     pass
 
-# This is really ugly, need to fix this somehow...
-exp_index = 0
+def buildOperatorTable(symbol_table):
+    op_table = BUILTIN_INFIX_OPS
 
-''' Parse atoms (literals, identifiers or sub expressions) '''
-def parseAtom(ops, exp):
-    global exp_index
-    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token:     # Literal / identifier
+    for x in symbol_table.functions:
+        f = symbol_table.functions[x]
+        if x[0] is FunUniq.INFIX:
+            precedence = 'L' if f[0]['def'].kind == FunKind.INFIXL else 'R'
+            # TODO: Do something about this T T -> T thingie
+            op_table[x[1]] = ("T T -> T", f[0]['def'].fixity.val, precedence)
+
+    return op_table
+
+''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
+def parseAtom(ops, exp, exp_index):
+
+    def recurse(ops, exp):
+        recurse_res, _ = parseExpression(ops, exp)
+        return recurse_res
+
+    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token: # Literal / identifier
         res = exp[exp_index]
-        exp_index += 1
-        return res
-    elif type(exp[exp_index]) is AST.DEFERREDEXPR:     # Sub expression
-        saved_index = exp_index
-        exp_index = 0
-        res = parseExpression(ops, exp[saved_index].contents)
-        exp_index = saved_index + 1
-        return res
+        return res, exp_index + 1
+    elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
+        return recurse(ops, exp[exp_index].contents), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
         prefix = exp[exp_index]
-        saved_index = exp_index
-        exp_index = 0
-        sub_expr = parseExpression(ops, prefix.args)
-        exp_index = saved_index + 1
-        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr)
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1:
+        sub_expr = recurse(ops, prefix.args)
+        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
         func_args = []
         funcall = exp[exp_index]
         for arg in funcall.args:
-            saved_index = exp_index
-            exp_index = 0
-            sub_exp = parseExpression(ops, arg.contents)
-            exp_index = saved_index + 1
+            sub_exp = recurse(ops, arg.contents)
             func_args.append(sub_exp)
-        exp_index += 1
 
-        return AST.FUNCALL(id=funcall.id, kind=1, args=func_args)
+        return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
-        print("Error: unexpected token encountered while parsing expression.")
+        # This should never happen
+        print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(ops, exp, min_precedence = 1):
-    global exp_index
-    result = parseAtom(ops, exp)
+def parseExpression(ops, exp, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(ops, exp, exp_index)
 
     while True:
-        if (exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence):
+        if exp_index < len(exp) and exp[exp_index].val not in ops:
+            # TODO: Check that this works
+            ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
+            break
+        elif exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence:
             break
 
         if ops[exp[exp_index].val][2] == 'L':
@@ -598,22 +594,29 @@ def parseExpression(ops, exp, min_precedence = 1):
             next_min_prec = ops[exp[exp_index].val][1]
         op = exp[exp_index]
         exp_index += 1
-        rh_expr = parseExpression(ops, exp, next_min_prec)
+        rh_expr, exp_index = parseExpression(ops, exp, next_min_prec, exp_index)
         result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
 
-    return result
+    return result, exp_index
 
 ''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(exp, ops):
-    global exp_index
-    exp_index = 0
+    parsed_expr, _ = parseExpression(ops, exp.contents)
 
-    return parseExpression(ops, exp.contents)
+    return parsed_expr
 
 def typecheck(return_stmt):
     pass
 
-def analyseFuncStmts(statements, loop_depth, cond_depth):
+'''
+Goal of this function is:
+- To check for dead code after break/continue statements;
+- To check for dead code after return statements;
+- To check for break/continue statements outside of loops;
+- To check that all paths return if the function should return something
+'''
+
+def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
     returns = False
     return_exp = False
     for k in range(0, len(statements)):
@@ -627,7 +630,7 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    print("Warning: The statements after line %d can never be reached because all conditional branches yield a return value.")
+                    print("[WARNING] The statements after line %d can never be reached because all conditional branches yield a return value.")
                 return True, return_exp
             elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
                 return_exp = True
@@ -638,19 +641,19 @@ def analyseFuncStmts(statements, loop_depth, cond_depth):
                 returns = False
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
-                print("Error: Using a break or continue statement out of a loop at line %d.")
+                print("[ERROR] Using a break or continue statement out of a loop at line %d.")
             else:
                 if k is not len(statements) - 1:
-                    print("Warning: The statements after line %d can never be reached because they are preceded by a break or continue.")
+                    print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
                     return False, return_exp
         elif type(stmt) is AST.RETURN:
             typecheck(stmt)
             if k is not len(statements) - 1:
-                print("Warning: the statements after line %d can never be reached because of a return statement.")
+                print("[WARNING] the statements after line %d can never be reached because of a return statement.")
             return True, True
 
     if return_exp and cond_depth == 0:
-        print("Error: Not all paths lead to a (certain) return.")
+        print("[ERROR] Not all paths lead to a (certain) return.")
 
     return returns, return_exp
 
@@ -659,7 +662,7 @@ def analyseFunc(func_node):
     statements = func_node.stmts
 
     print("Analysing function %s\n" % func_node.id.val)
-    analyseFuncStmts(statements, 0, 0)
+    analyseFuncStmts(statements)
 
 def selectiveApply(typ, node, f):
     if type(node) is typ:

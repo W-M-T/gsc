@@ -8,21 +8,30 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Bool a = ~(f(a * 2, 5 * 8) && true);
+        
+        sum(a, b) :: Int Int -> Int {
+            Int a = 5;
+            
+            return a + b;
+        }
+        
+         sum(a, b) :: Bool Bool -> Bool {
+            Int a = 5;
+            
+            return a + b;
+        }
+        
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
 
     parse_res = SPL.parse_strict(tokenlist, testprog)
 
+    ERROR_HANDLER.setSourceMapping(testprog, [])
     symbol_table = buildSymbolTable(parse_res)
-    op_table = buildOperatorTable(symbol_table)
+    print("Calling checkpoint")
+    ERROR_HANDLER.checkpoint()
 
-    print("Initial")
-    print(parse_res)
-    result = treemap(parse_res, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: fixExpression(y, op_table)))
-    print("After")
-    print(result)
 
 if __name__ == "__main__":
     main()
