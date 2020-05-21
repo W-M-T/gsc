@@ -11,7 +11,7 @@ from enum import IntEnum
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
-# TODO Just realised that most of this assumes that fundecl types are not None. How to handle this?
+# TODO python dict iteration is not deterministically the same: leads to different errros being first every time
 
 class FunUniq(IntEnum):
     FUNC   = 1
@@ -30,6 +30,7 @@ def FunKindToUniq(kind):
 # Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
 class SymbolTable():
     def __init__(self, global_vars = {}, functions = {}, type_syns = {}):
+        # mapping of identifier to definition node
         self.global_vars = global_vars
 
         # (FunUniq, id) as identifier key
@@ -40,10 +41,12 @@ class SymbolTable():
         self.functions = functions
         self.type_syns = type_syns
 
+    '''
     def getFunc(self, uniq, fid, normaltype):
         flist = self.functions[(uniq, fid)]
         #x for x in flist if 
-        return 
+        return
+    '''
 
 
     def repr_funcs(self):
@@ -170,16 +173,21 @@ def normalizeType(inputtype, symbol_table):
         exit()
 
 def normalizeAllTypes(symbol_table):
+    # Normalize type syn definitions:
+    # Not necessary because this is done during the creation of the symbol table, in order to require sequentiality
+
+    # Normalize global var types
+    for glob_var in symbol_table.global_vars.items():
+        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
+
     # Normalize function types and find duplicates
     flag = False # Handle this in the error handler
     for key, func_list in symbol_table.functions.items():
         found_typesigs = []
         #print(len(func_list))
         for func in func_list:
-            if func['type'] is not None: # TODO if it is none it is kind of a weird edge case. Doing type checking instead of type derivation prevents this from becoming a problem
-                # If you would choose to do both type derivation and name overloading you need to really watch out here
-                func['type'] = normalizeType(func['type'], symbol_table)
-                found_typesigs.append((func['type'], func))
+            func['type'] = normalizeType(func['type'], symbol_table)
+            found_typesigs.append((func['type'], func))
 
         # Test if multiple functions have the same (normalized) type
         
@@ -198,29 +206,97 @@ def normalizeAllTypes(symbol_table):
     if flag:
         exit()
 
-    # Normalize global var types
-    for glob_var in symbol_table.global_vars.items():
-        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
-        print(glob_var)
+
 
     # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
-    for func_key, func_list in symbol_table.functions.items():
+    for key, func_list in symbol_table.functions.items():
         #print(len(func_list))
         for func in func_list:
-            print("FUNCTION LOCAL VARS OF", func['def'].id.val)
+            #print("FUNCTION LOCAL VARS OF", func['def'].id.val)
             for local_var_key, local_var in func['local_vars'].items():
                 local_var.type = normalizeType(local_var.type, symbol_table)
-            print(func['local_vars'])
-            print("FUNCTION ARG VARS OF", func['def'].id.val)
+            #print("FUNCTION ARG VARS OF", func['def'].id.val)
             # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
-            print(func['arg_vars'])
+            #print(func['arg_vars'])
 
+'''
+Give an error for types containing Void in their input, or Void as a non-base type in the output
+Also produce an error for undefined types (should probably be a separate function)
+Not necessary for types to have been normalised yet, since type syns are checked for void before anything else
+'''
+def forbid_illegal_types(symbol_table):
+    # Require type syns to not contain Void
+    for type_id, type_syn in symbol_table.type_syns.items():
+        #print(type_syn)
+        #print("  a  ")
+        def killVoidType(node):
+            if type(node.val) is Token and node.val.val == "Void":
+                print("[ERROR] Type synonym {} cannot have Void in its type".format(type_id))
+                exit()
+            return node
+
+        treemap(type_syn, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
+
+    # Require global vars to have a type and not contain Void
+    for glob_var_id, glob_var in symbol_table.global_vars.items():
+
+        if glob_var.type is None:
+            print('[ERROR] Global var {} needs a type'.format(glob_var.id.val))
+            # todo point to line
+            exit()
+        else:
+            def killVoidType(node):
+                if type(node.val) is Token and node.val.val == "Void":
+                    print("[ERROR] Global variable {} cannot have Void in its type".format(glob_var_id))
+                    exit()
+                return node
+            treemap(glob_var.type, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
+
+    # Require function types to not be none, and to not have Void as an input type and no direct Void return Type
+    for fun_list in symbol_table.functions.values():
+        for fun in fun_list:
+            if fun['type'] is None:
+                print('[ERROR] Function {} needs a type'.format(fun['def'].id.val))
+                exit()
+            else:
+                def killVoidType(node):
+                    if type(node.val) is Token and node.val.val == "Void":
+                        print("[ERROR] Input type of {} cannot contain Void".format(fun['def'].id.val))
+                        exit()
+                    return node
+                for from_type in fun['type'].from_types:
+                    treemap(from_type, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
+
+                # Forbid non-direct Void return type
+                returntype = fun['type'].to_type
+                if not (type(returntype) is AST.TYPE and type(returntype.val) is Token and returntype.val.val == "Void"): # Not direct Void type
+                    def killVoidType(node):
+                        if type(node.val) is Token and node.val.val == "Void":
+                            print("[ERROR] Return type of {} contains nested Void".format(fun['def'].id.val))
+                            exit()
+                        return node
+                    treemap(returntype, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
+
+            # Go over local variable types
+            for local_var in fun['local_vars'].values():
+                if local_var.type is None:
+                    print('[ERROR] Local variable {} of function {} needs a type'.format(local_var.id.val, fun['def'].id.val))
+                    exit()
+                else:
+                    def killVoidType(node):
+                        if type(node.val) is Token and node.val.val == "Void":
+                            print("[ERROR] Variable {} of function {} has type containing Void".format(local_var.id.val, fun['def'].id.val))
+                            exit()
+                        return node
+                    treemap(local_var, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
 
 
 ''' TODO how should we handle errors / warnings?
 E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
 Or should we show the error that is "first" in the file?
 How would that work given that some errors in early parts of the program are the result of an analysis result in a later part of the program?
+
+TODO We don't check for redefinition attempts of builtin functions or ops
 '''
 def buildSymbolTable(ast):
     symbol_table = SymbolTable()
@@ -584,6 +660,9 @@ def analyse(ast, filename):
     #file_mappings = resolveImports(ast, filename)
     #exit()
     symbol_table = buildSymbolTable(ast)
+    forbid_illegal_types(symbol_table)
+    symbol_table = normalizeAllTypes(symbol_table)
+
     #ast = resolveNames(ast, symbol_table)
     ast = fixExpression(ast, symbol_table)
 
@@ -620,6 +699,7 @@ if __name__ == "__main__":
 
         from io import StringIO
         testprog = StringIO('''
+//var illegal = 2;
 Int pi = 3;
 String aaa = 2;
 type Chara = Int
@@ -629,7 +709,7 @@ type OtherInt = Int
 type TotallyNotChar = Char
 type OtherListInt = [OtherInt]
 type StringList = [(([String], Int), Chara)]
-infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
+infixl 7 % (a, b) :: OtherInt [Bool] -> OtherListInt {
     OtherInt result = a;
     Int a = 2;
     while(result > b) {
@@ -637,7 +717,7 @@ infixl 7 % (a, b) :: OtherInt Void -> OtherListInt {
     }
     return result;
 }
-infixl 7 % (a, b) :: Char Void -> OtherListInt {
+infixl 7 % (a, b) :: Char Bool -> OtherListInt {
     OtherInt result = a;
     Int a = 2;
     while(result > b) {
@@ -645,12 +725,12 @@ infixl 7 % (a, b) :: Char Void -> OtherListInt {
     }
     return result;
 }
-f (x) :: Char -> Int {
+f (x) :: Char -> Void {
     Int x2 = x;
     Int x = 2;
     return x;
 }
-f (x) :: Void -> Int {
+f (x) :: Bool -> Int {
     Int x2 = x;
     Int x = 2;
     return x;
@@ -660,7 +740,7 @@ f (x) :: Int -> Int {
     Int x = 2;
     return x;
 }
-///*
+/*
 g (x) {
     return 2;
 }//*/
@@ -669,17 +749,16 @@ g (x) {
         #tokenstream = tokenize(infile)
 
         x = parseTokenStream(tokenstream, infile)
-        print(x.tree_string())
+        #print(x.tree_string())
         #treemap(x, lambda x: x)
         #exit()
 
-        file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
-        #exit()
+        forbid_illegal_types(symbol_table)
         print("NORMALIZING TYPES ==================")
         symbol_table = normalizeAllTypes(symbol_table)
-        exit()
         print("RESOLVING NAMES ====================")
         resolveNames(x, symbol_table)
         exit()

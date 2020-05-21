@@ -12,7 +12,7 @@ facR ( n ) :: Int -> Int {
 
 // The iterative version of the factorial function
 facI ( n ) :: Int -> Int {
-    Int r = 1;
+    var r = 1;
     while ( n > 1 ) {
         r = r * n;
         n = n - 1;
@@ -23,9 +23,9 @@ facI ( n ) :: Int -> Int {
 // A main function to check the results
 // It takes no arguments, so the type looks like this:
 main ( ) :: -> Void {
-    Int n = 0;
-    Int facN = 1;
-    Bool ok = True;
+    var n = 0;
+    var facN = 1;
+    var ok = True;
     while ( n < 20 ) {
         facN = facR ( n ) ;
         if ( facN != facI ( n ) || facN != facL ( n )) {
@@ -63,7 +63,7 @@ fromTo ( x, to ) :: Int Int -> [Int] {
 
 // Make a reversed copy of any list
 reverse ( list ) :: [T] -> [T] {
-    [T] accu = [] ;
+    var accu = [] ;
     while ( ! isEmpty ( list ) ) {
         accu = list.hd : accu ;
         list = list.tl ;
@@ -81,7 +81,7 @@ swapCopy ( pair ) :: (A, B) -> (B, A) {
 
 // swap the elements in a tuple
 swap ( tuple ) :: (A , A) -> (A , A) {
-    A tmp = tuple.fst;
+    var tmp = tuple.fst;
     tuple.fst = tuple.snd;
     tuple.snd = tmp;
     return tuple;
