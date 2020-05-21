@@ -63,11 +63,12 @@ def syntaxnode(typename, *field_names, module=None):
             raise KeyError("No such attribute name")
         setattr(self, key, value)
 
-
-    def __getitem__(self, key):
-        if not key in field_names:
-            raise KeyError("No such attribute name")
-        getattr(self, key)
+    # TODO: Figure out why this collides with the first if statement from parseAtom
+    # Commented it out since it was introduced it for debugging in the first place.
+    #def __getitem__(self, key):
+    #    if not key in field_names:
+    #        raise KeyError("No such attribute name")
+    #    getattr(self, key)
 
     def tree_string(self):
         def sub_tree_str(x):
@@ -109,7 +110,7 @@ def syntaxnode(typename, *field_names, module=None):
         '__iter__':__iter__,
         '__repr__': __repr__,
         '__setitem__':__setitem__,
-        '__getitem__':__getitem__,
+        #'__getitem__':__getitem__,
         'tree_string': tree_string,
         'items': items
     }

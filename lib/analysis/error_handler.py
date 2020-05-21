@@ -25,9 +25,9 @@ ERRMSG = {
     ERR.ReservedTypeId: 'Trying to redefine a reserved type identifier\n {}',
     ERR.DuplicateTypeId: 'Type identifier already defined\n {}',
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {} \n {}',
-    ERR.UndefinedOp: ' Operator is not defined\n {}',
+    ERR.UndefinedOp: 'Operator is not defined\n {}',
     ERR.BreakOutsideLoop: 'Using a break or continue statement out of a loop',
-    ERR.NotAllPathsReturn: ' Not all paths lead to a return '
+    ERR.NotAllPathsReturn: 'Not all paths lead to a return '
 }
 
 class WARN(IntEnum):
@@ -40,7 +40,7 @@ class WARN(IntEnum):
 WARNMSG = {
     WARN.ShadowVarOtherModule: 'This variable was already defined in another module, which is now shadowed.',
     WARN.ShadowFunArg: 'Shadowing function argument\n {}',
-    WARN.UnreachableStmtBranches: 'The statements can never be reached because all branches return',
+    WARN.UnreachableStmtBranches: 'The statements can never be reached because all branches return.\n {}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement',
     WARN.UnreachableStmtReturn: 'The statements can never be reached because of a return'
 }
@@ -75,12 +75,12 @@ class ErrorHandler():
             for e in self.errors:
                 strings = [pointToPosition(self.sourcecode, t.pos) if type(t) is not str else t for t in e['tokens']]
                 print("[ERROR] %s" % (ERRMSG[e['type']].format(*strings)))
-            return False
 
         for w in self.warnings:
             strings = [pointToPosition(self.sourcecode, t.pos) if type(t) is not str else t for t in w['tokens']]
             print("[WARNING] %s" % (WARNMSG[w['type']].format(*strings)))
 
-        return True
+        self.warnings = []
+
 
 ERROR_HANDLER = ErrorHandler()
