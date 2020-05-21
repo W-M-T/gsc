@@ -173,16 +173,21 @@ def normalizeType(inputtype, symbol_table):
         exit()
 
 def normalizeAllTypes(symbol_table):
+    # Normalize type syn definitions:
+    # Not necessary because this is done during the creation of the symbol table, in order to require sequentiality
+
+    # Normalize global var types
+    for glob_var in symbol_table.global_vars.items():
+        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
+
     # Normalize function types and find duplicates
     flag = False # Handle this in the error handler
     for key, func_list in symbol_table.functions.items():
         found_typesigs = []
         #print(len(func_list))
         for func in func_list:
-            if func['type'] is not None: # TODO if it is none it is kind of a weird edge case. Doing type checking instead of type derivation prevents this from becoming a problem
-                # If you would choose to do both type derivation and name overloading you need to really watch out here
-                func['type'] = normalizeType(func['type'], symbol_table)
-                found_typesigs.append((func['type'], func))
+            func['type'] = normalizeType(func['type'], symbol_table)
+            found_typesigs.append((func['type'], func))
 
         # Test if multiple functions have the same (normalized) type
         
@@ -201,22 +206,18 @@ def normalizeAllTypes(symbol_table):
     if flag:
         exit()
 
-    # Normalize global var types
-    for glob_var in symbol_table.global_vars.items():
-        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
-        print(glob_var)
+
 
     # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
-    for func_key, func_list in symbol_table.functions.items():
+    for key, func_list in symbol_table.functions.items():
         #print(len(func_list))
         for func in func_list:
-            print("FUNCTION LOCAL VARS OF", func['def'].id.val)
+            #print("FUNCTION LOCAL VARS OF", func['def'].id.val)
             for local_var_key, local_var in func['local_vars'].items():
                 local_var.type = normalizeType(local_var.type, symbol_table)
-            print(func['local_vars'])
-            print("FUNCTION ARG VARS OF", func['def'].id.val)
+            #print("FUNCTION ARG VARS OF", func['def'].id.val)
             # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
-            print(func['arg_vars'])
+            #print(func['arg_vars'])
 
 '''
 Give an error for types containing Void in their input, or Void as a non-base type in the output
@@ -755,7 +756,6 @@ g (x) {
         forbid_illegal_types(symbol_table)
         print("NORMALIZING TYPES ==================")
         symbol_table = normalizeAllTypes(symbol_table)
-        exit()
         print("RESOLVING NAMES ====================")
         resolveNames(x, symbol_table)
         exit()
