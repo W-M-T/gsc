@@ -503,7 +503,15 @@ def fixExpression(exp, ops):
 def typecheck(return_stmt):
     pass
 
-def analyseFuncStmts(statements, loop_depth, cond_depth):
+'''
+Goal of this function is:
+- To check for dead code after break/continue statements;
+- To check for dead code after return statements;
+- To check for break/continue statements outside of loops;
+- To check that all paths return if the function should return something
+'''
+
+def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
     returns = False
     return_exp = False
     for k in range(0, len(statements)):
@@ -549,7 +557,7 @@ def analyseFunc(func_node):
     statements = func_node.stmts
 
     print("Analysing function %s\n" % func_node.id.val)
-    analyseFuncStmts(statements, 0, 0)
+    analyseFuncStmts(statements)
 
 def selectiveApply(typ, node, f):
     if type(node) is typ:

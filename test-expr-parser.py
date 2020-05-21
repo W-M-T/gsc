@@ -8,7 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Bool a = f(a * 2, 5 * 8);
+        Bool a = ~(f(a * 2, 5 * 8) && true);
     ''')
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
@@ -20,8 +20,7 @@ def main():
 
     print("Initial")
     print(parse_res)
-    #result = treemap(parse_res, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: fixExpression(y, op_table)))
-    result = fixExpression(parse_res.decls[0].val.expr, op_table)
+    result = treemap(parse_res, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: fixExpression(y, op_table)))
     print("After")
     print(result)
 
