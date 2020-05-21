@@ -11,7 +11,7 @@ from enum import IntEnum
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
-# TODO Just realised that most of this assumes that fundecl types are not None. How to handle this?
+# TODO python dict iteration is not deterministically the same: leads to different errros being first every time
 
 class FunUniq(IntEnum):
     FUNC   = 1
@@ -656,6 +656,9 @@ def analyse(ast, filename):
     #file_mappings = resolveImports(ast, filename)
     #exit()
     symbol_table = buildSymbolTable(ast)
+    forbid_illegal_types(symbol_table)
+    symbol_table = normalizeAllTypes(symbol_table)
+
     #ast = resolveNames(ast, symbol_table)
     ast = fixExpression(ast, symbol_table)
 
@@ -750,7 +753,6 @@ g (x) {
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
         forbid_illegal_types(symbol_table)
-        #exit()
         print("NORMALIZING TYPES ==================")
         symbol_table = normalizeAllTypes(symbol_table)
         exit()
