@@ -305,15 +305,15 @@ def StmtRet():
 
 @ps.generate
 def StmtBreak():
-    yield ps.token(TOKEN.BREAK)
+    found_val = yield ps.token(TOKEN.BREAK)
     yield ps.token(TOKEN.SEMICOLON)
-    return AST.BREAK()
+    return AST.BREAK(val=found_val)
 
 @ps.generate
 def StmtContinue():
-    yield ps.token(TOKEN.CONTINUE)
+    found_val = yield ps.token(TOKEN.CONTINUE)
     yield ps.token(TOKEN.SEMICOLON)
-    return AST.CONTINUE()
+    return AST.CONTINUE(val=found_val)
 
 
 # EXPRESSIONS ===================================================

@@ -26,7 +26,7 @@ ERRMSG = {
     ERR.DuplicateTypeId: 'Type identifier already defined\n {}',
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {} \n {}',
     ERR.UndefinedOp: 'Operator is not defined\n {}',
-    ERR.BreakOutsideLoop: 'Using a break or continue statement out of a loop',
+    ERR.BreakOutsideLoop: 'Using a break or continue statement out of a loop\n {}',
     ERR.NotAllPathsReturn: 'Not all paths lead to a return '
 }
 

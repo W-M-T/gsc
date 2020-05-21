@@ -608,8 +608,7 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
                 returns = False
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
-                print("[ERROR] Using a break or continue statement out of a loop at line %d.")
-                ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt])
+                ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt.val])
             else:
                 if k is not len(statements) - 1:
                     print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
