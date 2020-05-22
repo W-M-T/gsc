@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, '../')
 
 from parser import *
-from error_handler import ParseError
+from parse_error_handler import ParseError
 from io import StringIO
 from lexer import tokenize
 
