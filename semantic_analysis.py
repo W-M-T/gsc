@@ -232,8 +232,8 @@ def forbid_illegal_types(symbol_table):
         #print("  a  ")
         def killVoidType(node):
             if type(node.val) is Token and node.val.val == "Void":
-                print("[ERROR] Type synonym {} cannot have Void in its type".format(type_id))
-                exit()
+                # Type syn has void in type
+                ERROR_HANDLER.addError(ERR.TypeSynVoid, [type_id])
             return node
 
         treemap(type_syn, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
@@ -242,14 +242,13 @@ def forbid_illegal_types(symbol_table):
     for glob_var_id, glob_var in symbol_table.global_vars.items():
 
         if glob_var.type is None:
-            print('[ERROR] Global var {} needs a type'.format(glob_var.id.val))
-            # todo point to line
-            exit()
+            # Global var has no type (we're doing type checking for now, not inference)
+            ERROR_HANDLER.addError(ERR.GlobalVarTypeNone, [glob_var.id.val])
         else:
             def killVoidType(node):
                 if type(node.val) is Token and node.val.val == "Void":
-                    print("[ERROR] Global variable {} cannot have Void in its type".format(glob_var_id))
-                    exit()
+                    # Global variable type contains Void
+                    ERROR_HANDLER.addError(ERR.GlobalVarVoid, [glob_var_id])
                 return node
             treemap(glob_var.type, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
 
@@ -257,13 +256,13 @@ def forbid_illegal_types(symbol_table):
     for fun_list in symbol_table.functions.values():
         for fun in fun_list:
             if fun['type'] is None:
-                print('[ERROR] Function {} needs a type'.format(fun['def'].id.val))
-                exit()
+                # Function has no type
+                ERROR_HANDLER.addError(ERR.FunctionTypeNone, [fun['def'].id.val])
             else:
                 def killVoidType(node):
                     if type(node.val) is Token and node.val.val == "Void":
-                        print("[ERROR] Input type of {} cannot contain Void".format(fun['def'].id.val))
-                        exit()
+                        # Function input type contains void
+                        ERROR_HANDLER.addError(ERR.FunctionInputVoid, [fun['def'].id.val])
                     return node
                 for from_type in fun['type'].from_types:
                     treemap(from_type, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
@@ -273,23 +272,25 @@ def forbid_illegal_types(symbol_table):
                 if not (type(returntype) is AST.TYPE and type(returntype.val) is Token and returntype.val.val == "Void"): # Not direct Void type
                     def killVoidType(node):
                         if type(node.val) is Token and node.val.val == "Void":
-                            print("[ERROR] Return type of {} contains nested Void".format(fun['def'].id.val))
-                            exit()
+                            # Function output contains Void indirectly
+                            ERROR_HANDLER.addError(ERR.FunctionOutputNestedVoid, [fun['def'].id.val])
                         return node
                     treemap(returntype, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
 
             # Go over local variable types
             for local_var in fun['local_vars'].values():
                 if local_var.type is None:
-                    print('[ERROR] Local variable {} of function {} needs a type'.format(local_var.id.val, fun['def'].id.val))
-                    exit()
+                    # Local var has no type
+                    ERROR_HANDLER.addError(ERR.LocalVarTypeNone, [local_var.id.val, fun['def'].id.val])
                 else:
                     def killVoidType(node):
                         if type(node.val) is Token and node.val.val == "Void":
-                            print("[ERROR] Variable {} of function {} has type containing Void".format(local_var.id.val, fun['def'].id.val))
-                            exit()
+                            # Local var has void in type
+                            ERROR_HANDLER.addError(ERR.LocalVarVoid, [local_var.id.val, fun['def'].id.val])
                         return node
                     treemap(local_var, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
+    ERROR_HANDLER.checkpoint()
+
 
 
 ''' TODO how should we handle errors / warnings?
@@ -325,6 +326,7 @@ def buildSymbolTable(ast):
                     symbol_table.order_mapping["global_vars"][var_id] = index_global_var
                     index_global_var += 1
             else:
+                # This global var identifier was already used
                 ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
             #print_node(val)
 
@@ -345,7 +347,8 @@ def buildSymbolTable(ast):
             if val.type is not None:
                 from_types = val.type.from_types
                 if len(from_types) != len(val.params):
-                    ERROR_HANDLER.addError(ERR.ArgCountDoesNotMatchSign, [from_types[0].val.type_id])
+                    # Arg count doesn't match input type
+                    ERROR_HANDLER.addError(ERR.ArgCountDoesNotMatchSign, [val.id])
 
             # Test if this function is already defined
             fun_id = val.id.val
@@ -361,16 +364,19 @@ def buildSymbolTable(ast):
                     local_vars = {}
                     for ix, arg in enumerate(val.params):
                         if not arg.val in funarg_vars:
-                            found_type = val.type.from_types[ix] if val.type is not None else None
+                            found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
                             funarg_vars[arg.val] = {"id":arg, "type":found_type}
                         else:
+                            # Arg name was already used
                             ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
                     for vardecl in val.vardecls:
                         if vardecl.id.val in funarg_vars:
+                            # The local var id is already an arg id
                             ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
                         if not vardecl.id.val in local_vars:
                             local_vars[vardecl.id.val] = vardecl
                         else:
+                            # The local var id was already used
                             ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
                     temp_entry["arg_vars"] = funarg_vars
@@ -391,16 +397,19 @@ def buildSymbolTable(ast):
                 local_vars = {}
                 for ix, arg in enumerate(val.params):
                     if not arg.val in funarg_vars:
-                        found_type = val.type.from_types[ix] if val.type is not None else None
+                        found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
                         funarg_vars[arg.val] = {"id":arg, "type":found_type}
                     else:
+                        # Arg name was already used
                         ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
                 for vardecl in val.vardecls:
                     if vardecl.id.val in funarg_vars:
+                        # The local var id is already an arg id
                         ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
                     if not vardecl.id.val in local_vars:
                         local_vars[vardecl.id.val] = vardecl
                     else:
+                        # The local var id was already used
                         ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
                 temp_entry["arg_vars"] = funarg_vars
@@ -416,6 +425,7 @@ def buildSymbolTable(ast):
             def_type = val.def_type
 
             if type_id in BUILTIN_TYPES:
+                # Type identifier is reserved
                 ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
 
             if not type_id in symbol_table.type_syns:
@@ -428,7 +438,10 @@ def buildSymbolTable(ast):
                     symbol_table.order_mapping["type_syns"][type_id] = index_typesyn
                     index_typesyn += 1
             else:
-                ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id])
+                # Type identifier already used
+                ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, symbol_table.type_syns[val.type_id.val]])
+
+    ERROR_HANDLER.checkpoint()
 
     print("--------------------------")
     print(symbol_table.repr_short())
@@ -747,7 +760,7 @@ if __name__ == "__main__":
         testprog = StringIO('''
 //var illegal = 2;
 Int pi = 3;
-String aaa = 2;
+String aa = 2;
 type Chara = Int
 //type Void = Int
 type String = [Char]
@@ -794,7 +807,10 @@ g (x) {
         tokenstream = tokenize(testprog)
         #tokenstream = tokenize(infile)
 
-        x = parseTokenStream(tokenstream, infile)
+        x = parseTokenStream(tokenstream, testprog)
+        ERROR_HANDLER.setSourceMapping(testprog, None)
+        #ERROR_HANDLER.debug = True
+        #ERROR_HANDLER.hidewarn = True
         #print(x.tree_string())
         #treemap(x, lambda x: x)
         #exit()
@@ -803,6 +819,7 @@ g (x) {
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
         forbid_illegal_types(symbol_table)
+        exit()
         print("NORMALIZING TYPES ==================")
         normalizeAllTypes(symbol_table)
         print(symbol_table)
