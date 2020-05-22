@@ -27,7 +27,7 @@ ERRMSG = {
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {} \n {}',
     ERR.UndefinedOp: ' Operator is not defined\n {}',
     ERR.BreakOutsideLoop: 'Using a break or continue statement out of a loop',
-    ERR.NotAllPathsReturn: ' Not all paths lead to a return '
+    ERR.NotAllPathsReturn: ' Not all paths lead to a return'
 }
 
 class WARN(IntEnum):

@@ -10,7 +10,7 @@ __author__ = 'He Tao, sighingnow@gmail.com'
 from functools import wraps
 from collections import namedtuple
 from util import pointToPosition
-from error_handler import ParseErrorHandler, ParseError
+from parse_error_handler import ParseErrorHandler, ParseError
 
 ##########################################################################
 # Definition the Value modelof parsec.py.
@@ -108,6 +108,7 @@ class Parser(object):
             raise error
 
     def parse_strict(self, text, infile):
+        global error_handler
         '''Parse the longest possible prefix of the entire given string.
         If the parser worked successfully and NONE text was rested, return the
         result value, else raise a ParseError.
@@ -115,7 +116,9 @@ class Parser(object):
         given text must be used.'''
         # pylint: disable=comparison-with-callable
         # Here the `<` is not comparison.
-        return (self < eof()).parse_partial(text, infile)[0]
+        result = (self < eof()).parse_partial(text, infile)[0]
+        error_handler.reset()
+        return result
 
     def bind(self, fn):
         '''This is the monadic binding operation. Returns a parser which, if
