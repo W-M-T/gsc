@@ -549,26 +549,26 @@ def buildOperatorTable(symbol_table):
     return op_table
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
-def parseAtom(ops, exp, exp_index):
+def parseAtom(exp, ops, exp_index):
 
-    def recurse(ops, exp):
-        recurse_res, _ = parseExpression(ops, exp)
+    def recurse(exp, ops):
+        recurse_res, _ = parseExpression(exp, ops)
         return recurse_res
 
     if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        return recurse(ops, exp[exp_index].contents), exp_index + 1
+        return recurse(exp[exp_index].contents, ops), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
         prefix = exp[exp_index]
-        sub_expr = recurse(ops, prefix.args)
+        sub_expr = recurse(prefix.args, ops)
         return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
         func_args = []
         funcall = exp[exp_index]
         for arg in funcall.args:
-            sub_exp = recurse(ops, arg.contents)
+            sub_exp = recurse(arg.contents, ops)
             func_args.append(sub_exp)
 
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
@@ -577,8 +577,8 @@ def parseAtom(ops, exp, exp_index):
         print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(ops, exp, min_precedence = 1, exp_index = 0):
-    result, exp_index = parseAtom(ops, exp, exp_index)
+def parseExpression(exp, ops, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(exp, ops, exp_index)
 
     while True:
         if exp_index < len(exp) and exp[exp_index].val not in ops:
@@ -594,19 +594,29 @@ def parseExpression(ops, exp, min_precedence = 1, exp_index = 0):
             next_min_prec = ops[exp[exp_index].val][1]
         op = exp[exp_index]
         exp_index += 1
-        rh_expr, exp_index = parseExpression(ops, exp, next_min_prec, exp_index)
+        rh_expr, exp_index = parseExpression(exp, ops, next_min_prec, exp_index)
         result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
 
     return result, exp_index
 
-''' Given the fixities in the symbol table, properly transform an expression into a tree instead of a list of operators and terms '''
-def fixExpression(exp, ops):
-    parsed_expr, _ = parseExpression(ops, exp.contents)
+''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
+def fixExpression(ast, op_table):
+    decorated_ast = treemap(ast, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: parseExpression(y.contents, op_table)[0]))
 
-    return parsed_expr
+    return decorated_ast
 
 def typecheck(return_stmt):
     pass
+
+# Given an AST node, get first token
+def getFirstToken(node):
+    if type(node.val) == AST.ACTSTMT:
+        if type(node.val.val) == AST.ASSIGNMENT:
+            return node.val.val.varref.id
+        else:
+            return node.val.val.id
+    elif type(node.val) == AST.LOOP:
+        pass
 
 '''
 Goal of this function is:
@@ -615,7 +625,6 @@ Goal of this function is:
 - To check for break/continue statements outside of loops;
 - To check that all paths return if the function should return something
 '''
-
 def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
     returns = False
     return_exp = False
@@ -630,7 +639,7 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    print("[WARNING] The statements after line %d can never be reached because all conditional branches yield a return value.")
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [getFirstToken(statements[k+1])])
                 return True, return_exp
             elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
                 return_exp = True
@@ -641,7 +650,7 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
                 returns = False
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             if loop_depth == 0:
-                print("[ERROR] Using a break or continue statement out of a loop at line %d.")
+                ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt.val])
             else:
                 if k is not len(statements) - 1:
                     print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
@@ -649,7 +658,7 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
         elif type(stmt) is AST.RETURN:
             typecheck(stmt)
             if k is not len(statements) - 1:
-                print("[WARNING] the statements after line %d can never be reached because of a return statement.")
+                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [getFirstToken(statements[k+1])])
             return True, True
 
     if return_exp and cond_depth == 0:
@@ -657,19 +666,16 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
 
     return returns, return_exp
 
-'''Given a function AST node, find dead code statements after return/break/continue and see if all paths return'''
-def analyseFunc(func_node):
-    statements = func_node.stmts
-
-    print("Analysing function %s\n" % func_node.id.val)
-    analyseFuncStmts(statements)
+'''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
+def analyseFunc(ast):
+    treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f.stmts)), replace=False)
 
 def selectiveApply(typ, node, f):
     if type(node) is typ:
         return f(node)
     return node
 
-def treemap(ast, f):
+def treemap(ast, f, replace=True):
     def unpack(val, f):
         if type(val) == list:
             mapped_list = []
@@ -677,11 +683,14 @@ def treemap(ast, f):
                 mapped_list.append(unpack(el, f))
             return mapped_list
         elif type(val) in AST.nodes:# Require enumlike construct for AST
-            return treemap(val, f)
+            return treemap(val, f, replace)
         else:
             return val
 
-    ast = f(ast)
+    if replace:
+        ast = f(ast)
+    else:
+        f(ast)
     if type(ast) is not Token:
         for attr in ast.items():
             ast[attr[0]] = unpack(attr[1], f)
