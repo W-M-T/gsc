@@ -41,6 +41,9 @@ class SymbolTable():
         self.functions = functions
         self.type_syns = type_syns
 
+        self.order_mapping = {"global_vars":{}, "type_syns":{}} # Order doesn't matter for functions
+        # This can be done more easily in newer versions of python, since dict order is deterministic there
+
     '''
     def getFunc(self, uniq, fid, normaltype):
         flist = self.functions[(uniq, fid)]
@@ -166,7 +169,7 @@ def normalizeType(inputtype, symbol_table):
         elif inputtype.val in VOID_TYPE:
             return inputtype
         else:
-            print("Typename {} not defined!".format(inputtype.val))
+            print("[ERROR] Typename {} not defined!".format(inputtype.val))
             exit()
     else:
         print("Case not captured:",inputtype)
@@ -205,8 +208,6 @@ def normalizeAllTypes(symbol_table):
 
     if flag:
         exit()
-
-
 
     # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
     for key, func_list in symbol_table.functions.items():
@@ -306,6 +307,8 @@ def buildSymbolTable(ast):
     for el in ast.imports:
         print(el)
     print("Decls")
+    index_global_var = 0
+    index_typesyn = 0
     for decl in ast.decls:
         val = decl.val
         if type(val) is AST.VARDECL:
@@ -319,6 +322,8 @@ def buildSymbolTable(ast):
                     ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
                 else:
                     symbol_table.global_vars[var_id] = val
+                    symbol_table.order_mapping["global_vars"][var_id] = index_global_var
+                    index_global_var += 1
             else:
                 ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
             #print_node(val)
@@ -420,6 +425,8 @@ def buildSymbolTable(ast):
                 else:
                     normalized_type = normalizeType(def_type, symbol_table)
                     symbol_table.type_syns[type_id] = normalized_type
+                    symbol_table.order_mapping["type_syns"][type_id] = index_typesyn
+                    index_typesyn += 1
             else:
                 ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id])
 
@@ -429,9 +436,34 @@ def buildSymbolTable(ast):
 
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
-def resolveNames(ast, symbol_table):
-    glob_vardecl_counter = 0
-    glob_typesyn_counter = 0
+def resolveNames(symbol_table):
+    # Resolve type syns
+    # This is already guaranteed by way of buildSymbolTable, might be possible to move this there or remove it from buildSymbolTable and do it here?
+    '''
+    print("RESOLVING TYPESYNS")
+    for type_id, type_syn in symbol_table.type_syns.items():
+        print(type_id, type_syn)
+        def resolveTypeToken(node):
+            if type(node.val) is Token:
+                print("GOT A DAMN TOKEN")
+                print(node.val)
+            return node
+        treemap(type_syn,  lambda x: selectiveApply(AST.TYPE, x, resolveTypeToken))
+        exit()
+    '''
+
+    # Resolve names used in expressions in global variable definitions:
+    # Order matters here as to what is in scope
+    print("RESOLVING VARS:")
+    for glob_var_id, glob_var in symbol_table.global_vars.items():
+        print("For ",glob_var)
+        in_scope = list(filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items()))
+        print("In scope: ",in_scope)
+        glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, in_scope_globals=in_scope)
+
+    exit()
+
+
 
     for decl in ast.decls:
         val = decl.val
@@ -464,6 +496,7 @@ def resolveNames(ast, symbol_table):
     '''
 
 # TODO this works differently for typesyns as opposed to other types: typesyns don't allow foralls
+'''
 def resolveTypeName(typ, symbol_table, counter=-1):
     if type(typ) is AST.TYPE:
         typ.val = resolveTypeName(typ.val, symbol_table, counter=counter)
@@ -494,9 +527,13 @@ def resolveTypeName(typ, symbol_table, counter=-1):
     else:
         print("GOT SOMETHING ELSE")
         print(typ)
+'''
 
-
-def resolveExprNames(expr, symbol_table, glob=True, counter=-1):
+'''
+Resolve an expression with the following globals in scope
+Functions are always in scope
+'''
+def resolveExprNames(expr, symbol_table, in_scope_globals=[], in_scope_locals=[]):
     pass
 
 def buildOperatorTable(symbol_table):
@@ -670,7 +707,7 @@ def analyse(ast, filename):
     #exit()
     symbol_table = buildSymbolTable(ast)
     forbid_illegal_types(symbol_table)
-    symbol_table = normalizeAllTypes(symbol_table)
+    normalizeAllTypes(symbol_table)
 
     #ast = resolveNames(ast, symbol_table)
     ast = fixExpression(ast, symbol_table)
@@ -767,9 +804,10 @@ g (x) {
         symbol_table = buildSymbolTable(x)
         forbid_illegal_types(symbol_table)
         print("NORMALIZING TYPES ==================")
-        symbol_table = normalizeAllTypes(symbol_table)
+        normalizeAllTypes(symbol_table)
+        print(symbol_table)
         print("RESOLVING NAMES ====================")
-        resolveNames(x, symbol_table)
+        resolveNames(symbol_table)
         exit()
         analyse(x, args.infile)
 
