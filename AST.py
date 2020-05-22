@@ -12,6 +12,8 @@ def syntaxnode(typename, *field_names, module=None):
     typename = _sys.intern(str(typename))
     field_names = list(field_names)
 
+    class_attrs = list(map(_sys.intern, ['_start_pos']))
+
     for name in [typename] + field_names:
         if type(name) is not str:
             raise TypeError('Type names and field names must be strings')
@@ -47,6 +49,8 @@ def syntaxnode(typename, *field_names, module=None):
             raise KeyError("Keyword arguments do not match: {} != {}".format(list(set(kwargs)), list(set(field_names))))
         for key, val in kwargs.items():
             setattr(self, key, val)
+        for key in class_attrs:
+            setattr(self, key, None)
 
 
     def __iter__(self):
@@ -59,13 +63,13 @@ def syntaxnode(typename, *field_names, module=None):
         return self.__class__.__name__ + repr_fmt.format(**{key: getattr(self,key) for key in self._fields})
 
     def __setitem__(self, key, value):
-        if not key in field_names:
+        if not (key in field_names or key in class_attrs):
             raise KeyError("No such attribute name")
         setattr(self, key, value)
 
 
     def __getitem__(self, key):
-        if not key in field_names:
+        if not (key in field_names or key in class_attrs):
             raise KeyError("No such attribute name")
         getattr(self, key)
 
@@ -103,7 +107,7 @@ def syntaxnode(typename, *field_names, module=None):
     # and use type() to build the result class
     class_namespace = {
         '__doc__': '{}({})'.format(typename, arg_list),
-        '__slots__': tuple(i for i in field_names),
+        '__slots__': tuple((*(i for i in field_names),*(i for i in class_attrs))),
         '_fields': field_names,
         '__init__':__init__,
         '__iter__':__iter__,
