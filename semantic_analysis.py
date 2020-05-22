@@ -573,7 +573,13 @@ def typecheck(return_stmt):
 
 # Given an AST node, get first token
 def getFirstToken(node):
-    pass
+    if type(node.val) == AST.ACTSTMT:
+        if type(node.val.val) == AST.ASSIGNMENT:
+            return node.val.val.varref.id
+        else:
+            return node.val.val.id
+    elif type(node.val) == AST.LOOP:
+        pass
 
 '''
 Goal of this function is:
@@ -596,8 +602,7 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    print("[WARNING] The statements after line %d can never be reached because all conditional branches yield a return value.")
-                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, statements[k])
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [getFirstToken(statements[k+1])])
                 return True, return_exp
             elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
                 return_exp = True
@@ -616,9 +621,7 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
         elif type(stmt) is AST.RETURN:
             typecheck(stmt)
             if k is not len(statements) - 1:
-                print("[WARNING] the statements after line %d can never be reached because of a return statement.")
-                print(getFirstToken(statements[k+1]))
-                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, statements[k+1])
+                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [getFirstToken(statements[k+1])])
             return True, True
 
     if return_exp and cond_depth == 0:

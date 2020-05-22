@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 
 from enum import IntEnum
-from util import pointToPosition
+from util import pointToPosition, Token
+
+class ERRCOLOR:
+    WARNING = '\033[33m'
+    FAIL = '\033[31m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
 
 class ERR(IntEnum):
     OverloadFunMultipleDef = 1
@@ -42,7 +48,7 @@ WARNMSG = {
     WARN.ShadowFunArg: 'Shadowing function argument\n {}',
     WARN.UnreachableStmtBranches: 'The statements can never be reached because all branches return.\n {}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement',
-    WARN.UnreachableStmtReturn: 'The statements can never be reached because of a return'
+    WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return.\n {}'
 }
 
 class ErrorHandler():
@@ -73,14 +79,16 @@ class ErrorHandler():
     def checkpoint(self):
         if len(self.errors) > 0:
             for e in self.errors:
-                strings = [pointToPosition(self.sourcecode, t.pos) if type(t) is not str else t for t in e['tokens']]
-                print("[ERROR] %s" % (ERRMSG[e['type']].format(*strings)))
+                info = [pointToPosition(self.sourcecode, t.pos) if type(t) is Token else str(t) for t in e['tokens']]
+                print(ERRCOLOR.FAIL + "[ERROR] %s" % (ERRMSG[e['type']].format(*info)) + ERRCOLOR.ENDC)
 
         for w in self.warnings:
-            strings = [pointToPosition(self.sourcecode, t.pos) if type(t) is not str else t for t in w['tokens']]
-            print("[WARNING] %s" % (WARNMSG[w['type']].format(*strings)))
+            info = [pointToPosition(self.sourcecode, t.pos) if type(t) is Token else str(t) for t in w['tokens']]
+            print(ERRCOLOR.WARNING + "[WARNING] %s" % (WARNMSG[w['type']].format(*info)) + ERRCOLOR.ENDC)
 
         self.warnings = []
+        # TODO: Remove this and probably add an exit(1) if len(self.errors) > 0;
+        self.errors = []
 
 
 ERROR_HANDLER = ErrorHandler()

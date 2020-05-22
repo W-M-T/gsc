@@ -7,7 +7,9 @@ from semantic_analysis import *
 def main():
     from io import StringIO
 
-    testprog = StringIO('''
+    testprog = StringIO('''  
+        Int a = 6;
+        Int a  = 5;
         
         sum(a, b) :: Int Int -> Int {
             Int a = 5;
@@ -15,11 +17,11 @@ def main():
             return a + b;
         }
         
-         sum(a, b) :: Bool Bool -> Bool {
+        sum(a, b) :: Bool Bool -> Bool {
             Int a = 5;
             
-            break;
-            return a ** b;
+            return a + b;
+            b = a + 5;
         }
         
     ''')
