@@ -43,7 +43,7 @@ ERRMSG = {
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {}\n{}',
     ERR.UndefinedOp: 'Operator is not defined\n{}',
     ERR.BreakOutsideLoop: 'Using a break or continue statement outside of a loop',
-    ERR.NotAllPathsReturn: 'Not all paths lead to a return',
+    ERR.NotAllPathsReturn: 'Not all paths in function {} lead to a certain return\n{}',
     ERR.TypeSynVoid: 'Type synonym {} cannot have Void in its type',
     ERR.GlobalVarTypeNone: 'Global var {} needs a type',
     ERR.GlobalVarVoid: 'Global variable {} cannot have Void in its type',

@@ -11,8 +11,8 @@ def main():
     f(a, b) :: Int Int -> Int {
         Int c = 5;
         while(true) {
-            break;
             return 5;
+            b = b + 1;
         }
         a = a + 1;
     }

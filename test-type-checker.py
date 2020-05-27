@@ -8,15 +8,8 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        sum(a, b) :: Int Int -> Int {
-            if(a == 1) {
-                if(a > 2) {
-                    return true;
-                } elif(a == 3) {
-                    return false;
-                }
-            }
-        }
+        Int a = 5;
+        (Int, Int) pos = (2, 3);
     ''')
 
     # Tokenize / parse
@@ -35,7 +28,7 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Check for dead code
-    analyseFunc(ast)
+    typecheck_globals(ast, symbol_table)
     ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":

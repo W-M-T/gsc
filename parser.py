@@ -227,7 +227,7 @@ def Stmt():
 
 @ps.generate
 def StmtIfElse():
-    yield ps.token(TOKEN.IF)
+    if_token = yield ps.token(TOKEN.IF)
     yield ps.token(TOKEN.PAR_OPEN)
     condition = yield Exp
     yield ps.token(TOKEN.PAR_CLOSE)

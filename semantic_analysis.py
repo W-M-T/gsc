@@ -568,7 +568,7 @@ def parseAtom(exp, ops, exp_index):
         recurse_res, _ = parseExpression(exp, ops)
         return recurse_res
 
-    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token: # Literal / identifier
+    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
@@ -588,6 +588,7 @@ def parseAtom(exp, ops, exp_index):
     else:
         # This should never happen
         print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
+        print(type(exp[exp_index]))
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
 def parseExpression(exp, ops, min_precedence = 1, exp_index = 0):
@@ -618,11 +619,21 @@ def fixExpression(ast, op_table):
 
     return decorated_ast
 
-def typecheck(return_stmt):
-    pass
+
+''' Type check the given expression '''
+def typecheck(expr, exp_type, symbol_table):
+    if type(expr) is AST.BASICTYPE:
+        pass
+    else:
+        pass
+
+def typecheck_globals(ast, symbol_table):
+    for g in symbol_table.global_vars:
+        typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table)
 
 # Given an AST node, get first token
 def getFirstToken(node):
+    print(node)
     if type(node.val) == AST.ACTSTMT:
         if type(node.val.val) == AST.ASSIGNMENT:
             return node.val.val.varref.id
@@ -638,7 +649,7 @@ Goal of this function is:
 - To check for break/continue statements outside of loops;
 - To check that all paths return if the function should return something
 '''
-def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
+def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
     returns = False
     return_exp = False
     for k in range(0, len(statements)):
@@ -646,19 +657,23 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
         if type(stmt) is AST.IFELSE:
             return_ctr = 0
             for branch in stmt.condbranches:
-                does_return, rexp = analyseFuncStmts(branch.stmts, loop_depth, cond_depth + 1)
+                does_return, rexp = analyseFuncStmts(func, branch.stmts, loop_depth, cond_depth + 1)
                 return_exp = return_exp or rexp
                 return_ctr += does_return
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [getFirstToken(statements[k+1])])
-                return True, return_exp
+                if stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
+                    return_exp = False
+                else:
+                    return_exp = True
+                returns = True
             elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
                 return_exp = True
 
         elif type(stmt) is AST.LOOP:
-            returns, return_exp = analyseFuncStmts(stmt.stmts, loop_depth + 1, cond_depth)
+            returns, return_exp = analyseFuncStmts(func, stmt.stmts, loop_depth + 1, cond_depth)
             if return_exp:
                 returns = False
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
@@ -669,19 +684,18 @@ def analyseFuncStmts(statements, loop_depth=0, cond_depth=0):
                     print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
                     return False, return_exp
         elif type(stmt) is AST.RETURN:
-            typecheck(stmt)
             if k is not len(statements) - 1:
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [getFirstToken(statements[k+1])])
             return True, True
 
     if return_exp and cond_depth == 0:
-        print("[ERROR] Not all paths lead to a (certain) return.")
+        ERROR_HANDLER.addError(ERR.NotAllPathsReturn, [func.id.val, func.id])
 
     return returns, return_exp
 
 '''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
 def analyseFunc(ast):
-    treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f.stmts)), replace=False)
+    treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
 
 def selectiveApply(typ, node, f):
     if type(node) is typ:
