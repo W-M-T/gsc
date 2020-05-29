@@ -553,9 +553,8 @@ def resolveExprNames(expr, symbol_table, in_scope_globals=[], in_scope_locals=[]
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
 '''
-def abstractToConcreteType(abstract_type):
+def abstractToConcreteType(abstract_type, basic_types):
     # TODO: Are this really all of the basic types in a relation T T -> T? What about tuples?
-    basic_types = ['Int', 'Char', 'Bool']
     if abstract_type == 'T':
         return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)) for b in basic_types]
     elif abstract_type in basic_types:
@@ -571,25 +570,33 @@ Given the symbol table, produce the operator table including all builtin operato
 def buildOperatorTable(symbol_table):
     op_table = {}
 
+    basic_types = ['Int', 'Char', 'Bool']
     counter = 0
     for o in BUILTIN_INFIX_OPS:
         op_table[o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
         first_type, second_type, _, output_type = BUILTIN_INFIX_OPS[o][0].split()
-        first_types = abstractToConcreteType(first_type)
-        second_types = abstractToConcreteType(second_type)
-        output_types = abstractToConcreteType(output_type)
+        first_types = abstractToConcreteType(first_type, basic_types)
+        second_types = abstractToConcreteType(second_type, basic_types)
+        output_types = abstractToConcreteType(output_type, basic_types)
 
         for ft in first_types:
             for st in second_types:
-                if AST.equalVals(ft, st):
                     for ot in output_types:
-                        op_table[o][2].append(
-                            AST.FUNTYPE(
-                                from_types=[ft, st],
-                                to_type=ot
+                        if len(first_types) == len(second_types) == len(output_types) == len(basic_types):
+                            if AST.equalVals(ft, st) and AST.equalVals(st, ot):
+                                op_table[o][2].append(
+                                    AST.FUNTYPE(
+                                        from_types=[ft, st],
+                                        to_type=ot
+                                    )
+                                )
+                        else:
+                            op_table[o][2].append(
+                                AST.FUNTYPE(
+                                    from_types=[ft, st],
+                                    to_type=ot
+                                )
                             )
-                        )
-                        counter += 1
 
     print("Number of builtin functions: %d" % len(op_table))
     print("With a total of %d overloaded functions. " % counter)
@@ -677,31 +684,36 @@ def tokenToTypeId(token):
 
 ''' Type check the given expression '''
 def typecheck(expr, exp_type, symbol_table, op_table):
+    #print("Typchecking")
+    #print(expr)
+    #print("Expecting")
+    #print(exp_type)
+
     if type(expr) is Token:
-        return tokenToTypeId(expr) == exp_type.type_id.val
+        val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
+        if not AST.equalVals(val, exp_type):
+            ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, val])
+        return val
     elif type(expr) is AST.PARSEDEXPR:
-        success = False
+        typ = None
         type1 = None
         type2 = None
         alternatives = 0
         for o in op_table[expr.fun.val][2]:
-            if AST.equalVals(o.to_type, exp_type):
-                check1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table)
-                check2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table)
-                type1 = o.from_types[0].type_id.val if check1 else tokenToTypeId(expr.arg1)
-                type2 = o.from_types[1].type_id.val if check2 else tokenToTypeId(expr.arg2)
-                alternatives += 1
-                if check1 and check2:
-                    success = True
+            type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table)
+            type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table)
+            alternatives += 1
+            if AST.equalVals(o.from_types[0], type1) and AST.equalVals(o.from_types[1], type2):
+                typ = o.to_type
 
-        if alternatives == 0:
+        if typ is None:
+            # There is no alternative of this operator which has the expected input types.
+            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1.type_id.val, type2.type_id.val, expr.fun])
+        elif not AST.equalVals(typ, exp_type):
             # There is no alternative of this operator which has the expected output type
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [exp_type.type_id.val, expr.fun])
-        elif not success:
-            # There is no alternative of this operator which has the expected input types.
-            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1, type2, expr.fun])
 
-        return True
+        return typ
     elif type(expr) is AST.VARREF:
         pass
     else:
