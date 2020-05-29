@@ -550,7 +550,11 @@ Functions are always in scope
 def resolveExprNames(expr, symbol_table, in_scope_globals=[], in_scope_locals=[]):
     pass
 
+'''
+Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
+'''
 def abstractToConcreteType(abstract_type):
+    # TODO: Are this really all of the basic types in a relation T T -> T? What about tuples?
     basic_types = ['Int', 'Char', 'Bool']
     if abstract_type == 'T':
         return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)) for b in basic_types]
@@ -561,10 +565,12 @@ def abstractToConcreteType(abstract_type):
     else:
         raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
+'''
+Given the symbol table, produce the operator table including all builtin operators and its overloaded functions.
+'''
 def buildOperatorTable(symbol_table):
     op_table = {}
 
-    # TODO: Are this really all of the basic types in a relation T T -> T? What about tuples?
     counter = 0
     for o in BUILTIN_INFIX_OPS:
         op_table[o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
@@ -579,13 +585,14 @@ def buildOperatorTable(symbol_table):
                     op_table[o][2].append(
                         AST.FUNTYPE(
                             from_types=[ft, st],
-                            to_type=[ot]
+                            to_type=ot
                         )
                     )
                     counter += 1
 
     print("Number of builtin functions: %d" % len(op_table))
     print("With a total of %d overloaded functions. " % counter)
+    print(op_table['||'][2])
 
     # TODO: Fix this when experimenting with custom operators
     for x in symbol_table.functions:
@@ -656,7 +663,6 @@ def fixExpression(ast, op_table):
 
     return decorated_ast
 
-
 def tokenToTypeId(token):
     if token.typ == TOKEN.INT:
         return 'Int'
@@ -692,7 +698,7 @@ def typecheck(expr, exp_type, symbol_table, op_table):
 
         return True
     elif type(expr) is AST.VARREF:
-        print(expr)
+        pass
     else:
         print("Unknown type")
         print(type(expr))

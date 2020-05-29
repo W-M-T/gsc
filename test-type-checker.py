@@ -8,8 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        Bool t = True;
-        Int a = 'c' + b + 4;
+        Int a = True || False;
     ''')
 
     # Tokenize / parse
@@ -27,8 +26,8 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
-    resolveNames(symbol_table)
-    ERROR_HANDLER.checkpoint()
+    #resolveNames(symbol_table)
+    #ERROR_HANDLER.checkpoint()
 
     # Parse expression
     op_table = buildOperatorTable(symbol_table)
