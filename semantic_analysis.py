@@ -5,7 +5,7 @@ from lib.analysis.error_handler import *
 from AST import AST, FunKind, Accessor
 from parser import parseTokenStream
 from AST_prettyprinter import print_node, subprint_type
-from util import Token
+from util import Token, TOKEN, Position
 import os
 from enum import IntEnum
 
@@ -107,20 +107,20 @@ BUILTIN_FUNCTIONS = [
 
 # TODO finalize the info in here
 BUILTIN_INFIX_OPS = {
-    "*": ("T T -> T", 7, "L"),
-    "/":  ("T T -> T", 7, "L"),
-    "%": ("T T -> T", 7, "L"),
-    "+": ("T T -> T", 6, "L"),# Should these actually have types T? It is in the spec but only defined for a couple of types, so maybe it's better to seperate those
-    "-": ("T T -> T", 6, "L"),
-    ":": ("T [T] -> [T]", 5, "L"),
-    "==": ("T T -> Bool", 4, "??"),# How should comparision operators work for lists and tuples? Should they at all?
-    "<": ("T T -> Bool", 4, "??"),
-    ">": ("T T -> Bool", 4, "??"),
-    "<=": ("T T -> Bool", 4, "??"),
-    ">=": ("T T -> Bool", 4, "??"),
-    "!=": ("T T -> Bool", 4, "??"),
-    "&&": ("Bool Bool -> Bool", 3, "R"),
-    "||": ("Bool Bool -> Bool", 2, "R")
+    "+": (7, "L", [AST.FUNTYPE(
+                from_types=[
+                    AST.BASICTYPE(type_id=
+                        Token(Position(), TOKEN.TYPE_IDENTIFIER, "Int")
+                    ), AST.BASICTYPE(type_id=
+                        Token(Position(), TOKEN.TYPE_IDENTIFIER, "Int")
+                    )
+                ],
+                to_type=AST.BASICTYPE(
+                    type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Int")
+                ),
+            )
+        ]
+    )
 }
 
 BUILTIN_PREFIX_OPS = [
@@ -568,6 +568,7 @@ def parseAtom(exp, ops, exp_index):
         recurse_res, _ = parseExpression(exp, ops)
         return recurse_res
 
+    # TODO: Think about lists.
     if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1
@@ -599,13 +600,13 @@ def parseExpression(exp, ops, min_precedence = 1, exp_index = 0):
             # TODO: Check that this works
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or ops[exp[exp_index].val][1] < min_precedence:
+        elif exp_index >= len(exp) or ops[exp[exp_index].val][0] < min_precedence:
             break
 
-        if ops[exp[exp_index].val][2] == 'L':
-            next_min_prec = ops[exp[exp_index].val][1] + 1
+        if ops[exp[exp_index].val][1] == 'L':
+            next_min_prec = ops[exp[exp_index].val][0] + 1
         else:
-            next_min_prec = ops[exp[exp_index].val][1]
+            next_min_prec = ops[exp[exp_index].val][0]
         op = exp[exp_index]
         exp_index += 1
         rh_expr, exp_index = parseExpression(exp, ops, next_min_prec, exp_index)
@@ -620,16 +621,48 @@ def fixExpression(ast, op_table):
     return decorated_ast
 
 
-''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table):
-    if type(expr) is AST.BASICTYPE:
-        pass
+def tokenToTypeId(token):
+    if token.typ == TOKEN.INT:
+        return 'Int'
+    elif token.typ == TOKEN.CHAR:
+        return 'Char'
+    elif token.typ == TOKEN.BOOL:
+        return 'Bool'
+    elif token.typ == TOKEN.STRING:
+        return 'String'
     else:
-        pass
+        raise Exception('Unknown token supplied.')
 
-def typecheck_globals(ast, symbol_table):
+''' Type check the given expression '''
+def typecheck(expr, exp_type, symbol_table, op_table):
+    if type(expr) is Token:
+        return tokenToTypeId(expr) == exp_type.type_id.val
+    elif type(expr) is AST.PARSEDEXPR:
+        success = False
+        type1 = None
+        type2 = None
+        for o in op_table[expr.fun.val][2]:
+            if AST.equalVals(o.to_type, exp_type):
+                check1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table)
+                check2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table)
+                type1 = o.from_types[0].type_id.val if check1 else tokenToTypeId(expr.arg1)
+                type2 = o.from_types[1].type_id.val if check2 else tokenToTypeId(expr.arg2)
+                if check1 and check2:
+                    success = True
+
+        if not success:
+            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1, type2, expr.fun])
+
+        return True
+    else:
+        print(type(expr))
+
+def typecheck_function(func, symbol_table):
+    pass
+
+def typecheck_globals(ast, symbol_table, op_table):
     for g in symbol_table.global_vars:
-        typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table)
+        typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
 # Given an AST node, get first token
 def getFirstToken(node):

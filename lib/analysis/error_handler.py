@@ -30,6 +30,8 @@ class ERR(IntEnum):
     FunctionOutputNestedVoid = 17
     LocalVarTypeNone = 18
     LocalVarVoid = 19
+    # Typing
+    UnsupportedOperandType = 20
 
 
 ERRMSG = {
@@ -51,7 +53,8 @@ ERRMSG = {
     ERR.FunctionInputVoid: 'Input type of {} cannot contain Void',
     ERR.FunctionOutputNestedVoid: 'Return type of {} contains nested Void',
     ERR.LocalVarTypeNone: 'Local variable {} of function {} needs a type',
-    ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void'
+    ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
+    ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}: "{}" and "{}"\n{}'
 }
 
 class WARN(IntEnum):

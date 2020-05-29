@@ -8,8 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        Int a = 5;
-        (Int, Int) pos = (2, 3);
+        Int a = 'c' + 6 - 4;
     ''')
 
     # Tokenize / parse
@@ -27,8 +26,8 @@ def main():
     ast = fixExpression(parse_res, op_table)
     ERROR_HANDLER.checkpoint()
 
-    # Check for dead code
-    typecheck_globals(ast, symbol_table)
+    # Type check
+    typecheck_globals(ast, symbol_table, op_table)
     ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":
