@@ -8,7 +8,8 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        Int a = 'c' + 6 - 4;
+        Bool t = True;
+        Int a = 'c' + b + 4;
     ''')
 
     # Tokenize / parse
@@ -19,6 +20,14 @@ def main():
     # Build symbol table
     ERROR_HANDLER.setSourceMapping(testprog, [])
     symbol_table = buildSymbolTable(parse_res)
+    ERROR_HANDLER.checkpoint()
+
+    # Normalize table
+    normalizeAllTypes(symbol_table)
+    ERROR_HANDLER.checkpoint()
+
+    # Resolve Expr names
+    resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     # Parse expression

@@ -105,23 +105,24 @@ BUILTIN_FUNCTIONS = [
     ("isEmpty", "[T] -> Bool")
 ]
 
-# TODO finalize the info in here
 BUILTIN_INFIX_OPS = {
-    "+": (7, "L", [AST.FUNTYPE(
-                from_types=[
-                    AST.BASICTYPE(type_id=
-                        Token(Position(), TOKEN.TYPE_IDENTIFIER, "Int")
-                    ), AST.BASICTYPE(type_id=
-                        Token(Position(), TOKEN.TYPE_IDENTIFIER, "Int")
-                    )
-                ],
-                to_type=AST.BASICTYPE(
-                    type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Int")
-                ),
-            )
-        ]
-    )
+    "*": ("T T -> T", 7, "L"),
+    "/":  ("T T -> T", 7, "L"),
+    "%": ("T T -> T", 7, "L"),
+    "+": ("T T -> T", 6, "L"),# Should these actually have types T? It is in the spec but only defined for a couple of types, so maybe it's better to seperate those
+    "-": ("T T -> T", 6, "L"),
+    ":": ("T [T] -> [T]", 5, "L"),
+    "==": ("T T -> Bool", 4, "??"),# How should comparision operators work for lists and tuples? Should they at all?
+    "<": ("T T -> Bool", 4, "??"),
+    ">": ("T T -> Bool", 4, "??"),
+    "<=": ("T T -> Bool", 4, "??"),
+    ">=": ("T T -> Bool", 4, "??"),
+    "!=": ("T T -> Bool", 4, "??"),
+    "&&": ("Bool Bool -> Bool", 3, "R"),
+    "||": ("Bool Bool -> Bool", 2, "R")
 }
+
+# TODO finalize the info in here
 
 BUILTIN_PREFIX_OPS = [
     ("!", "Bool -> Bool"),
@@ -474,10 +475,8 @@ def resolveNames(symbol_table):
         print("In scope: ",in_scope)
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, in_scope_globals=in_scope)
 
-    exit()
 
-
-
+    '''
     for decl in ast.decls:
         val = decl.val
         if type(val) is AST.VARDECL:
@@ -502,6 +501,8 @@ def resolveNames(symbol_table):
             print("Let's go BITCHESSSSS!!!!!!!!!!")
             print(resolveTypeName(val.def_type, symbol_table).tree_string())
             pass
+            
+    '''
     '''
     Funcall naar module, (FunUniq, id) (nog geen type)
     Varref naar module, scope (global of local + naam of arg + naam)
@@ -549,9 +550,44 @@ Functions are always in scope
 def resolveExprNames(expr, symbol_table, in_scope_globals=[], in_scope_locals=[]):
     pass
 
-def buildOperatorTable(symbol_table):
-    op_table = BUILTIN_INFIX_OPS
+def abstractToConcreteType(abstract_type):
+    basic_types = ['Int', 'Char', 'Bool']
+    if abstract_type == 'T':
+        return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)) for b in basic_types]
+    elif abstract_type in basic_types:
+        return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, abstract_type))]
+    elif abstract_type == '[T]':
+        return [AST.LISTTYPE(type=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b))) for b in basic_types]
+    else:
+        raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
+def buildOperatorTable(symbol_table):
+    op_table = {}
+
+    # TODO: Are this really all of the basic types in a relation T T -> T? What about tuples?
+    counter = 0
+    for o in BUILTIN_INFIX_OPS:
+        op_table[o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
+        first_type, second_type, _, output_type = BUILTIN_INFIX_OPS[o][0].split()
+        first_types = abstractToConcreteType(first_type)
+        second_types = abstractToConcreteType(second_type)
+        output_types = abstractToConcreteType(output_type)
+
+        for ft in first_types:
+            for st in second_types:
+                for ot in output_types:
+                    op_table[o][2].append(
+                        AST.FUNTYPE(
+                            from_types=[ft, st],
+                            to_type=[ot]
+                        )
+                    )
+                    counter += 1
+
+    print("Number of builtin functions: %d" % len(op_table))
+    print("With a total of %d overloaded functions. " % counter)
+
+    # TODO: Fix this when experimenting with custom operators
     for x in symbol_table.functions:
         f = symbol_table.functions[x]
         if x[0] is FunUniq.INFIX:
@@ -636,6 +672,7 @@ def tokenToTypeId(token):
 ''' Type check the given expression '''
 def typecheck(expr, exp_type, symbol_table, op_table):
     if type(expr) is Token:
+        print(type(expr))
         return tokenToTypeId(expr) == exp_type.type_id.val
     elif type(expr) is AST.PARSEDEXPR:
         success = False
@@ -654,7 +691,10 @@ def typecheck(expr, exp_type, symbol_table, op_table):
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1, type2, expr.fun])
 
         return True
+    elif type(expr) is AST.VARREF:
+        print(expr)
     else:
+        print("Unknown type")
         print(type(expr))
 
 def typecheck_function(func, symbol_table):
@@ -662,6 +702,7 @@ def typecheck_function(func, symbol_table):
 
 def typecheck_globals(ast, symbol_table, op_table):
     for g in symbol_table.global_vars:
+        print(symbol_table.global_vars[g])
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
 # Given an AST node, get first token
