@@ -8,7 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        Int a = True || False;
+        Bool a = True || 5;
     ''')
 
     # Tokenize / parse

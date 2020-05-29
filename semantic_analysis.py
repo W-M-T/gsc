@@ -581,18 +581,18 @@ def buildOperatorTable(symbol_table):
 
         for ft in first_types:
             for st in second_types:
-                for ot in output_types:
-                    op_table[o][2].append(
-                        AST.FUNTYPE(
-                            from_types=[ft, st],
-                            to_type=ot
+                if AST.equalVals(ft, st):
+                    for ot in output_types:
+                        op_table[o][2].append(
+                            AST.FUNTYPE(
+                                from_types=[ft, st],
+                                to_type=ot
+                            )
                         )
-                    )
-                    counter += 1
+                        counter += 1
 
     print("Number of builtin functions: %d" % len(op_table))
     print("With a total of %d overloaded functions. " % counter)
-    print(op_table['||'][2])
 
     # TODO: Fix this when experimenting with custom operators
     for x in symbol_table.functions:
@@ -678,22 +678,27 @@ def tokenToTypeId(token):
 ''' Type check the given expression '''
 def typecheck(expr, exp_type, symbol_table, op_table):
     if type(expr) is Token:
-        print(type(expr))
         return tokenToTypeId(expr) == exp_type.type_id.val
     elif type(expr) is AST.PARSEDEXPR:
         success = False
         type1 = None
         type2 = None
+        alternatives = 0
         for o in op_table[expr.fun.val][2]:
             if AST.equalVals(o.to_type, exp_type):
                 check1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table)
                 check2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table)
                 type1 = o.from_types[0].type_id.val if check1 else tokenToTypeId(expr.arg1)
                 type2 = o.from_types[1].type_id.val if check2 else tokenToTypeId(expr.arg2)
+                alternatives += 1
                 if check1 and check2:
                     success = True
 
-        if not success:
+        if alternatives == 0:
+            # There is no alternative of this operator which has the expected output type
+            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [exp_type.type_id.val, expr.fun])
+        elif not success:
+            # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1, type2, expr.fun])
 
         return True
@@ -708,7 +713,8 @@ def typecheck_function(func, symbol_table):
 
 def typecheck_globals(ast, symbol_table, op_table):
     for g in symbol_table.global_vars:
-        print(symbol_table.global_vars[g])
+        print("Typechecking the following expression:")
+        print(symbol_table.global_vars[g].expr)
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
 # Given an AST node, get first token
