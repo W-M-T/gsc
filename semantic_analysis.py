@@ -8,10 +8,11 @@ from AST_prettyprinter import print_node, subprint_type
 from util import Token
 import os
 from enum import IntEnum
+import json
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
-# TODO python dict iteration is not deterministically the same: leads to different errros being first every time
+# TODO python dict iteration is not deterministically the same: leads to different errors being first every time
 
 class FunUniq(IntEnum):
     FUNC   = 1
@@ -72,6 +73,17 @@ class SymbolTable():
 
     def __repr__(self):
         return self.repr_short()
+
+    def export_header_file(self):
+        temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), self.global_vars.values()))
+        temp_typesyns = [(k, v.__serial__()) for (k, v) in self.type_syns.items()]
+        temp_functions = [((uq.name, k), [t.__serial__() for t in v['type'].from_types], v['type'].to_type.__serial__()) for ((uq, k), v_list) in self.functions.items() for v in v_list]
+        temp_packet = {
+            "globals": temp_globals,
+            "typesyns": temp_typesyns,
+            "functions": temp_functions
+            }
+        return json.dumps(temp_packet, sort_keys=True,indent=2)
 
     '''
     def __repr__(self):
@@ -293,6 +305,36 @@ def forbid_illegal_types(symbol_table):
 
 
 
+
+'''
+Helper function for symbol table building
+'''
+def buildFuncEntry(val):
+    temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
+
+    funarg_vars = {}
+    local_vars = {}
+    for ix, arg in enumerate(val.params):
+        if not arg.val in funarg_vars:
+            found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
+            funarg_vars[arg.val] = {"id":arg, "type":found_type}
+        else:
+            # Arg name was already used
+            ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
+    for vardecl in val.vardecls:
+        if vardecl.id.val in funarg_vars:
+            # The local var id is already an arg id
+            ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
+        if not vardecl.id.val in local_vars:
+            local_vars[vardecl.id.val] = vardecl
+        else:
+            # The local var id was already used
+            ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
+
+    temp_entry["arg_vars"] = funarg_vars
+    temp_entry["local_vars"]  = local_vars
+    return temp_entry
+
 ''' TODO how should we handle errors / warnings?
 E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
 Or should we show the error that is "first" in the file?
@@ -358,65 +400,12 @@ def buildSymbolTable(ast):
                     pass
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
-                    temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
-
-                    funarg_vars = {}
-                    local_vars = {}
-                    for ix, arg in enumerate(val.params):
-                        if not arg.val in funarg_vars:
-                            found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
-                            funarg_vars[arg.val] = {"id":arg, "type":found_type}
-                        else:
-                            # Arg name was already used
-                            ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
-                    for vardecl in val.vardecls:
-                        if vardecl.id.val in funarg_vars:
-                            # The local var id is already an arg id
-                            ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
-                        if not vardecl.id.val in local_vars:
-                            local_vars[vardecl.id.val] = vardecl
-                        else:
-                            # The local var id was already used
-                            ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
-
-                    temp_entry["arg_vars"] = funarg_vars
-                    temp_entry["local_vars"]  = local_vars
-
+                    temp_entry = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
-                    #exit()
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
             else: # Already defined in the table, check for overloading
-                # TODO Dedupe code
-                #print("Rewrite this stuff to a single function and call that instead of duplicating code")
-                #exit()
-                #symbol_table.functions[(uniq_kind,fun_id)] = []
-                temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
-
-                funarg_vars = {}
-                local_vars = {}
-                for ix, arg in enumerate(val.params):
-                    if not arg.val in funarg_vars:
-                        found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
-                        funarg_vars[arg.val] = {"id":arg, "type":found_type}
-                    else:
-                        # Arg name was already used
-                        ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
-                for vardecl in val.vardecls:
-                    if vardecl.id.val in funarg_vars:
-                        # The local var id is already an arg id
-                        ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
-                    if not vardecl.id.val in local_vars:
-                        local_vars[vardecl.id.val] = vardecl
-                    else:
-                        # The local var id was already used
-                        ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
-
-                temp_entry["arg_vars"] = funarg_vars
-                temp_entry["local_vars"]  = local_vars
-
-                #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
-                #exit()
+                temp_entry = temp_entry = buildFuncEntry(val)
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
         elif type(val) is AST.TYPESYN:
@@ -799,6 +788,7 @@ f (x) :: Int -> Int {
     Int x = 2;
     return x;
 }
+//*/
 /*
 g (x) {
     return 2;
@@ -818,6 +808,8 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
+        symbol_table.export_header_file()
+        exit()
         forbid_illegal_types(symbol_table)
         exit()
         print("NORMALIZING TYPES ==================")
