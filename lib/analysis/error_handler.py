@@ -31,6 +31,10 @@ class ERR(IntEnum):
     FunctionOutputNestedVoid = 17
     LocalVarTypeNone = 18
     LocalVarVoid = 19
+    # Typing
+    UnsupportedOperandType = 20,
+    IncompatibleTypes = 21,
+    UnexpectedType = 22
 
 
 ERRMSG = {
@@ -44,7 +48,7 @@ ERRMSG = {
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {}\n{}',
     ERR.UndefinedOp: 'Operator is not defined\n{}',
     ERR.BreakOutsideLoop: 'Using a break or continue statement outside of a loop',
-    ERR.NotAllPathsReturn: 'Not all paths lead to a return',
+    ERR.NotAllPathsReturn: 'Not all paths in function {} lead to a certain return\n{}',
     ERR.TypeSynVoid: 'Type synonym {} cannot have Void in its type',
     ERR.GlobalVarTypeNone: 'Global var {} needs a type',
     ERR.GlobalVarVoid: 'Global variable {} cannot have Void in its type',
@@ -52,7 +56,10 @@ ERRMSG = {
     ERR.FunctionInputVoid: 'Input type of {} cannot contain Void',
     ERR.FunctionOutputNestedVoid: 'Return type of {} contains nested Void',
     ERR.LocalVarTypeNone: 'Local variable {} of function {} needs a type',
-    ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void'
+    ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
+    ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}: "{}" and "{}"\n{}',
+    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {}\n{}',
+    ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}'
 }
 
 class WARN(IntEnum):

@@ -106,6 +106,7 @@ def InfixOpDecl():
 def VarDecl():
     typ = yield (ps.token(TOKEN.VAR) | Type)
     typ = None if type(typ) == Token and typ.typ == TOKEN.VAR else typ
+    print(typ)
     varname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.OP_IDENTIFIER, cond=(lambda x: x == "="))
     found_expr = yield Exp
@@ -153,6 +154,7 @@ BasicTypeChoice = ps.token(TOKEN.TYPE_IDENTIFIER, cond=(lambda x: x == "Int")) |
 @ps.generate
 def BasicType():
     a = yield BasicTypeChoice
+    print(a)
     return AST.BASICTYPE(type_id=a)
 
 @ps.generate
@@ -227,7 +229,7 @@ def Stmt():
 
 @ps.generate
 def StmtIfElse():
-    yield ps.token(TOKEN.IF)
+    if_token = yield ps.token(TOKEN.IF)
     yield ps.token(TOKEN.PAR_OPEN)
     condition = yield Exp
     yield ps.token(TOKEN.PAR_CLOSE)
