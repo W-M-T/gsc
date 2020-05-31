@@ -62,6 +62,20 @@ def syntaxnode(typename, *field_names, module=None):
         'Return a nicely formatted representation string'
         return self.__class__.__name__ + repr_fmt.format(**{key: getattr(self,key) for key in self._fields})
 
+    def __serial__(self):
+        'Return a string fit for serialisation'
+        def rep_tok(tok):
+            if type(tok) is Token:
+                return '"{}"'.format(tok.val)
+            elif type(tok) is list:
+                return '[{}]'.format(','.join(t.__serial__() for t in tok))
+            else:
+                return tok.__serial__()
+        key_val = {key: getattr(self,key) for key in self._fields}
+        key_val = dict([(k, rep_tok(v)) for (k, v) in key_val.items()])
+        temp = self.__class__.__name__ + repr_fmt.format(**key_val)
+        return temp
+
     def __setitem__(self, key, value):
         if not (key in field_names or key in class_attrs):
             raise KeyError("No such attribute name")
@@ -93,6 +107,7 @@ def syntaxnode(typename, *field_names, module=None):
 
         substrings = list(map(sub_tree_str, field_names))
         indented = "\n".join(list(map(lambda x: "\n".join(map(lambda y: "    " + y, x.rstrip().split("\n"))), substrings)))
+        '''return "{} {}:\n{}".format(self.__class__.__name__, "@" + repr(self._start_pos), indented)'''
         return "{}:\n{}".format(self.__class__.__name__, indented)
 
     def items(self):
@@ -101,7 +116,7 @@ def syntaxnode(typename, *field_names, module=None):
 
     # Modify function metadata to help with introspection and debugging
 
-    for method in (__new__, __init__, __iter__, __repr__, __setitem__, tree_string , items):
+    for method in (__new__, __init__, __iter__, __repr__, __serial__, __setitem__, tree_string , items):
         method.__qualname__ = '{}.{}'.format(typename, method.__name__)
 
     # Build-up the class namespace dictionary
@@ -113,6 +128,7 @@ def syntaxnode(typename, *field_names, module=None):
         '__init__':__init__,
         '__iter__':__iter__,
         '__repr__': __repr__,
+        '__serial__':__serial__,
         '__setitem__':__setitem__,
         #'__getitem__':__getitem__,
         'tree_string': tree_string,

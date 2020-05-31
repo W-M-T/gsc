@@ -11,6 +11,7 @@ from functools import wraps
 from collections import namedtuple
 from util import pointToPosition
 from parse_error_handler import ParseErrorHandler, ParseError
+from AST import AST
 
 ##########################################################################
 # Definition the Value modelof parsec.py.
@@ -84,7 +85,11 @@ class Parser(object):
 
     def __call__(self, text, index):
         '''call wrapped function.'''
-        return self.fn(text, index)
+        res = self.fn(text, index)
+        if res.status:
+            if type(res.value) in AST.nodes:
+                res.value._start_pos = text[index].pos
+        return res
 
     def parse(self, text):
         '''Parser a given string `text`.'''
