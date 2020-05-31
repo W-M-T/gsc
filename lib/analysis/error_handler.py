@@ -2,6 +2,7 @@
 
 from enum import IntEnum
 from util import pointToPosition, Token
+from AST import AST
 
 class ERRCOLOR:
     WARNING = '\033[33m'
@@ -34,12 +35,12 @@ class ERR(IntEnum):
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
-    ERR.DuplicateGlobalVarId: 'Global variable identifier already used\n{}\nInitial definition:\n{}',
+    ERR.DuplicateGlobalVarId: 'Duplicate global variable identifier\n{}\nInitial definition:\n{}',
     ERR.ArgCountDoesNotMatchSign: 'Argument count doesn\'t match signature\n{}',
     ERR.DuplicateArgName: 'Duplicate argument name\n{}',
     ERR.DuplicateVarDef: 'Duplicate variable definition\n{}\nInitial definition:\n{}',
     ERR.ReservedTypeId: 'Trying to redefine a reserved type identifier\n{}',
-    ERR.DuplicateTypeId: 'Type identifier already defined\n{}',#\nInitial definition:\n{} This one doesn't work well enough yet: doesn't point to the type definition
+    ERR.DuplicateTypeId: 'Duplicate type identifier\n{}\nInitial definition:\n{}',
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {}\n{}',
     ERR.UndefinedOp: 'Operator is not defined\n{}',
     ERR.BreakOutsideLoop: 'Using a break or continue statement outside of a loop',
@@ -104,12 +105,26 @@ class ErrorHandler():
     def checkpoint(self):
         if len(self.errors) > 0:
             for e in self.errors:
-                info = [pointToPosition(self.sourcecode, t.pos) if type(t) is Token else str(t) for t in e['tokens']]
+                info = []
+                for t in e['tokens']:
+                    if type(t) is Token:
+                        info.append(pointToPosition(self.sourcecode, t.pos))
+                    elif type(t) in AST.nodes:
+                        info.append(pointToPosition(self.sourcecode, t._start_pos))
+                    else:
+                        info.append(str(t))
                 print(ERRCOLOR.FAIL + "[ERROR] %s" % (ERRMSG[e['type']].format(*info)) + ERRCOLOR.ENDC)
 
         if not self.hidewarn:
             for w in self.warnings:
-                info = [pointToPosition(self.sourcecode, t.pos) if type(t) is Token else str(t) for t in w['tokens']]
+                info = []
+                for t in w['tokens']:
+                    if type(t) is Token:
+                        info.append(pointToPosition(self.sourcecode, t.pos))
+                    elif type(t) in AST.nodes:
+                        info.append(pointToPosition(self.sourcecode, t._start_pos))
+                    else:
+                        info.append(str(t))
                 print(ERRCOLOR.WARNING + "[WARNING] %s" % (WARNMSG[w['type']].format(*info)) + ERRCOLOR.ENDC)
 
         if len(self.errors) > 0:
