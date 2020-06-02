@@ -74,6 +74,11 @@ class SymbolTable():
     def __repr__(self):
         return self.repr_short()
 
+    '''
+    TODO
+    move this to import file
+    add module dependency info somewhere. Either in header file or in object file
+    '''
     def export_header_file(self):
         temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), self.global_vars.values()))
         temp_typesyns = [(k, v.__serial__()) for (k, v) in self.type_syns.items()]
@@ -89,6 +94,17 @@ class SymbolTable():
     def __repr__(self):
         return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.funarg_vars, self.local_vars, self.type_syns)
     '''
+
+def import_header_file(json_string):
+    temp_packet = json.loads(json_string)
+    for v in temp_packet['globals']:
+        print(v)
+    for v in temp_packet['typesyns']:
+        print(v)
+    for v in temp_packet['functions']:
+        v[0][0] = FunUniq[v[0][0]]
+        print(v)
+
 
 ''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
 I think it would be best if you didn't have to explicitly import dependencies of a function you're importing to have it work, but you also don't want that dependency to end up in the namespace
@@ -920,7 +936,7 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
-        symbol_table.export_header_file()
+        import_header_file(symbol_table.export_header_file())
         exit()
         forbid_illegal_types(symbol_table)
         exit()
