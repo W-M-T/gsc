@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.analysis.error_handler import ERROR_HANDLER
+from lib.analysis.header_parser import parse_type
 import os
 import json
 from AST import FunUniq
@@ -14,7 +15,7 @@ SOURCE_EXT = ".spl"
 TODO?
 add module dependency info somewhere. Either in header file or in object file
 '''
-def export_header_file(symbol_table):
+def export_headers(symbol_table):
     temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), symbol_table.global_vars.values()))
     temp_typesyns = [(k, v.__serial__()) for (k, v) in symbol_table.type_syns.items()]
     temp_functions = [((uq.name, k), [t.__serial__() for t in v['type'].from_types], v['type'].to_type.__serial__()) for ((uq, k), v_list) in symbol_table.functions.items() for v in v_list]
@@ -26,15 +27,17 @@ def export_header_file(symbol_table):
     return json.dumps(temp_packet, sort_keys=True,indent=2)
 
 
-def import_header_file(json_string):
+def import_headers(json_string):
     temp_packet = json.loads(json_string)
-    for v in temp_packet['globals']:
-        print(v)
-    for v in temp_packet['typesyns']:
-        print(v)
-    for v in temp_packet['functions']:
-        v[0][0] = FunUniq[v[0][0]]
-        print(v)
+    temp_packet["globals"] = {k:parse_type(v) for k,v in temp_packet["globals"]}
+    temp_packet["typesyns"] = {k:parse_type(v) for k,v in temp_packet["typesyns"]}
+    #temp_packet["functions"] = {(ident, FunUniq[kind]):parse_type(v) for (ident, kind),v in temp_packet["functions"]}
+    for k,v in temp_packet["globals"].items():
+        print(k,v.tree_string())
+    for k,v in temp_packet["typesyns"].items():
+        print(k,v.tree_string())
+    #for k,v in temp_packet["functions"].items():
+    #    print(k,v.tree_string())
     temp_packet = {
         "globals": None,
         "typesyns": None,

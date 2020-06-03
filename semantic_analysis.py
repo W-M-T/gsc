@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.analysis.imports import export_header_file, import_header_file
+from lib.analysis.imports import export_headers, import_headers
 from lib.analysis.error_handler import *
 from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
 from parser import parseTokenStream
@@ -31,7 +31,7 @@ class SymbolTable():
         self.functions = functions
         self.type_syns = type_syns
 
-        self.order_mapping = {"global_vars":{}, "type_syns":{}} # Order doesn't matter for functions
+        self.order_mapping = {"global_vars":{}, "local_vars":{}} # Order doesn't matter for functions
         # This can be done more easily in newer versions of python, since dict order is deterministic there
 
     '''
@@ -296,6 +296,7 @@ def buildFuncEntry(val):
 
     funarg_vars = {}
     local_vars = {}
+    local_vars_order_mapping = {}
     for ix, arg in enumerate(val.params):
         if not arg.val in funarg_vars:
             found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
@@ -303,19 +304,20 @@ def buildFuncEntry(val):
         else:
             # Arg name was already used
             ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
-    for vardecl in val.vardecls:
+    for index_local, vardecl in enumerate(val.vardecls):
         if vardecl.id.val in funarg_vars:
             # The local var id is already an arg id
             ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
         if not vardecl.id.val in local_vars:
             local_vars[vardecl.id.val] = vardecl
+            local_vars_order_mapping[vardecl.id.val] = index_local
         else:
             # The local var id was already used
             ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
 
     temp_entry["arg_vars"] = funarg_vars
     temp_entry["local_vars"]  = local_vars
-    return temp_entry
+    return temp_entry, local_vars_order_mapping
 
 ''' TODO how should we handle errors / warnings?
 E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
@@ -333,7 +335,6 @@ def buildSymbolTable(ast):
         print(el)
     print("Decls")
     index_global_var = 0
-    index_typesyn = 0
     for decl in ast.decls:
         val = decl.val
         if type(val) is AST.VARDECL:
@@ -382,13 +383,17 @@ def buildSymbolTable(ast):
                     pass
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
-                    temp_entry = buildFuncEntry(val)
+                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
+                    
+                    temp_entry, temp_order_mapping = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
+                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_entry)
 
             else: # Already defined in the table, check for overloading
-                temp_entry = temp_entry = buildFuncEntry(val)
+                temp_entry, temp_order_mapping = buildFuncEntry(val)
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
+                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_entry)
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -406,8 +411,6 @@ def buildSymbolTable(ast):
                 else:
                     normalized_type = normalizeType(def_type, symbol_table)
                     symbol_table.type_syns[type_id] = normalized_type
-                    symbol_table.order_mapping["type_syns"][type_id] = index_typesyn
-                    index_typesyn += 1
             else:
                 # Type identifier already used
                 ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, symbol_table.type_syns[val.type_id.val]])
@@ -940,7 +943,7 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
-        import_header_file(export_header_file(symbol_table))
+        import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)
         exit()
