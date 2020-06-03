@@ -57,8 +57,8 @@ ERRMSG = {
     ERR.FunctionOutputNestedVoid: 'Return type of {} contains nested Void',
     ERR.LocalVarTypeNone: 'Local variable {} of function {} needs a type',
     ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
-    ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}: "{}" and "{}"\n{}',
-    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {} with the given operands\n{}',
+    ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}, expected argument {} to be {}\n{}',
+    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {}\n{}',
     ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}'
 }
 

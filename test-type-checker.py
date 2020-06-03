@@ -8,17 +8,8 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        //Bool a = True + (5 + 3);
-        
-        f (a) :: Int -> Int {
-            a = f(2, 3);
-            f(2, 3);
-            break;
-            while(2 > 3) {
-                a = 5;
-            }
-            return a * 2;
-        }
+        Int a = 5;
+        Int b = 6 + (5 || 3);
     ''')
 
     # Tokenize / parse
@@ -36,7 +27,7 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
-    resolveNames(symbol_table)
+    #resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     # Parse expression
@@ -46,7 +37,7 @@ def main():
 
     # Type check
     typecheck_globals(ast, symbol_table, op_table)
-    typecheck_func(ast.decls[0].val, symbol_table, op_table)
+    #typecheck_func(ast.decls[0].val, symbol_table, op_table)
     ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":
