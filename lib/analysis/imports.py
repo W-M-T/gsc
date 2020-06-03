@@ -4,7 +4,7 @@ from lib.analysis.error_handler import ERROR_HANDLER
 from lib.analysis.header_parser import parse_type
 import os
 import json
-from AST import FunUniq
+from AST import FunUniq, AST
 
 HEADER_EXT = ".spld"
 OBJECT_EXT = ".splo"
@@ -31,18 +31,9 @@ def import_headers(json_string):
     temp_packet = json.loads(json_string)
     temp_packet["globals"] = {k:parse_type(v) for k,v in temp_packet["globals"]}
     temp_packet["typesyns"] = {k:parse_type(v) for k,v in temp_packet["typesyns"]}
-    #temp_packet["functions"] = {(ident, FunUniq[kind]):parse_type(v) for (ident, kind),v in temp_packet["functions"]}
-    for k,v in temp_packet["globals"].items():
-        print(k,v.tree_string())
-    for k,v in temp_packet["typesyns"].items():
-        print(k,v.tree_string())
-    #for k,v in temp_packet["functions"].items():
-    #    print(k,v.tree_string())
-    temp_packet = {
-        "globals": None,
-        "typesyns": None,
-        "functions": None
-    }
+    temp_packet["functions"] = {(FunUniq[uq], k):
+                                    AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
+                                    for (uq, k),from_ts,to_t in temp_packet["functions"]}
     return temp_packet
 '''
 In order of priority:

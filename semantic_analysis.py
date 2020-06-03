@@ -290,6 +290,7 @@ def forbid_illegal_types(symbol_table):
 
 '''
 Helper function for symbol table building
+Return a dict with function info + a dict of local variable definition order
 '''
 def buildFuncEntry(val):
     temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
@@ -384,7 +385,7 @@ def buildSymbolTable(ast):
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
-                    
+
                     temp_entry, temp_order_mapping = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
