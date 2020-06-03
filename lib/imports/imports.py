@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.analysis.error_handler import ERROR_HANDLER
-from lib.analysis.header_parser import parse_type
+from lib.imports.header_parser import parse_type
 import os
 import json
 from AST import FunUniq, AST
@@ -10,7 +10,13 @@ HEADER_EXT = ".spld"
 OBJECT_EXT = ".splo"
 SOURCE_EXT = ".spl"
 
-
+'''
+Voorbeeld:
+A import B
+B import C
+object file van B bevat bytecode voor B en C
+zdd het linken van A alleen de object file van B nodig heeft
+'''
 '''
 TODO?
 add module dependency info somewhere. Either in header file or in object file
@@ -35,6 +41,7 @@ def import_headers(json_string):
                                     AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
                                     for (uq, k),from_ts,to_t in temp_packet["functions"]}
     return temp_packet
+
 '''
 In order of priority:
 1: File specific compiler arg
