@@ -42,7 +42,7 @@ class SymbolTable():
         self.functions = functions
         self.type_syns = type_syns
 
-        self.order_mapping = {"global_vars":{}, "type_syns":{}} # Order doesn't matter for functions
+        self.order_mapping = {"global_vars":{}} # Order doesn't matter for functions
         # This can be done more easily in newer versions of python, since dict order is deterministic there
 
     '''
@@ -456,21 +456,6 @@ def buildSymbolTable(ast):
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(symbol_table):
-    # Resolve type syns
-    # This is already guaranteed by way of buildSymbolTable, might be possible to move this there or remove it from buildSymbolTable and do it here?
-    '''
-    print("RESOLVING TYPESYNS")
-    for type_id, type_syn in symbol_table.type_syns.items():
-        print(type_id, type_syn)
-        def resolveTypeToken(node):
-            if type(node.val) is Token:
-                print("GOT A DAMN TOKEN")
-                print(node.val)
-            return node
-        treemap(type_syn,  lambda x: selectiveApply(AST.TYPE, x, resolveTypeToken))
-        exit()
-    '''
-
     # Resolve names used in expressions in global variable definitions:
     # Order matters here as to what is in scope
     print("RESOLVING VARS:")
@@ -602,9 +587,6 @@ def buildOperatorTable(symbol_table):
                                     to_type=ot
                                 )
                             )
-
-    print("Number of builtin functions: %d" % len(op_table))
-    print("With a total of %d overloaded functions. " % counter)
 
     # TODO: Fix this when experimenting with custom operators
     for x in symbol_table.functions:
@@ -773,17 +755,6 @@ def typecheck_globals(ast, symbol_table, op_table):
         print(symbol_table.global_vars[g].expr)
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
-# Given an AST node, get first token
-def getFirstToken(node):
-    print(node)
-    if type(node.val) == AST.ACTSTMT:
-        if type(node.val.val) == AST.ASSIGNMENT:
-            return node.val.val.varref.id
-        else:
-            return node.val.val.id
-    elif type(node.val) == AST.LOOP:
-        pass
-
 '''
 Goal of this function is:
 - To check for dead code after break/continue statements;
@@ -805,7 +776,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [getFirstToken(statements[k+1])])
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
                 if stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     return_exp = False
                 else:
@@ -823,11 +794,11 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                 ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt.val])
             else:
                 if k is not len(statements) - 1:
-                    print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
                     return False, return_exp
         elif type(stmt) is AST.RETURN:
             if k is not len(statements) - 1:
-                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [getFirstToken(statements[k+1])])
+                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
             return True, True
 
     if return_exp and cond_depth == 0:

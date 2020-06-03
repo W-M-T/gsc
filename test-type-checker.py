@@ -36,8 +36,8 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
-    #resolveNames(symbol_table)
-    #ERROR_HANDLER.checkpoint()
+    resolveNames(symbol_table)
+    ERROR_HANDLER.checkpoint()
 
     # Parse expression
     op_table = buildOperatorTable(symbol_table)
