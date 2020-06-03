@@ -227,8 +227,8 @@ class AST:
 
     # expr :: AST.EXPR
     RETURN = syntaxnode("RETURN", "expr")
-    BREAK = syntaxnode("BREAK", "val")
-    CONTINUE = syntaxnode("CONTINUE", "val")
+    BREAK = syntaxnode("BREAK")
+    CONTINUE = syntaxnode("CONTINUE")
 
     # varref :: AST.VARREF, expr :: AST.EXPR
     ASSIGNMENT = syntaxnode("ASSIGNMENT", "varref", "expr")
