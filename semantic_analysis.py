@@ -653,45 +653,84 @@ def tokenToTypeId(token):
         raise Exception('Unknown token supplied.')
 
 ''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table, op_table):
-    #print("Typchecking")
-    #print(expr)
-    #print("Expecting")
-    #print(exp_type)
+def typecheck(expr, exp_type, symbol_table, op_table, r=0):
 
     if type(expr) is Token:
         val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
-        if not AST.equalVals(val, exp_type):
-            ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, val])
+        val._start_pos = Position()
+        if not AST.equalVals(val, exp_type) and r == 0:
+            ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, expr])
         return val
     elif type(expr) is AST.PARSEDEXPR:
         typ = None
         type1 = None
         type2 = None
-        alternatives = 0
         for o in op_table[expr.fun.val][2]:
-            type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table)
-            type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table)
-            alternatives += 1
+            type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, r+1)
+            type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, r+1)
+
             if AST.equalVals(o.from_types[0], type1) and AST.equalVals(o.from_types[1], type2):
                 typ = o.to_type
 
         if typ is None:
+            print("Typchecking")
+            print(expr)
+            print("Expecting")
+            print(exp_type)
+
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1.type_id.val, type2.type_id.val, expr.fun])
-        elif not AST.equalVals(typ, exp_type):
+            return exp_type
+        elif not AST.equalVals(typ, exp_type) and r == 0:
             # There is no alternative of this operator which has the expected output type
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [exp_type.type_id.val, expr.fun])
-
+            return exp_type
         return typ
     elif type(expr) is AST.VARREF:
+        print(expr)
+        pass
+    elif type(expr) is AST.FUNCALL:
+        print(expr)
         pass
     else:
         print("Unknown type")
         print(type(expr))
 
-def typecheck_function(func, symbol_table):
-    pass
+def typecheck_func(func, symbol_table, op_table):
+    print(func)
+    for vardecl in func.vardecls:
+        # Typecheck var decls
+        typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table)
+
+    stmts = list(reversed(func.stmts))
+    ast_boolnode = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
+    while len(stmts) > 0:
+        stmt = stmts.pop()
+        print(stmt)
+        print(type(stmt.val))
+        if type(stmt.val) == AST.ACTSTMT:
+            if type(stmt.val.val) == AST.ASSIGNMENT:
+                # TODO: Check if the assignment is correct given the variable type
+                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table)
+                pass
+            else: # Fun call
+                for a in stmt.val.val.args:
+                    # TODO: Check if argument type matches signature
+                    # typecheck(a, TBD, symbol_table, op_table)
+                    pass
+        elif type(stmt.val) == AST.IFELSE:
+            for b in stmt.val.condbranches:
+                typecheck(b.expr, ast_boolnode, symbol_table, op_table)
+                stmts.extend(list(reversed(b.stmts)))
+        elif type(stmt.val) == AST.LOOP:
+            typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table)
+            stmts.extend(list(reversed(stmt.val.stmts)))
+        elif type(stmt.val) == AST.RETURN:
+            # TODO: Add expected type
+            # typecheck(stmt.val.expr, TBD, symbol_table, op_table)
+            pass
+
+    print("Done")
 
 def typecheck_globals(ast, symbol_table, op_table):
     for g in symbol_table.global_vars:

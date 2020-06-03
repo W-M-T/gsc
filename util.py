@@ -126,6 +126,7 @@ You can use this offset to seek in this function in O(1) given that the file is 
 def pointToPosition(instream, position): # Could be made O(1) instead of O(n) with some work
     instream.seek(0, SEEK_SET)
 
+    print(position)
     for _ in range(position.line - 1):
         instream.readline()
     line = instream.readline()
