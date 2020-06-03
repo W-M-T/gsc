@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import re
-import parsec_original as ps
+import lib.analysis.parsec_original as ps
 # There has to be a better way to do this...
 import sys
 sys.path.insert(0, '../../')
@@ -34,6 +34,9 @@ def NODE():
     key_vals = {k:v for (k,v) in key_vals}
     yield ps.string(")")
     return node_type(**key_vals)
+
+def parse_type(x):
+    return NODE.parse(x)
 
 if __name__ == "__main__":
     TEST = 'TYPE(val=LISTTYPE(type=TYPE(val=TUPLETYPE(a=TYPE(val=TUPLETYPE(a=TYPE(val=LISTTYPE(type=TYPE(val=LISTTYPE(type=TYPE(val=BASICTYPE(type_id="Char")))))), b=TYPE(val=BASICTYPE(type_id="Int")))), b=TYPE(val=BASICTYPE(type_id="Int"))))))'

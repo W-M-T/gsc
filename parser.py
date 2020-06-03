@@ -229,7 +229,7 @@ def Stmt():
 
 @ps.generate
 def StmtIfElse():
-    if_token = yield ps.token(TOKEN.IF)
+    yield ps.token(TOKEN.IF)
     yield ps.token(TOKEN.PAR_OPEN)
     condition = yield Exp
     yield ps.token(TOKEN.PAR_CLOSE)
@@ -307,15 +307,15 @@ def StmtRet():
 
 @ps.generate
 def StmtBreak():
-    found_val = yield ps.token(TOKEN.BREAK)
+    yield ps.token(TOKEN.BREAK)
     yield ps.token(TOKEN.SEMICOLON)
-    return AST.BREAK(val=found_val)
+    return AST.BREAK()
 
 @ps.generate
 def StmtContinue():
-    found_val = yield ps.token(TOKEN.CONTINUE)
+    yield ps.token(TOKEN.CONTINUE)
     yield ps.token(TOKEN.SEMICOLON)
-    return AST.CONTINUE(val=found_val)
+    return AST.CONTINUE()
 
 
 # EXPRESSIONS ===================================================

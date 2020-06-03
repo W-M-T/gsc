@@ -1,56 +1,40 @@
 #!/usr/bin/env python3
 
 from lib.analysis.error_handler import ERROR_HANDLER
+from lib.analysis.header_parser import parse_type
 import os
+import json
+from AST import FunUniq, AST
 
 HEADER_EXT = ".spld"
+OBJECT_EXT = ".splo"
+SOURCE_EXT = ".spl"
 
-def resolveImports(ast, filename, file_mapping_arg, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
-    local_dir = os.path.dirname(os.path.realpath(filename))
 
-    filename_asimport = os.path.basename(filename).rstrip(".spl")
+'''
+TODO?
+add module dependency info somewhere. Either in header file or in object file
+'''
+def export_headers(symbol_table):
+    temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), symbol_table.global_vars.values()))
+    temp_typesyns = [(k, v.__serial__()) for (k, v) in symbol_table.type_syns.items()]
+    temp_functions = [((uq.name, k), [t.__serial__() for t in v['type'].from_types], v['type'].to_type.__serial__()) for ((uq, k), v_list) in symbol_table.functions.items() for v in v_list]
+    temp_packet = {
+        "globals": temp_globals,
+        "typesyns": temp_typesyns,
+        "functions": temp_functions
+        }
+    return json.dumps(temp_packet, sort_keys=True,indent=2)
 
-    print("Resolving imports..")
 
-    file_graph = [] # Mapping of checked imports to their path and their child imports.
-
-    openlist = [(ast, filename_asimport, os.path.realpath(filename))] # list of imports that have been parsed but haven't had their imports checked yet
-    while openlist:
-        current = openlist.pop()
-        cur_ast, cur_importname, cur_filename = current
-
-        cur_file_vertex = {"filename": cur_filename, "importname": cur_importname, "ast": cur_ast, "imports": set()}
-        importlist = cur_ast.imports
-
-        for imp in importlist:
-            importname = imp.name.val
-
-            cur_file_vertex["imports"].add(importname)
-
-            if importname in map(lambda x: x["importname"], file_graph):
-                # Already found, don't parse
-                continue
-
-            # Open file, parse, close and add to list of files to get imports of
-            try:
-                filehandle, filename = resolveFileName(importname, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
-                tokenstream = tokenize(filehandle)
-                tokenlist = list(tokenstream)
-
-                x = parseTokenStream(tokenstream, filehandle)
-                #print(x.tree_string())
-                openlist.append((x, importname, filename))
-                filehandle.close()
-            except FileNotFoundError as e:
-                print("Could not locate import: {}".format(importname))
-                exit()
-        file_graph.append(cur_file_vertex)
-
-    print("Imported the following files:")
-    for vertex in file_graph:
-        print(vertex["importname"])
-    return file_graph
-
+def import_headers(json_string):
+    temp_packet = json.loads(json_string)
+    temp_packet["globals"] = {k:parse_type(v) for k,v in temp_packet["globals"]}
+    temp_packet["typesyns"] = {k:parse_type(v) for k,v in temp_packet["typesyns"]}
+    temp_packet["functions"] = {(FunUniq[uq], k):
+                                    AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
+                                    for (uq, k),from_ts,to_t in temp_packet["functions"]}
+    return temp_packet
 '''
 In order of priority:
 1: File specific compiler arg
