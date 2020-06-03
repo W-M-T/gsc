@@ -166,6 +166,16 @@ class Accessor(IntEnum):
     FST = 3
     SND = 4
 
+class FunUniq(IntEnum):
+    FUNC   = 1
+    PREFIX = 2
+    INFIX  = 3
+
+def FunKindToUniq(kind):
+    return {FunKind.FUNC: FunUniq.FUNC,
+            FunKind.PREFIX: FunUniq.PREFIX,
+            FunKind.INFIXL: FunUniq.INFIX,
+            FunKind.INFIXR: FunUniq.INFIX}[kind]
 
 # Where do we track type information of expressions / variables / functions?
 # Also: where do we document the types of the attributes of these nodes?

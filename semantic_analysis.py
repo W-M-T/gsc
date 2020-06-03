@@ -1,29 +1,18 @@
 #!/usr/bin/env python3
 
-from lib.analysis.imports import resolveImports
+from lib.analysis.imports import export_header_file, import_header_file
 from lib.analysis.error_handler import *
-from AST import AST, FunKind, Accessor
+from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
 from parser import parseTokenStream
 from AST_prettyprinter import print_node, subprint_type
 from util import Token, TOKEN, Position
 import os
 from enum import IntEnum
-import json
+
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
 # TODO python dict iteration is not deterministically the same: leads to different errors being first every time
-
-class FunUniq(IntEnum):
-    FUNC   = 1
-    PREFIX = 2
-    INFIX  = 3
-
-def FunKindToUniq(kind):
-    return {FunKind.FUNC: FunUniq.FUNC,
-            FunKind.PREFIX: FunUniq.PREFIX,
-            FunKind.INFIXL: FunUniq.INFIX,
-            FunKind.INFIXR: FunUniq.INFIX}[kind]
 
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
@@ -75,35 +64,11 @@ class SymbolTable():
         return self.repr_short()
 
     '''
-    TODO
-    move this to import file
-    add module dependency info somewhere. Either in header file or in object file
-    '''
-    def export_header_file(self):
-        temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), self.global_vars.values()))
-        temp_typesyns = [(k, v.__serial__()) for (k, v) in self.type_syns.items()]
-        temp_functions = [((uq.name, k), [t.__serial__() for t in v['type'].from_types], v['type'].to_type.__serial__()) for ((uq, k), v_list) in self.functions.items() for v in v_list]
-        temp_packet = {
-            "globals": temp_globals,
-            "typesyns": temp_typesyns,
-            "functions": temp_functions
-            }
-        return json.dumps(temp_packet, sort_keys=True,indent=2)
-
-    '''
     def __repr__(self):
         return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.funarg_vars, self.local_vars, self.type_syns)
     '''
 
-def import_header_file(json_string):
-    temp_packet = json.loads(json_string)
-    for v in temp_packet['globals']:
-        print(v)
-    for v in temp_packet['typesyns']:
-        print(v)
-    for v in temp_packet['functions']:
-        v[0][0] = FunUniq[v[0][0]]
-        print(v)
+
 
 
 ''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
@@ -936,7 +901,7 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
         symbol_table = buildSymbolTable(x)
-        import_header_file(symbol_table.export_header_file())
+        import_header_file(export_header_file(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)
         exit()
