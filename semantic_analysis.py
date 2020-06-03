@@ -672,7 +672,7 @@ def tokenToTypeId(token):
         raise Exception('Unknown token supplied.')
 
 ''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table, op_table):
+def typecheck(expr, exp_type, symbol_table, op_table, r=0):
     #print("Typchecking")
     #print(expr)
     #print("Expecting")
@@ -680,7 +680,8 @@ def typecheck(expr, exp_type, symbol_table, op_table):
 
     if type(expr) is Token:
         val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
-        if not AST.equalVals(val, exp_type):
+        val._start_pos = Position()
+        if not AST.equalVals(val, exp_type) and r == 0:
             ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, val])
         return val
     elif type(expr) is AST.PARSEDEXPR:
@@ -689,19 +690,22 @@ def typecheck(expr, exp_type, symbol_table, op_table):
         type2 = None
         alternatives = 0
         for o in op_table[expr.fun.val][2]:
-            type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table)
-            type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table)
+            type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, r+1)
+            type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, r+1)
             alternatives += 1
             if AST.equalVals(o.from_types[0], type1) and AST.equalVals(o.from_types[1], type2):
                 typ = o.to_type
+                print("Expected type")
+                print(typ)
 
         if typ is None:
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1.type_id.val, type2.type_id.val, expr.fun])
-        elif not AST.equalVals(typ, exp_type):
+            return exp_type
+        elif not AST.equalVals(typ, exp_type) and r == 0:
             # There is no alternative of this operator which has the expected output type
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [exp_type.type_id.val, expr.fun])
-
+            return exp_type
         return typ
     elif type(expr) is AST.VARREF:
         pass
