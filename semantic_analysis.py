@@ -432,7 +432,7 @@ def resolveNames(symbol_table):
         print("For ",glob_var)
         in_scope = list(filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items()))
         print("In scope: ",in_scope)
-        glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, in_scope_globals=in_scope)
+        glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
 
     '''
     for decl in ast.decls:
@@ -454,7 +454,6 @@ def resolveNames(symbol_table):
             for stmt in val.stmts:
                 print("Stmt")
                 # Should do some kind of mapping function here to generalize the recursion over branching and loops
-        
     '''
 
     '''
@@ -501,8 +500,19 @@ def resolveTypeName(typ, symbol_table, counter=-1):
 Resolve an expression with the following globals in scope
 Functions are always in scope
 '''
-def resolveExprNames(expr, symbol_table, in_scope_globals=[], in_scope_locals=[]):
-    pass
+def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_scope_locals=[]):
+    for i in range(0, len(expr.contents)):
+        if type(expr.contents[i]) is AST.VARREF:
+            if glob:
+                pos = expr.contents[i]._start_pos
+                expr.contents[i] = AST.RES_VARREF(val=AST.RES_GLOBAL(
+                    module=None,
+                    id=expr.contents[i].id,
+                    fields=expr.contents[i].fields
+                ))
+                expr.contents[i]._start_pos = pos
+
+    return expr
 
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
@@ -570,7 +580,7 @@ def parseAtom(exp, ops, exp_index):
         return recurse_res
 
     # TODO: Think about lists.
-    if type(exp[exp_index]) is AST.VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
+    if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
@@ -641,7 +651,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
         val._start_pos = Position()
         if not AST.equalVals(val, exp_type):
             if r == 0:
-                ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, expr])
+                ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
             return False
         return True
     elif type(expr) is AST.PARSEDEXPR:
@@ -660,17 +670,32 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
 
         if incorrect != 0:
             # There is no alternative of this operator which has the expected input types.
-            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, exp_type.type_id.val, expr.fun])
+            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
         elif alternatives == 0:
             # There is no alternative of this operator which has the expected output type
-            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [exp_type.type_id.val, expr.fun])
+            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
         return True
-    elif type(expr) is AST.VARREF:
-        print(expr)
-        pass
+    elif type(expr) is AST.RES_VARREF:
+        if type(expr.val) is AST.RES_GLOBAL:
+            var_typ = symbol_table.global_vars[expr.val.id.val]
+            if not AST.equalVals(var_typ.type.val, exp_type):
+                if r == 0:
+                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
+                    return True
+        return False
     elif type(expr) is AST.FUNCALL:
         print(expr)
         pass
+    elif type(expr) is AST.TUPLE:
+        if type(exp_type) is not AST.TUPLETYPE:
+            ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
+            return True
+
+        type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table)
+        type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table)
+
+        return (type1 or type2)
+
     else:
         print("Unknown type")
         print(type(expr))
@@ -715,6 +740,7 @@ def typecheck_globals(ast, symbol_table, op_table):
     for g in symbol_table.global_vars:
         print("Typechecking the following expression:")
         print(symbol_table.global_vars[g].expr)
+        print(symbol_table.global_vars[g].type.val)
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
 '''

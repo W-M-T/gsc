@@ -8,8 +8,9 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''  
-        Int a = 5;
-        Int b = 6 + (5 || 3);
+        Bool b = True;
+        //Int a = 2 * (5 + (b * 2)) - 27;
+        Int a = (b * 2);
     ''')
 
     # Tokenize / parse
@@ -27,7 +28,7 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
-    #resolveNames(symbol_table)
+    resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     # Parse expression

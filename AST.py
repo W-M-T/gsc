@@ -258,12 +258,11 @@ class AST:
     RES_GLOBAL = syntaxnode("RES_GLOBAL", "module", "id", "fields")
 
     # scope :: NonGlobalScope, id :: TOKEN, fields :: [Accessor]
+    # scope = local or argument.
     RES_NONGLOBAL = syntaxnode("RES_NONGLOBAL", "scope", "id", "fields")
 
     # module :: string of module name or None for Built in, id :: TOKEN
     RES_TYPE = syntaxnode("RES_TYPE", "module", "type_id")
-
-
 
     # Create node list to support __contains__ and __iter__: TODO make this not hacky
     nodes = [

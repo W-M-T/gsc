@@ -34,7 +34,8 @@ class ERR(IntEnum):
     # Typing
     UnsupportedOperandType = 20,
     IncompatibleTypes = 21,
-    UnexpectedType = 22
+    UnexpectedType = 22,
+    UnexpectedTuple = 23,
 
 
 ERRMSG = {
@@ -59,7 +60,8 @@ ERRMSG = {
     ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
     ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}, expected argument {} to be {}\n{}',
     ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {}\n{}',
-    ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}'
+    ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}',
+    ERR.UnexpectedTuple: 'Unexpected tuple encountered, expected {}\n{}'
 }
 
 class WARN(IntEnum):
