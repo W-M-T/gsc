@@ -47,7 +47,7 @@ ERRMSG = {
     ERR.DuplicateTypeId: 'Duplicate type identifier\n{}\nInitial definition:\n{}',
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {}\n{}',
     ERR.UndefinedOp: 'Operator is not defined\n{}',
-    ERR.BreakOutsideLoop: 'Using a break or continue statement outside of a loop',
+    ERR.BreakOutsideLoop: 'Using a break or continue statement outside of a loop\n{}',
     ERR.NotAllPathsReturn: 'Not all paths in function {} lead to a certain return\n{}',
     ERR.TypeSynVoid: 'Type synonym {} cannot have Void in its type',
     ERR.GlobalVarTypeNone: 'Global var {} needs a type',
@@ -57,8 +57,8 @@ ERRMSG = {
     ERR.FunctionOutputNestedVoid: 'Return type of {} contains nested Void',
     ERR.LocalVarTypeNone: 'Local variable {} of function {} needs a type',
     ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
-    ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}: "{}" and "{}"\n{}',
-    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {} with the given operands\n{}',
+    ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}, expected argument {} to be {}\n{}',
+    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {}\n{}',
     ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}'
 }
 
@@ -72,8 +72,8 @@ class WARN(IntEnum):
 WARNMSG = {
     WARN.ShadowVarOtherModule: 'This variable was already defined in another module, which is now shadowed.',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
-    WARN.UnreachableStmtBranches: 'The statements can never be reached because all branches return.\n{}',
-    WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement',
+    WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
+    WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',
     WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return.\n{}'
 }
 

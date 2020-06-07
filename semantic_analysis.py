@@ -99,20 +99,20 @@ BUILTIN_FUNCTIONS = [
 ]
 
 BUILTIN_INFIX_OPS = {
-    "*": ("T T -> T", 7, "L"),
-    "/":  ("T T -> T", 7, "L"),
-    "%": ("T T -> T", 7, "L"),
-    "+": ("T T -> T", 6, "L"),# Should these actually have types T? It is in the spec but only defined for a couple of types, so maybe it's better to seperate those
-    "-": ("T T -> T", 6, "L"),
-    ":": ("T [T] -> [T]", 5, "L"),
-    "==": ("T T -> Bool", 4, "??"),# How should comparision operators work for lists and tuples? Should they at all?
-    "<": ("T T -> Bool", 4, "??"),
-    ">": ("T T -> Bool", 4, "??"),
-    "<=": ("T T -> Bool", 4, "??"),
-    ">=": ("T T -> Bool", 4, "??"),
-    "!=": ("T T -> Bool", 4, "??"),
-    "&&": ("Bool Bool -> Bool", 3, "R"),
-    "||": ("Bool Bool -> Bool", 2, "R")
+    "*": (["Int Int -> Int"], 7, "L"),
+    "/": (["Int Int -> Int"], 7, "L"),
+    "%": (["Int Int -> Int"], 7, "L"),
+    "+": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
+    "-": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
+    ":": (["T [T] -> [T]"], 5, "L"),
+    "==": (["T T -> Bool"], 4, "L"),# How should comparision operators work for lists and tuples? Should they at all?
+    "<": (["T T -> Bool"], 4, "L"),
+    ">": (["T T -> Bool"], 4, "L"),
+    "<=": (["T T -> Bool"], 4, "L"),
+    ">=": (["T T -> Bool"], 4, "L"),
+    "!=": (["T T -> Bool"], 4, "L"),
+    "&&": (["Bool Bool -> Bool"], 3, "R"),
+    "||": (["Bool Bool -> Bool"], 2, "R")
 }
 
 # TODO finalize the info in here
@@ -425,21 +425,6 @@ def buildSymbolTable(ast):
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
 def resolveNames(symbol_table):
-    # Resolve type syns
-    # This is already guaranteed by way of buildSymbolTable, might be possible to move this there or remove it from buildSymbolTable and do it here?
-    '''
-    print("RESOLVING TYPESYNS")
-    for type_id, type_syn in symbol_table.type_syns.items():
-        print(type_id, type_syn)
-        def resolveTypeToken(node):
-            if type(node.val) is Token:
-                print("GOT A DAMN TOKEN")
-                print(node.val)
-            return node
-        treemap(type_syn,  lambda x: selectiveApply(AST.TYPE, x, resolveTypeToken))
-        exit()
-    '''
-
     # Resolve names used in expressions in global variable definitions:
     # Order matters here as to what is in scope
     print("RESOLVING VARS:")
@@ -448,7 +433,6 @@ def resolveNames(symbol_table):
         in_scope = list(filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items()))
         print("In scope: ",in_scope)
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, in_scope_globals=in_scope)
-
 
     '''
     for decl in ast.decls:
@@ -470,13 +454,9 @@ def resolveNames(symbol_table):
             for stmt in val.stmts:
                 print("Stmt")
                 # Should do some kind of mapping function here to generalize the recursion over branching and loops
-
-        elif type(val) is AST.TYPESYN:
-            print("Let's go BITCHESSSSS!!!!!!!!!!")
-            print(resolveTypeName(val.def_type, symbol_table).tree_string())
-            pass
-            
+        
     '''
+
     '''
     Funcall naar module, (FunUniq, id) (nog geen type)
     Varref naar module, scope (global of local + naam of arg + naam)
@@ -545,35 +525,32 @@ def buildOperatorTable(symbol_table):
     op_table = {}
 
     basic_types = ['Int', 'Char', 'Bool']
-    counter = 0
     for o in BUILTIN_INFIX_OPS:
         op_table[o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
-        first_type, second_type, _, output_type = BUILTIN_INFIX_OPS[o][0].split()
-        first_types = abstractToConcreteType(first_type, basic_types)
-        second_types = abstractToConcreteType(second_type, basic_types)
-        output_types = abstractToConcreteType(output_type, basic_types)
+        for x in BUILTIN_INFIX_OPS[o][0]:
+            first_type, second_type, _, output_type = x.split()
+            first_types = abstractToConcreteType(first_type, basic_types)
+            second_types = abstractToConcreteType(second_type, basic_types)
+            output_types = abstractToConcreteType(output_type, basic_types)
 
-        for ft in first_types:
-            for st in second_types:
-                    for ot in output_types:
-                        if len(first_types) == len(second_types) == len(output_types) == len(basic_types):
-                            if AST.equalVals(ft, st) and AST.equalVals(st, ot):
+            for ft in first_types:
+                for st in second_types:
+                        for ot in output_types:
+                            if len(first_types) == len(second_types) == len(output_types) == len(basic_types):
+                                if AST.equalVals(ft, st) and AST.equalVals(st, ot):
+                                    op_table[o][2].append(
+                                        AST.FUNTYPE(
+                                            from_types=[ft, st],
+                                            to_type=ot
+                                        )
+                                    )
+                            else:
                                 op_table[o][2].append(
                                     AST.FUNTYPE(
                                         from_types=[ft, st],
                                         to_type=ot
                                     )
                                 )
-                        else:
-                            op_table[o][2].append(
-                                AST.FUNTYPE(
-                                    from_types=[ft, st],
-                                    to_type=ot
-                                )
-                            )
-
-    print("Number of builtin functions: %d" % len(op_table))
-    print("With a total of %d overloaded functions. " % counter)
 
     # TODO: Fix this when experimenting with custom operators
     for x in symbol_table.functions:
@@ -662,34 +639,32 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
     if type(expr) is Token:
         val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
         val._start_pos = Position()
-        if not AST.equalVals(val, exp_type) and r == 0:
-            ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, expr])
-        return val
+        if not AST.equalVals(val, exp_type):
+            if r == 0:
+                ERROR_HANDLER.addError(ERR.UnexpectedType, [val.type_id.val, exp_type.type_id.val, expr])
+            return False
+        return True
     elif type(expr) is AST.PARSEDEXPR:
-        typ = None
-        type1 = None
-        type2 = None
+        incorrect = 0
+        alternatives = 0
         for o in op_table[expr.fun.val][2]:
-            type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, r+1)
-            type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, r+1)
+            if AST.equalVals(o.to_type, exp_type):
+                alternatives += 1
+                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, r+1)
+                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, r+1)
 
-            if AST.equalVals(o.from_types[0], type1) and AST.equalVals(o.from_types[1], type2):
-                typ = o.to_type
+                if not type1:
+                    incorrect = 1
+                elif not type2:
+                    incorrect = 2
 
-        if typ is None:
-            print("Typchecking")
-            print(expr)
-            print("Expecting")
-            print(exp_type)
-
+        if incorrect != 0:
             # There is no alternative of this operator which has the expected input types.
-            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, type1.type_id.val, type2.type_id.val, expr.fun])
-            return exp_type
-        elif not AST.equalVals(typ, exp_type) and r == 0:
+            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, exp_type.type_id.val, expr.fun])
+        elif alternatives == 0:
             # There is no alternative of this operator which has the expected output type
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [exp_type.type_id.val, expr.fun])
-            return exp_type
-        return typ
+        return True
     elif type(expr) is AST.VARREF:
         print(expr)
         pass
@@ -742,17 +717,6 @@ def typecheck_globals(ast, symbol_table, op_table):
         print(symbol_table.global_vars[g].expr)
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
-# Given an AST node, get first token
-def getFirstToken(node):
-    print(node)
-    if type(node.val) == AST.ACTSTMT:
-        if type(node.val.val) == AST.ASSIGNMENT:
-            return node.val.val.varref.id
-        else:
-            return node.val.val.id
-    elif type(node.val) == AST.LOOP:
-        pass
-
 '''
 Goal of this function is:
 - To check for dead code after break/continue statements;
@@ -774,7 +738,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 
             if return_ctr == len(stmt.condbranches):
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [getFirstToken(statements[k+1])])
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
                 if stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     return_exp = False
                 else:
@@ -792,11 +756,11 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                 ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt.val])
             else:
                 if k is not len(statements) - 1:
-                    print("[WARNING] The statements after line %d can never be reached because they are preceded by a break or continue.")
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
                     return False, return_exp
         elif type(stmt) is AST.RETURN:
             if k is not len(statements) - 1:
-                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [getFirstToken(statements[k+1])])
+                ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
             return True, True
 
     if return_exp and cond_depth == 0:
