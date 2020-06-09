@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.analysis.imports import export_headers, import_headers
+from lib.imports.imports import export_headers, import_headers
 from lib.analysis.error_handler import *
 from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
 from parser import parseTokenStream

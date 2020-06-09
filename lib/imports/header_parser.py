@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import re
-import lib.analysis.parsec_original as ps
+import lib.imports.parsec_original as ps
 # There has to be a better way to do this...
 import sys
 sys.path.insert(0, '../../')
