@@ -7,20 +7,28 @@ from semantic_analysis import *
 def main():
     from io import StringIO
 
-    testprog = StringIO('''  
+    testprog = StringIO('''
+        Int a = 2;  
         Bool b = True;
-        //Int a = 2 * (5 + (b * 2)) - 27;
-        Int a = (b * 2);
+        Char c = d;
+        
+        f(x, y) :: Int Int -> Int {
+            Int b = a * 2;
+            Int x = 2 + b;
+            
+            return b * (x + y);
+        }
     ''')
 
     # Tokenize / parse
     tokenstream = tokenize(testprog)
     tokenlist = list(tokenstream)
-    parse_res = SPL.parse_strict(tokenlist, testprog)
+    ast = SPL.parse_strict(tokenlist, testprog)
 
     # Build symbol table
     ERROR_HANDLER.setSourceMapping(testprog, [])
-    symbol_table = buildSymbolTable(parse_res)
+    symbol_table = buildSymbolTable(ast)
+    print(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     # Normalize table
@@ -32,14 +40,14 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Parse expression
-    op_table = buildOperatorTable(symbol_table)
-    ast = fixExpression(parse_res, op_table)
-    ERROR_HANDLER.checkpoint()
+    #op_table = buildOperatorTable(symbol_table)
+    #decorated_ast = fixExpression(ast, op_table)
+    #ERROR_HANDLER.checkpoint()
 
     # Type check
-    typecheck_globals(ast, symbol_table, op_table)
+    #typecheck_globals(decorated_ast, symbol_table, op_table)
     #typecheck_func(ast.decls[0].val, symbol_table, op_table)
-    ERROR_HANDLER.checkpoint()
+    #ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":
     main()

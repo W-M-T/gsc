@@ -129,6 +129,10 @@ ILLEGAL_OP_IDENTIFIERS = [
     "*/"
 ]
 
+class NONGLOBALSCOPE(IntEnum):
+    GlobalVar   = 1
+    ArgVar      = 2
+    LocalVar    = 3
 
 '''
 Replace all type synonyms in type with their definition, until the base case.
@@ -389,7 +393,7 @@ def buildSymbolTable(ast):
                     temp_entry, temp_order_mapping = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_entry)
+                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping)
 
             else: # Already defined in the table, check for overloading
                 temp_entry, temp_order_mapping = buildFuncEntry(val)
@@ -428,39 +432,86 @@ def resolveNames(symbol_table):
     # Resolve names used in expressions in global variable definitions:
     # Order matters here as to what is in scope
     print("RESOLVING VARS:")
+    in_scope_globals = []
+    print(symbol_table.order_mapping['global_vars'])
     for glob_var_id, glob_var in symbol_table.global_vars.items():
-        print("For ",glob_var)
-        in_scope = list(filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items()))
-        print("In scope: ",in_scope)
+        in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items())))
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
+        if len(in_scope) > len(in_scope_globals):
+            in_scope_globals = in_scope
 
-    '''
-    for decl in ast.decls:
-        val = decl.val
-        if type(val) is AST.VARDECL:
-            print("Global var decl",glob_vardecl_counter,val)
-            val.expr = resolveExprNames(val.expr, symbol_table, glob=True, counter=glob_vardecl_counter)
-            glob_vardecl_counter += 1
+    print("Iterating over functions")
+    print("Globals")
+    print(in_scope_globals)
+    for f in symbol_table.functions: # Functions
+        for i in range(0, len(symbol_table.functions[f])): # Overloaded functions
+            print("Mapping")
+            print(symbol_table.order_mapping['local_vars'][f])
+            for v in symbol_table.functions[f][i]['def'].vardecls:
+                in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['local_vars'][f][i][v.id.val] >
+                                                 symbol_table.order_mapping['local_vars'][f][i][x[0]],
+                                       symbol_table.functions[f][i]['local_vars'].items())))
+                in_scope_locals = {
+                    'locals': in_scope,
+                    'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars'])),
+                }
+                resolveExprNames(v.expr, symbol_table, False, in_scope_globals, in_scope_locals)
 
-        elif type(val) is AST.FUNDECL:
-            loc_vardecl_counter = 0
-
-            vardecls = val.vardecls
-            for vardecl in vardecls:
-                print("Local var decl", loc_vardecl_counter, vardecl)
-                vardecl.expr = resolveExprNames(vardecl.expr, symbol_table, glob=False, counter=loc_vardecl_counter)
-                loc_vardecl_counter +=1
-
-            for stmt in val.stmts:
-                print("Stmt")
-                # Should do some kind of mapping function here to generalize the recursion over branching and loops
-    '''
 
     '''
     Funcall naar module, (FunUniq, id) (nog geen type)
     Varref naar module, scope (global of local + naam of arg + naam)
     Type-token naar module, naam of forall type
     '''
+
+'''
+Resolve an expression with the following globals in scope
+Functions are always in scope
+'''
+def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_scope_locals={}):
+    for i in range(0, len(expr.contents)):
+        if type(expr.contents[i]) is AST.VARREF:
+            if glob:
+
+                if expr.contents[i].id.val not in in_scope_globals:
+                    ERROR_HANDLER.addError(ERR.UndefinedGlobalVar, [expr.contents[i].id.val, expr.contents[i]])
+                    break
+                # TODO: Not hardcode this, it should depend on the module.
+                pos = expr.contents[i]._start_pos
+                expr.contents[i] = AST.RES_VARREF(val=AST.RES_GLOBAL(
+                    module=None,
+                    id=expr.contents[i].id,
+                    fields=expr.contents[i].fields
+                ))
+                expr.contents[i]._start_pos = pos
+            else:
+                print("Adding new local")
+                print(expr)
+                print(in_scope_globals)
+                print(in_scope_locals['args'])
+                print(in_scope_locals['locals'])
+                scope = None
+                if expr.contents[i].id.val in in_scope_locals['locals']:
+                    scope = NONGLOBALSCOPE.LocalVar
+                elif expr.contents[i].id.val in in_scope_locals['args']:
+                    scope = NONGLOBALSCOPE.ArgVar
+                elif expr.contents[i].id.val in in_scope_globals:
+                    scope = NONGLOBALSCOPE.GlobalVar
+                else:
+                    ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
+                    break
+
+                pos = expr.contents[i]._start_pos
+                expr.contents[i] = AST.RES_VARREF(val=AST.RES_NONGLOBAL(
+                    scope=scope,
+                    id=expr.contents[i].id,
+                    fields=expr.contents[i].fields
+                ))
+                expr.contents[i]._start_pos = pos
+        elif type(expr.contents[i]) is AST.DEFERREDEXPR:
+            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob=glob)
+
+    return expr
 
 # TODO this works differently for typesyns as opposed to other types: typesyns don't allow foralls
 '''
@@ -496,29 +547,11 @@ def resolveTypeName(typ, symbol_table, counter=-1):
         print(typ)
 '''
 
-'''
-Resolve an expression with the following globals in scope
-Functions are always in scope
-'''
-def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_scope_locals=[]):
-    for i in range(0, len(expr.contents)):
-        if type(expr.contents[i]) is AST.VARREF:
-            if glob:
-                pos = expr.contents[i]._start_pos
-                expr.contents[i] = AST.RES_VARREF(val=AST.RES_GLOBAL(
-                    module=None,
-                    id=expr.contents[i].id,
-                    fields=expr.contents[i].fields
-                ))
-                expr.contents[i]._start_pos = pos
-
-    return expr
 
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
 '''
 def abstractToConcreteType(abstract_type, basic_types):
-    # TODO: Are this really all of the basic types in a relation T T -> T? What about tuples?
     if abstract_type == 'T':
         return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)) for b in basic_types]
     elif abstract_type in basic_types:
