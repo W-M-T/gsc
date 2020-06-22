@@ -1,0 +1,30 @@
+Door de globals in sequence te lezen heb je daar geen cyclische dependence tussen
+Wel heb je dat je dan via een funcall toch die dependence kunt maken
+Daarom staan we alleen builtin operatoren toe in global vardecls
+"initialiser element is non-constant"
+
+Verder probleem: hoe werkt dit dan met imports van globals en daar cyclische afhankelijkheid tussen?
+C staat dat in het algemeen niet toe.
+
+We lossen het op door in global vardecls geimporteerde globals niet in scope te hebben
+
+
+
+Probleem bestaat soort van ook bij types:
+A:
+import String from B
+typedef Foo = String
+typedef FooList = [Foo]
+
+
+B:
+import FooList from A
+typedef String = [FooList]
+
+
+We voorkwamen cyclische afhankelijkheid in types door daar ook sequentie te verplichten
+Alleen heb je geen sequentie met imports
+De detectiecriterium die we gebruiken om dit te detecteren is als een naam zichzelf gaat gebruiken in typenormalisatie.
+In principe is dit criterium te strict: Een type is alleen niet te normaliseren als hij zichzelf bevat en dit niet in de tail van een lijststructuur gebeurt.
+Een lijststructuur in een type geeft een natuurlijke base case van de lege lijst.
+Lijkt ons teveel gedoe echter, dus we detecteren alleen of een type zichzelf gebruikt.

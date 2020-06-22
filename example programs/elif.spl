@@ -1,0 +1,15 @@
+/*
+    Example to show how elif is compiled
+*/
+
+main ( ) :: -> Void {
+    Int x = 0;
+    x = 5;
+    while (x > 2) {
+        print(x);
+        x = x - 1;
+    }
+    for (x=5; x>2; x=x-1) {
+        print(x);
+    }
+}
