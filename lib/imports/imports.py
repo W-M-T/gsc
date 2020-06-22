@@ -49,40 +49,58 @@ In order of priority:
 3: Environment variable
 4: Local directory
 '''
-def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, lib_dir_env=None):
+def resolveFileName(name, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
     #print(name.name.val,local_dir)
     #option = "{}/{}.spl".format(local_dir, name)
     #print(os.path.isfile(option))
-
+    exception_list = []
     # Try to import from the compiler argument-specified path for this specific import
     if name in file_mapping_arg:
         try:
-            option = file_mapping_arg[name]
-            infile = open(option)
-            return infile, option
+            try_path = file_mapping_arg[name]
+            infile = open(try_path)
+            return infile, try_path
         except Exception as e:
-            print(e)
+            exception_list.append(e)
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
-            option = "{}/{}.spl".format(lib_dir_path, name)
-            infile = open(option)
-            return infile, option
+            try_path = os.path.join(lib_dir_path, name)
+            print(try_path)
+            infile = open(try_path)
+            return infile, try_path
         except Exception as e:
-            pass
+            exception_list.append(e)
     # Try to import from the environment variable-specified directory
     if lib_dir_env is not None:
         try:
-            option = "{}/{}.spl".format(lib_dir_env, name)
-            infile = open(option)
-            return infile, option
+            try_path = os.path.join(lib_dir_env, name)
+            infile = open(try_path)
+            return infile, try_path
         except Exception as e:
-            pass
+            exception_list.append(e)
     # Try to import from the same directory as our source file
     try:
-        option = "{}/{}.spl".format(local_dir, name)
-        infile = open(option)
-        return infile, option
-    except Exception as e:
         pass
-    raise FileNotFoundError
+        #try_path = os.path.join(local_dir, name)
+        #print(try_path)
+        #infile = open(try_path)
+        #return infile, try_path
+    except Exception as e:
+        exception_list.append(e)
+    raise FileNotFoundError(name)
+
+def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+    importlist = ast.imports
+    print(importlist)
+    print("CWD",local_dir)
+    print("--lp",lib_dir_path)
+    #print("is dir",os.path.isdir(local_dir))
+    #print(os.listdir(local_dir))
+
+    temp = []
+    for imp in importlist:
+        impname = imp.name.val
+        handle, path = resolveFileName("{}{}".format(impname, extension), local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+        temp.append((impname,handle,path))
+    print(temp)

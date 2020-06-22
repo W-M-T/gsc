@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import export_headers, import_headers
+from lib.imports.imports import export_headers, import_headers, getImportFiles, HEADER_EXT, SOURCE_EXT
 from lib.analysis.error_handler import *
 from lib.analysis.builtin_sigs import BUILTIN_FUNCTIONS, BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
 from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
@@ -29,6 +29,7 @@ class SymbolTable():
         # dict has keys "type", "def", "arg_vars", "local_vars"
         # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
         # local_vars is dict of identifiers to vardecl def nodes
+        # def is None for BUILTINS
         self.functions = functions
         self.type_syns = type_syns
 
@@ -291,8 +292,12 @@ def buildFuncEntry(val):
 '''
 TODO We don't check for redefinition attempts of builtin functions or ops
 '''
-def buildSymbolTable(ast, just_for_headerfile=False):
+def buildSymbolTable(ast, just_for_headerfile=True):
     symbol_table = SymbolTable()
+
+    # Add builtin functions to symbol table:
+    #builtin_ops = buildOperatorTable()
+    #TODO add this implementation
 
     # TODO Check for duplicates everywhere of course
     print("Imports")
@@ -308,11 +313,9 @@ def buildSymbolTable(ast, just_for_headerfile=False):
             print(var_id)
             if not var_id in symbol_table.global_vars: # New global var decl
                 if not just_for_headerfile:
-                    pass
                     # TODO test if it exists in other module
-                    # TODO give warning (doesn't need to be instant, can be collected)
-                    # print("[ERROR] This variable was already defined in another module, which is now shadowed")
-                    # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
+                    pass
+                    # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [var_id])
                 else:
                     symbol_table.global_vars[var_id] = val
                     symbol_table.order_mapping["global_vars"][var_id] = index_global_var
@@ -332,9 +335,6 @@ def buildSymbolTable(ast, just_for_headerfile=False):
 
             uniq_kind = FunKindToUniq(val.kind)
 
-            if uniq_kind == FunUniq.INFIX:
-                pass
-
             # Test if argument count and type count match
             if val.type is not None:
                 from_types = val.type.from_types
@@ -346,8 +346,10 @@ def buildSymbolTable(ast, just_for_headerfile=False):
             fun_id = val.id.val
             print(fun_id)
             if not (uniq_kind, fun_id) in symbol_table.functions:
-                if False: # TODO test if it is already defined in other module
+                if not just_for_headerfile:
+                    # TODO test if it is already defined (with the same type) in other module
                     pass
+                    # ERROR_HANDLER.addWarning(WARN.ShadowFuncOtherModule, [uniq_kind.name, fun_id, print_node(val.type)])
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
@@ -372,9 +374,10 @@ def buildSymbolTable(ast, just_for_headerfile=False):
                 ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
 
             if not type_id in symbol_table.type_syns:
-                if False: # TODO Test if it exists in another module
-                    # TODO give warning (doesn't need to be instant, can be collected)
-                    print("[ERROR] This type was already defined in another module, which is now shadowed")
+                if not just_for_headerfile:
+                    # TODO Test if it exists in another module
+                    pass
+                    # ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id])
                 else:
                     normalized_type = normalizeType(def_type, symbol_table)
                     symbol_table.type_syns[type_id] = normalized_type
@@ -854,8 +857,8 @@ if __name__ == "__main__":
     import_mapping = {a:b for (a,b) in import_mapping}
     print("Imports:",import_mapping)
 
-    if not args.infile.endswith(".spl"):
-        print("Input file needs to be .spl")
+    if not args.infile.endswith(SOURCE_EXT):
+        print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
 
 
@@ -916,11 +919,17 @@ g (x) {
     return 2;
 }//*/
 ''')
-        tokenstream = tokenize(testprog)
-        #tokenstream = tokenize(infile)
+        if False:
+            tokenstream = tokenize(testprog)
 
-        x = parseTokenStream(tokenstream, testprog)
-        ERROR_HANDLER.setSourceMapping(testprog, None)
+            x = parseTokenStream(tokenstream, testprog)
+            ERROR_HANDLER.setSourceMapping(testprog, None)
+        else:
+            tokenstream = tokenize(infile)
+
+            x = parseTokenStream(tokenstream, infile)
+            ERROR_HANDLER.setSourceMapping(infile, None)
+
         #ERROR_HANDLER.debug = True
         #ERROR_HANDLER.hidewarn = True
         #print(x.tree_string())
@@ -930,9 +939,12 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
 
-        #builtin_ops = buildOperatorTable()
+        if not args.H: # We need to actually read the headerfiles of the imports:
+            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile), lib_dir_path=args.lp)
+            exit()
+            pass
 
-        symbol_table = buildSymbolTable(x)
+        symbol_table = buildSymbolTable(x, args.H)
         import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)
