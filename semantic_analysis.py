@@ -398,7 +398,7 @@ def buildSymbolTable(ast):
             else: # Already defined in the table, check for overloading
                 temp_entry, temp_order_mapping = buildFuncEntry(val)
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_entry)
+                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping)
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -431,32 +431,28 @@ def buildSymbolTable(ast):
 def resolveNames(symbol_table):
     # Resolve names used in expressions in global variable definitions:
     # Order matters here as to what is in scope
-    print("RESOLVING VARS:")
-    in_scope_globals = []
-    print(symbol_table.order_mapping['global_vars'])
+
+    # Globals
     for glob_var_id, glob_var in symbol_table.global_vars.items():
         in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items())))
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
-        if len(in_scope) > len(in_scope_globals):
-            in_scope_globals = in_scope
 
-    print("Iterating over functions")
-    print("Globals")
-    print(in_scope_globals)
+    # Functions
+    in_scope_globals = list(symbol_table.global_vars.keys())
     for f in symbol_table.functions: # Functions
         for i in range(0, len(symbol_table.functions[f])): # Overloaded functions
-            print("Mapping")
-            print(symbol_table.order_mapping['local_vars'][f])
+            in_scope_locals = {'locals': [], 'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars']))}
             for v in symbol_table.functions[f][i]['def'].vardecls:
-                in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['local_vars'][f][i][v.id.val] >
-                                                 symbol_table.order_mapping['local_vars'][f][i][x[0]],
-                                       symbol_table.functions[f][i]['local_vars'].items())))
-                in_scope_locals = {
-                    'locals': in_scope,
-                    'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars'])),
-                }
+                in_scope = list(map(lambda x: x[0], filter(
+                    lambda x: symbol_table.order_mapping['local_vars'][f][i][v.id.val] > symbol_table.order_mapping['local_vars'][f][i][x[0]],
+                    symbol_table.functions[f][i]['local_vars'].items())))
+
+                in_scope_locals['locals'] = in_scope
                 resolveExprNames(v.expr, symbol_table, False, in_scope_globals, in_scope_locals)
 
+            in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
+
+            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
 
     '''
     Funcall naar module, (FunUniq, id) (nog geen type)
@@ -472,7 +468,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
     for i in range(0, len(expr.contents)):
         if type(expr.contents[i]) is AST.VARREF:
             if glob:
-
                 if expr.contents[i].id.val not in in_scope_globals:
                     ERROR_HANDLER.addError(ERR.UndefinedGlobalVar, [expr.contents[i].id.val, expr.contents[i]])
                     break
@@ -485,12 +480,8 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                 ))
                 expr.contents[i]._start_pos = pos
             else:
-                print("Adding new local")
-                print(expr)
-                print(in_scope_globals)
-                print(in_scope_locals['args'])
-                print(in_scope_locals['locals'])
                 scope = None
+
                 if expr.contents[i].id.val in in_scope_locals['locals']:
                     scope = NONGLOBALSCOPE.LocalVar
                 elif expr.contents[i].id.val in in_scope_locals['args']:
@@ -508,8 +499,11 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     fields=expr.contents[i].fields
                 ))
                 expr.contents[i]._start_pos = pos
+        elif type(expr.contents[i]) is AST.TUPLE:
+            expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
+            expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.DEFERREDEXPR:
-            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob=glob)
+            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
 
@@ -564,7 +558,7 @@ def abstractToConcreteType(abstract_type, basic_types):
 '''
 Given the symbol table, produce the operator table including all builtin operators and its overloaded functions.
 '''
-def buildOperatorTable(symbol_table):
+def buildOperatorTable():
     op_table = {}
 
     basic_types = ['Int', 'Char', 'Bool']
@@ -595,7 +589,9 @@ def buildOperatorTable(symbol_table):
                                     )
                                 )
 
-    # TODO: Fix this when experimenting with custom operators
+    return op_table
+
+def mergeCustomOps(op_table, symbol_table):
     for x in symbol_table.functions:
         f = symbol_table.functions[x]
         if x[0] is FunUniq.INFIX:
@@ -634,6 +630,8 @@ def parseAtom(exp, ops, exp_index):
         # This should never happen
         print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
         print(type(exp[exp_index]))
+        print(exp[exp_index])
+        exit(1)
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
 def parseExpression(exp, ops, min_precedence = 1, exp_index = 0):
@@ -677,7 +675,7 @@ def tokenToTypeId(token):
         raise Exception('Unknown token supplied.')
 
 ''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table, op_table, r=0):
+def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0):
 
     if type(expr) is Token:
         val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
@@ -693,8 +691,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
         for o in op_table[expr.fun.val][2]:
             if AST.equalVals(o.to_type, exp_type):
                 alternatives += 1
-                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, r+1)
-                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, r+1)
+                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, r+1)
+                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, r+1)
 
                 if not type1:
                     incorrect = 1
@@ -715,6 +713,22 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
                 if r == 0:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
                     return True
+
+        elif type(expr.val) is AST.RES_NONGLOBAL:
+            typ = None
+            if expr.val.scope == NONGLOBALSCOPE.LocalVar:
+                typ = func['local_vars'][expr.val.id.val].type.val
+            elif expr.val.scope == NONGLOBALSCOPE.ArgVar:
+                typ = func['local_args'][expr.val.id.val].type.val
+            else:
+                typ = symbol_table.global_vars[expr.val.id.val].type.val
+
+            if not AST.equalVals(typ, exp_type):
+                if r == 0:
+                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
+                return False
+            return True
+
         return False
     elif type(expr) is AST.FUNCALL:
         print(expr)
@@ -724,8 +738,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
             ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
             return True
 
-        type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table)
-        type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table)
+        type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table, func)
+        type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table, func)
 
         return (type1 or type2)
 
@@ -734,46 +748,45 @@ def typecheck(expr, exp_type, symbol_table, op_table, r=0):
         print(type(expr))
 
 def typecheck_func(func, symbol_table, op_table):
-    print(func)
-    for vardecl in func.vardecls:
+    for vardecl in func['def'].vardecls:
         # Typecheck var decls
-        typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table)
+        typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
 
-    stmts = list(reversed(func.stmts))
+    stmts = list(reversed(func['def'].stmts))
     ast_boolnode = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
     while len(stmts) > 0:
         stmt = stmts.pop()
-        print(stmt)
-        print(type(stmt.val))
         if type(stmt.val) == AST.ACTSTMT:
             if type(stmt.val.val) == AST.ASSIGNMENT:
                 # TODO: Check if the assignment is correct given the variable type
-                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table)
+                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table, func_id)
                 pass
             else: # Fun call
                 for a in stmt.val.val.args:
                     # TODO: Check if argument type matches signature
-                    # typecheck(a, TBD, symbol_table, op_table)
+                    # typecheck(a, TBD, symbol_table, op_table, func_id)
                     pass
         elif type(stmt.val) == AST.IFELSE:
             for b in stmt.val.condbranches:
-                typecheck(b.expr, ast_boolnode, symbol_table, op_table)
+                typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
                 stmts.extend(list(reversed(b.stmts)))
         elif type(stmt.val) == AST.LOOP:
-            typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table)
+            typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, func)
             stmts.extend(list(reversed(stmt.val.stmts)))
         elif type(stmt.val) == AST.RETURN:
             # TODO: Add expected type
-            # typecheck(stmt.val.expr, TBD, symbol_table, op_table)
+            # typecheck(stmt.val.expr, TBD, symbol_table, op_table, func_id)
             pass
 
-    print("Done")
+    print("Typechecking has finished")
 
-def typecheck_globals(ast, symbol_table, op_table):
+def typecheck_functions(symbol_table, op_table):
+    for f in symbol_table.functions:
+        for o in symbol_table.functions[f]:
+            typecheck_func(o, symbol_table, op_table)
+
+def typecheck_globals(symbol_table, op_table):
     for g in symbol_table.global_vars:
-        print("Typechecking the following expression:")
-        print(symbol_table.global_vars[g].expr)
-        print(symbol_table.global_vars[g].type.val)
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
 '''

@@ -10,13 +10,18 @@ def main():
     testprog = StringIO('''
         Int a = 2;  
         Bool b = True;
-        Char c = d;
+        
+        g(x) :: Int -> Bool {
+            return x > 0;
+        }
         
         f(x, y) :: Int Int -> Int {
-            Int b = a * 2;
-            Int x = 2 + b;
+            Bool egerg = True;
+            //(Int, (Int, Char)) d = (5, (3, c));
+            Bool c = egerg || g(a);
             
-            return b * (x + y);
+            b = b - egerg;
+            //return b * (x + y);
         }
     ''')
 
@@ -28,7 +33,6 @@ def main():
     # Build symbol table
     ERROR_HANDLER.setSourceMapping(testprog, [])
     symbol_table = buildSymbolTable(ast)
-    print(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     # Normalize table
@@ -40,14 +44,16 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Parse expression
-    #op_table = buildOperatorTable(symbol_table)
-    #decorated_ast = fixExpression(ast, op_table)
-    #ERROR_HANDLER.checkpoint()
+    op_table = buildOperatorTable()
+
+    fixExpression(ast, op_table)
+    ERROR_HANDLER.checkpoint()
 
     # Type check
-    #typecheck_globals(decorated_ast, symbol_table, op_table)
-    #typecheck_func(ast.decls[0].val, symbol_table, op_table)
-    #ERROR_HANDLER.checkpoint()
+    typecheck_globals(symbol_table, op_table)
+    typecheck_functions(symbol_table, op_table)
+    #typecheck_func(ast.decls[2].val, symbol_table, op_table)
+    ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":
     main()
