@@ -2,6 +2,7 @@
 
 from lib.imports.imports import export_headers, import_headers
 from lib.analysis.error_handler import *
+from lib.analysis.builtin_sigs import BUILTIN_FUNCTIONS, BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
 from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
 from parser import parseTokenStream
 from AST_prettyprinter import print_node, subprint_type
@@ -69,57 +70,20 @@ class SymbolTable():
     '''
 
 
-
-
-''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
-I think it would be best if you didn't have to explicitly import dependencies of a function you're importing to have it work, but you also don't want that dependency to end up in the namespace
-'''
-
 '''
 W.r.t. name resolution:
 there's globals, locals and function parameters
 '''
 
-''' Maybe move all the builtins to a seperate "StdLib-like" file with both signatures and implementations? '''
-''' Fix this data into the correct datatype later using regex on this code '''
 BUILTIN_TYPES = [
     "Char",
     "Int",
     "Bool",
     "Void"
 ]
+
 VOID_TYPE = [
     "Void"
-]
-
-BUILTIN_FUNCTIONS = [
-    ("print", "T -> Void"),
-    ("read", " -> Char"), # TODO Search the spec for what this should do
-    ("isEmpty", "[T] -> Bool")
-]
-
-BUILTIN_INFIX_OPS = {
-    "*": (["Int Int -> Int"], 7, "L"),
-    "/": (["Int Int -> Int"], 7, "L"),
-    "%": (["Int Int -> Int"], 7, "L"),
-    "+": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    "-": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    ":": (["T [T] -> [T]"], 5, "L"),
-    "==": (["T T -> Bool"], 4, "L"),# How should comparision operators work for lists and tuples? Should they at all?
-    "<": (["T T -> Bool"], 4, "L"),
-    ">": (["T T -> Bool"], 4, "L"),
-    "<=": (["T T -> Bool"], 4, "L"),
-    ">=": (["T T -> Bool"], 4, "L"),
-    "!=": (["T T -> Bool"], 4, "L"),
-    "&&": (["Bool Bool -> Bool"], 3, "R"),
-    "||": (["Bool Bool -> Bool"], 2, "R")
-}
-
-# TODO finalize the info in here
-
-BUILTIN_PREFIX_OPS = [
-    ("!", "Bool -> Bool"),
-    ("-", "Int -> Int"),
 ]
 
 ILLEGAL_OP_IDENTIFIERS = [
@@ -324,14 +288,10 @@ def buildFuncEntry(val):
     temp_entry["local_vars"]  = local_vars
     return temp_entry, local_vars_order_mapping
 
-''' TODO how should we handle errors / warnings?
-E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
-Or should we show the error that is "first" in the file?
-How would that work given that some errors in early parts of the program are the result of an analysis result in a later part of the program?
-
+'''
 TODO We don't check for redefinition attempts of builtin functions or ops
 '''
-def buildSymbolTable(ast):
+def buildSymbolTable(ast, just_for_headerfile=False):
     symbol_table = SymbolTable()
 
     # TODO Check for duplicates everywhere of course
@@ -346,11 +306,13 @@ def buildSymbolTable(ast):
             print("Var")
             var_id = val.id.val
             print(var_id)
-            if not var_id in symbol_table.global_vars:
-                if False: # TODO test if it exists in other module
+            if not var_id in symbol_table.global_vars: # New global var decl
+                if not just_for_headerfile:
+                    pass
+                    # TODO test if it exists in other module
                     # TODO give warning (doesn't need to be instant, can be collected)
                     # print("[ERROR] This variable was already defined in another module, which is now shadowed")
-                    ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
+                    # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
                 else:
                     symbol_table.global_vars[var_id] = val
                     symbol_table.order_mapping["global_vars"][var_id] = index_global_var
@@ -358,11 +320,11 @@ def buildSymbolTable(ast):
             else:
                 # This global var identifier was already used
                 ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
-            #print_node(val)
+            #print(print_node(val))
 
         elif type(val) is AST.FUNDECL:
             print("Function")
-            print_node(val)
+            print(print_node(val))
             print("params")
             print(val.params)
 
@@ -881,6 +843,7 @@ if __name__ == "__main__":
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import libraries from", nargs="?", type=str)
     argparser.add_argument("--im", metavar="LIBNAME:PATH,...", help="Comma-separated library_name:path mapping list, to explicitly specify import paths", type=str)
+    argparser.add_argument("-H", help="Produce a header file instead of an executable", action="store_true")
     args = argparser.parse_args()
 
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
@@ -966,6 +929,9 @@ g (x) {
 
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
+
+        #builtin_ops = buildOperatorTable()
+
         symbol_table = buildSymbolTable(x)
         import_headers(export_headers(symbol_table))
         exit()

@@ -10,6 +10,7 @@ def main():
     argparser.add_argument("--im", metavar="LIBNAME:PATH,...", help="Comma-separated object_file:path mapping list, to explicitly specify import header paths", type=str)
     argparser.add_argument("-o", metavar="OUTPUT", help="Output file")
     argparser.add_argument("-C", help="Produce an object file instead of an executable", action="store_true")
+    argparser.add_argument("-H", help="Produce a header file instead of an executable", action="store_true")
     args = argparser.parse_args()
 
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []

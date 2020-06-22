@@ -184,7 +184,7 @@ def printAST(root):
     temp = print_node(root)
     return indent_print(temp, 0)
 
-def print_node(node):
+def print_node(node): # TODO The name of this function is really bad
     if type(node) in LOOKUP:
         if LOOKUP[type(node)] == []:
             raise Exception(str(type(node)) + " not defined yet")
