@@ -413,6 +413,9 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
         elif type(expr.contents[i]) is AST.TUPLE:
             expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
             expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
+        elif type(expr.contents[i]) is AST.FUNCALL:
+            for k in range(0, len(expr.contents[i].args)):
+                expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.DEFERREDEXPR:
             expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
