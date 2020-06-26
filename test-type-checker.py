@@ -15,18 +15,20 @@ def main():
             return a > b;
         }*/
         
-        g(x, y) :: Bool Bool -> Bool {
+        g(x, y) :: (Bool, (Int, Int)) Int -> Bool {
             return x > 0;
         }
         
         f(x, y) :: Int Int -> Int {
             Bool egerg = True;
             Bool a = False;
-            //(Int, (Int, Char)) d = (5, (3, c));
-            Bool c = (b && egerg + 3) || g(a, b);
+            Bool d = g((a, (2, 3)), 4);
+            
+            g(2, 3);
             
             b = b - egerg;
-            //return b * (x + y);
+            
+            return b + g(5, 4);
         }
     ''')
 

@@ -400,7 +400,6 @@ def buildSymbolTable(ast):
                     temp_entry, temp_order_mapping = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
 
-                    print(temp_entry["arg_vars"])
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
                     symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
@@ -668,8 +667,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         for o in op_table[expr.fun.val][2]:
             if AST.equalVals(o.to_type, exp_type):
                 alternatives += 1
-                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, False)
-                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, False)
+                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, r+1, False)
+                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, r+1, False)
 
                 if not type1:
                     incorrect = 1
@@ -696,7 +695,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 typ = func['local_vars'][expr.val.id.val].type.val
             elif expr.val.scope == NONGLOBALSCOPE.ArgVar:
-                typ = func['local_args'][expr.val.id.val].type.val
+                typ = func['arg_vars'][expr.val.id.val]['type'].val
             else:
                 typ = symbol_table.global_vars[expr.val.id.val].type.val
 
@@ -710,7 +709,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
     elif type(expr) is AST.FUNCALL:
         identifier = (FunKindToUniq(expr.kind), expr.id.val)
         out_type_matches = []
-        print(expr)
         i = 0
         for o in symbol_table.functions[identifier]:
             if AST.equalVals(o['type'].to_type.val, exp_type):
@@ -722,31 +720,27 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
             return False
 
-        fun_matches = 0
+        func_matches = 0
         for o in out_type_matches:
             identifier = (FunKindToUniq(func['def'].kind), func['def'].id.val)
-            print(identifier)
             if len(o[1]['arg_vars']) == len(expr.args):
-                k = 0
                 order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
 
                 input_matches = 0
                 for i in range(0, len(expr.args)):
                     arg_var = list(order_mapping.keys())[list(order_mapping.values()).index(i)]
-                    print("Printing arg var")
-                    print(arg_var)
-                    print(o[1]['arg_vars'][arg_var])
                     res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
                     if res:
                         input_matches += 1
 
                 if input_matches == len(expr.args):
-                    fun_matches += 1
+                    func_matches += 1
 
-        if fun_matches == 0 and not noErrors:
+        if func_matches == 0 and not noErrors:
             ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
+            return False
 
-        return True
+        return func_matches > 0
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
@@ -763,7 +757,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         print(type(expr))
 
 def typecheck_func(func, symbol_table, op_table):
-    print("Arg vars")
 
     for vardecl in func['def'].vardecls:
         # Typecheck var decls
@@ -779,6 +772,9 @@ def typecheck_func(func, symbol_table, op_table):
                 # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table, func_id)
                 pass
             else: # Fun call
+                print("plan func call")
+                print(stmt.val)
+                #typecheck(stmt.val.val, , symbol_table, op_table, func)
                 for a in stmt.val.val.args:
                     # TODO: Check if argument type matches signature
                     # typecheck(a, TBD, symbol_table, op_table, func_id)
@@ -792,7 +788,7 @@ def typecheck_func(func, symbol_table, op_table):
             stmts.extend(list(reversed(stmt.val.stmts)))
         elif type(stmt.val) == AST.RETURN:
             # TODO: Add expected type
-            # typecheck(stmt.val.expr, TBD, symbol_table, op_table, func_id)
+            typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, func)
             pass
 
     print("Typechecking has finished")
