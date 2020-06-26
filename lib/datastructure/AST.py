@@ -2,9 +2,9 @@
 
 import sys as _sys
 from keyword import iskeyword as _iskeyword
-from operator import itemgetter as _itemgetter
-from enum import IntEnum, Enum
-from util import Token
+from enum import IntEnum
+
+from lib.datastructure.token import Token
 
 def syntaxnode(typename, *field_names, module=None):
     # Factory method for syntax construct classes

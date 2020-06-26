@@ -6,10 +6,10 @@ import unittest
 # Makes it possible to import from the parser/lexer
 sys.path.insert(0, '../')
 
-from parser import *
-from parse_error_handler import ParseError
+from lib.parser.parser import *
+from lib.parser.parse_error_handler import ParseError
 from io import StringIO
-from lexer import tokenize
+from lib.parser.lexer import tokenize
 
 
 class ParserTester(unittest.TestCase):

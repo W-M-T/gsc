@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-from lib.analysis.error_handler import ERROR_HANDLER
 from lib.imports.header_parser import parse_type
-import os
 import json
-from AST import FunUniq, AST
+from lib.datastructure.AST import FunUniq, AST
 
 HEADER_EXT = ".spld"
 OBJECT_EXT = ".splo"

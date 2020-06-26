@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 from enum import IntEnum
-from util import pointToPosition, Token
-from AST import AST
+from lib.datastructure.token import Token
+from lib.datastructure.AST import AST
+from lib.util.util import pointToPosition
 
 class ERRCOLOR:
     WARNING = '\033[33m'

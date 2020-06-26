@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-from lexer import tokenize
-from parser import *
+from lib.parser.lexer import tokenize
+from lib.parser.parser import *
 from semantic_analysis import *
+from lib.analysis.typechecker import *
 
 def main():
     from io import StringIO

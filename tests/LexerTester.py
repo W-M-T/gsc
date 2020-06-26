@@ -9,7 +9,7 @@ import os
 # Makes it possible to import from the lexer
 sys.path.insert(0, '../')
 
-from lexer import REG_ID, REG_OP, REG_INT, REG_STR, REG_CHR
+from lib.parser.lexer import REG_ID, REG_OP, REG_INT, REG_STR, REG_CHR
 
 class LexerTester(unittest.TestCase):
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from util import pointToPosition, Position, TOKEN, Node
+from lib.util.util import TOKEN
 
 '''
 Zaken als +, -, :, / etc zijn built-in methodes
@@ -494,7 +494,7 @@ def parseTokenStream(instream, active_rules = [RULES["SPL"]]):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    from lexer import tokenize
+    from lib.parser.lexer import tokenize
     argparser = ArgumentParser(description="SPL Parser")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     args = argparser.parse_args()

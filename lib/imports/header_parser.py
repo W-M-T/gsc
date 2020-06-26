@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import re
 import lib.imports.parsec_original as ps
 # There has to be a better way to do this...
 import sys
 sys.path.insert(0, '../../')
 
-from AST import AST
+from lib.datastructure.AST import AST
 
 RE_NAME = r"[_A-Z]+"
 RE_ATTR = r"[_a-z]+"

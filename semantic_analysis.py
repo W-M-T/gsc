@@ -2,73 +2,27 @@
 
 from lib.imports.imports import export_headers, import_headers
 from lib.analysis.error_handler import *
-from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
-from parser import parseTokenStream
-from AST_prettyprinter import print_node, subprint_type
-from util import Token, TOKEN, Position
-import os
+
+from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
+from lib.datastructure.position import Position
+from lib.datastructure.token import Token, TOKEN
+from lib.datastructure.symbol_table import SymbolTable
+from lib.datastructure.scope import NONGLOBALSCOPE
+
+from lib.builtins.operators import *
+from lib.builtins.types import *
+from lib.builtins.functions import *
+
+from lib.util.util import treemap, selectiveApply
+
+from lib.parser.parser import parseTokenStream
+from lib.debug.AST_prettyprinter import print_node, subprint_type
 from enum import IntEnum
 
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
 # TODO python dict iteration is not deterministically the same: leads to different errors being first every time
-
-# Keep track if a local is an arg?
-# How to handle symbol table merging in case of imports?
-# Vars with or without type. Should be able to add type to func params
-# Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
-class SymbolTable():
-    def __init__(self, global_vars = {}, functions = {}, type_syns = {}):
-        # mapping of identifier to definition node
-        self.global_vars = global_vars
-
-        # (FunUniq, id) as identifier key
-        # maps to list of dicts
-        # dict has keys "type", "def", "arg_vars", "local_vars"
-        # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
-        # local_vars is dict of identifiers to vardecl def nodes
-        self.functions = functions
-        self.type_syns = type_syns
-
-        self.order_mapping = {"global_vars":{}, "local_vars":{}, "arg_vars": {}} # Order doesn't matter for functions
-        # This can be done more easily in newer versions of python, since dict order is deterministic there
-
-    '''
-    def getFunc(self, uniq, fid, normaltype):
-        flist = self.functions[(uniq, fid)]
-        #x for x in flist if 
-        return
-    '''
-
-
-    def repr_funcs(self):
-        temp = "\n=Regular:{}\n=Prefix:{}\n=Infix:{}"
-        filtered_uniqs = list(map(lambda y: list(filter(lambda x: x[0][0] == y, self.functions.items())), FunUniq))
-        filtered_uniqs = list(map(lambda x: "".join(list(map(SymbolTable.repr_func_uniq, x))), filtered_uniqs))
-        return temp.format(*filtered_uniqs)
-
-    def repr_func_uniq(func):
-        deflist = "\n".join(list(map(lambda x:
-                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], subprint_type(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
-            func[1])))
-        return "\n"+deflist
-
-    def repr_short(self):
-        return "=== Symbol table:\n== Global vars: {}\n== Functions: {}\n== Type synonyms: {}".format(
-            list(self.global_vars.keys()),
-            self.repr_funcs(),
-            "".join(list(map(lambda x: "\n{} = {}".format(x[0], print_node(x[1])), sorted(self.type_syns.items())))))
-
-    def __repr__(self):
-        return self.repr_short()
-
-    '''
-    def __repr__(self):
-        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.funarg_vars, self.local_vars, self.type_syns)
-    '''
-
-
 
 
 ''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
@@ -79,60 +33,6 @@ I think it would be best if you didn't have to explicitly import dependencies of
 W.r.t. name resolution:
 there's globals, locals and function parameters
 '''
-
-''' Maybe move all the builtins to a seperate "StdLib-like" file with both signatures and implementations? '''
-''' Fix this data into the correct datatype later using regex on this code '''
-BUILTIN_TYPES = [
-    "Char",
-    "Int",
-    "Bool",
-    "Void"
-]
-VOID_TYPE = [
-    "Void"
-]
-
-BUILTIN_FUNCTIONS = [
-    ("print", "T -> Void"),
-    ("read", " -> Char"), # TODO Search the spec for what this should do
-    ("isEmpty", "[T] -> Bool")
-]
-
-BUILTIN_INFIX_OPS = {
-    "*": (["Int Int -> Int"], 7, "L"),
-    "/": (["Int Int -> Int"], 7, "L"),
-    "%": (["Int Int -> Int"], 7, "L"),
-    "+": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    "-": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    ":": (["T [T] -> [T]"], 5, "L"),
-    "==": (["T T -> Bool"], 4, "L"),# How should comparision operators work for lists and tuples? Should they at all?
-    "<": (["T T -> Bool"], 4, "L"),
-    ">": (["T T -> Bool"], 4, "L"),
-    "<=": (["T T -> Bool"], 4, "L"),
-    ">=": (["T T -> Bool"], 4, "L"),
-    "!=": (["T T -> Bool"], 4, "L"),
-    "&&": (["Bool Bool -> Bool"], 3, "R"),
-    "||": (["Bool Bool -> Bool"], 2, "R")
-}
-
-# TODO finalize the info in here
-
-BUILTIN_PREFIX_OPS = [
-    ("!", "Bool -> Bool"),
-    ("-", "Int -> Int"),
-]
-
-ILLEGAL_OP_IDENTIFIERS = [
-    "->",
-    "::",
-    "=",
-    "*/"
-]
-
-class NONGLOBALSCOPE(IntEnum):
-    GlobalVar   = 1
-    ArgVar      = 2
-    LocalVar    = 3
 
 '''
 Replace all type synonyms in type with their definition, until the base case.
@@ -638,172 +538,6 @@ def fixExpression(ast, op_table):
 
     return decorated_ast
 
-def tokenToTypeId(token):
-    if token.typ == TOKEN.INT:
-        return 'Int'
-    elif token.typ == TOKEN.CHAR:
-        return 'Char'
-    elif token.typ == TOKEN.BOOL:
-        return 'Bool'
-    elif token.typ == TOKEN.STRING:
-        return 'String'
-    else:
-        raise Exception('Unknown token supplied.')
-
-''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=False):
-
-    if type(expr) is Token:
-        val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
-        val._start_pos = Position()
-        if not AST.equalVals(val, exp_type):
-            if r == 0 and not noErrors:
-                ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
-            return False
-        return True
-    elif type(expr) is AST.PARSEDEXPR:
-        incorrect = 0
-        alternatives = 0
-        for o in op_table[expr.fun.val][2]:
-            if AST.equalVals(o.to_type, exp_type):
-                alternatives += 1
-                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, r+1, False)
-                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, r+1, False)
-
-                if not type1:
-                    incorrect = 1
-                elif not type2:
-                    incorrect = 2
-
-        if incorrect != 0 and not noErrors:
-            # There is no alternative of this operator which has the expected input types.
-            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
-        elif alternatives == 0 and not noErrors:
-            # There is no alternative of this operator which has the expected output type
-            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
-        return True
-    elif type(expr) is AST.RES_VARREF:
-        if type(expr.val) is AST.RES_GLOBAL:
-            var_typ = symbol_table.global_vars[expr.val.id.val]
-            if not AST.equalVals(var_typ.type.val, exp_type):
-                if r == 0 and not noErrors:
-                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
-                    return True
-
-        elif type(expr.val) is AST.RES_NONGLOBAL:
-            typ = None
-            if expr.val.scope == NONGLOBALSCOPE.LocalVar:
-                typ = func['local_vars'][expr.val.id.val].type.val
-            elif expr.val.scope == NONGLOBALSCOPE.ArgVar:
-                typ = func['arg_vars'][expr.val.id.val]['type'].val
-            else:
-                typ = symbol_table.global_vars[expr.val.id.val].type.val
-
-            if not AST.equalVals(typ, exp_type):
-                if r == 0 and not noErrors:
-                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
-                return False
-            return True
-
-        return False
-    elif type(expr) is AST.FUNCALL:
-        identifier = (FunKindToUniq(expr.kind), expr.id.val)
-        out_type_matches = []
-        i = 0
-        for o in symbol_table.functions[identifier]:
-            if AST.equalVals(o['type'].to_type.val, exp_type):
-                out_type_matches.append((i, o))
-            i += 1
-
-        if len(out_type_matches) == 0:
-            if r == 0 and not noErrors:
-                ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
-            return False
-
-        func_matches = 0
-        for o in out_type_matches:
-            identifier = (FunKindToUniq(func['def'].kind), func['def'].id.val)
-            if len(o[1]['arg_vars']) == len(expr.args):
-                order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
-
-                input_matches = 0
-                for i in range(0, len(expr.args)):
-                    arg_var = list(order_mapping.keys())[list(order_mapping.values()).index(i)]
-                    res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
-                    if res:
-                        input_matches += 1
-
-                if input_matches == len(expr.args):
-                    func_matches += 1
-
-        if func_matches == 0 and not noErrors:
-            ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
-            return False
-
-        return func_matches > 0
-
-    elif type(expr) is AST.TUPLE:
-        if type(exp_type) is not AST.TUPLETYPE:
-            ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
-            return True
-
-        type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table, func)
-        type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table, func)
-
-        return type1 or type2
-
-    else:
-        print("Unknown type")
-        print(type(expr))
-
-def typecheck_func(func, symbol_table, op_table):
-
-    for vardecl in func['def'].vardecls:
-        # Typecheck var decls
-        typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
-
-    stmts = list(reversed(func['def'].stmts))
-    ast_boolnode = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
-    while len(stmts) > 0:
-        stmt = stmts.pop()
-        if type(stmt.val) == AST.ACTSTMT:
-            if type(stmt.val.val) == AST.ASSIGNMENT:
-                # TODO: Check if the assignment is correct given the variable type
-                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table, func_id)
-                pass
-            else: # Fun call
-                print("plan func call")
-                print(stmt.val)
-                #typecheck(stmt.val.val, , symbol_table, op_table, func)
-                for a in stmt.val.val.args:
-                    # TODO: Check if argument type matches signature
-                    # typecheck(a, TBD, symbol_table, op_table, func_id)
-                    pass
-        elif type(stmt.val) == AST.IFELSE:
-            for b in stmt.val.condbranches:
-                typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
-                stmts.extend(list(reversed(b.stmts)))
-        elif type(stmt.val) == AST.LOOP:
-            typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, func)
-            stmts.extend(list(reversed(stmt.val.stmts)))
-        elif type(stmt.val) == AST.RETURN:
-            # TODO: Add expected type
-            typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, func)
-            pass
-
-    print("Typechecking has finished")
-
-def typecheck_functions(symbol_table, op_table):
-    for f in symbol_table.functions:
-        i = 0
-        for o in symbol_table.functions[f]:
-            typecheck_func(o, symbol_table, op_table)
-            i += 1
-
-def typecheck_globals(symbol_table, op_table):
-    for g in symbol_table.global_vars:
-        typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
-
 '''
 Goal of this function is:
 - To check for dead code after break/continue statements;
@@ -859,33 +593,6 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 def analyseFunc(ast):
     treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
 
-def selectiveApply(typ, node, f):
-    if type(node) is typ:
-        return f(node)
-    return node
-
-def treemap(ast, f, replace=True):
-    def unpack(val, f):
-        if type(val) == list:
-            mapped_list = []
-            for el in val:
-                mapped_list.append(unpack(el, f))
-            return mapped_list
-        elif type(val) in AST.nodes:# Require enumlike construct for AST
-            return treemap(val, f, replace)
-        else:
-            return val
-
-    if replace:
-        ast = f(ast)
-    else:
-        f(ast)
-    if type(ast) is not Token:
-        for attr in ast.items():
-            ast[attr[0]] = unpack(attr[1], f)
-
-    return ast
-
 '''
 symbol table bevat:
 functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als in imports
@@ -904,7 +611,7 @@ def analyse(ast, filename):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    from lexer import tokenize
+    from lib.parser.lexer import tokenize
     argparser = ArgumentParser(description="SPL Semantic Analysis")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import libraries from", nargs="?", type=str)

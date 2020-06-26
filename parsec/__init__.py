@@ -9,9 +9,9 @@ __author__ = 'He Tao, sighingnow@gmail.com'
 
 from functools import wraps
 from collections import namedtuple
-from util import pointToPosition
-from parse_error_handler import ParseErrorHandler, ParseError
-from AST import AST
+from lib.util.util import pointToPosition
+from lib.parser.parse_error_handler import ParseErrorHandler, ParseError
+from lib.datastructure.AST import AST
 
 ##########################################################################
 # Definition the Value modelof parsec.py.
