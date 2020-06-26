@@ -11,14 +11,19 @@ def main():
         Int a = 2;  
         Bool b = True;
         
-        g(x) :: Int -> Bool {
+        /*g(a, b) :: Int Int -> Int {
+            return a > b;
+        }*/
+        
+        g(x, y) :: Bool Bool -> Bool {
             return x > 0;
         }
         
         f(x, y) :: Int Int -> Int {
             Bool egerg = True;
+            Bool a = False;
             //(Int, (Int, Char)) d = (5, (3, c));
-            Bool c = egerg || g(a);
+            Bool c = (b && egerg + 3) || g(a, b);
             
             b = b - egerg;
             //return b * (x + y);
@@ -52,7 +57,6 @@ def main():
     # Type check
     typecheck_globals(symbol_table, op_table)
     typecheck_functions(symbol_table, op_table)
-    #typecheck_func(ast.decls[2].val, symbol_table, op_table)
     ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":

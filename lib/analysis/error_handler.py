@@ -38,6 +38,8 @@ class ERR(IntEnum):
     UnexpectedTuple = 23,
     UndefinedGlobalVar = 24,
     UndefinedVar = 25,
+    NoOverloadedFunDef = 26,
+    NoOverloadedFunWithArgs = 27,
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -60,11 +62,13 @@ ERRMSG = {
     ERR.LocalVarTypeNone: 'Local variable {} of function {} needs a type',
     ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
     ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}, expected argument {} to be {}\n{}',
-    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possible result in {}\n{}',
+    ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possibly result in {}\n{}',
     ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}',
     ERR.UnexpectedTuple: 'Unexpected tuple encountered, expected {}\n{}',
     ERR.UndefinedGlobalVar: 'Global Variable {} is not defined\n{}',
-    ERR.UndefinedVar: 'Variable {} is not defined\n{}'
+    ERR.UndefinedVar: 'Variable {} is not defined\n{}',
+    ERR.NoOverloadedFunDef: 'No (overloaded) function definition of {} which results in {}\n{}',
+    ERR.NoOverloadedFunWithArgs: 'No (overloaded) function definition of {} which takes the given arguments\n{}'
 }
 
 class WARN(IntEnum):

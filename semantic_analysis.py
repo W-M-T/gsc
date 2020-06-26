@@ -31,7 +31,7 @@ class SymbolTable():
         self.functions = functions
         self.type_syns = type_syns
 
-        self.order_mapping = {"global_vars":{}, "local_vars":{}} # Order doesn't matter for functions
+        self.order_mapping = {"global_vars":{}, "local_vars":{}, "arg_vars": {}} # Order doesn't matter for functions
         # This can be done more easily in newer versions of python, since dict order is deterministic there
 
     '''
@@ -298,14 +298,17 @@ Return a dict with function info + a dict of local variable definition order
 '''
 def buildFuncEntry(val):
     temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
+    temp_mapping_entry = {"arg_vars": {}, "local_vars": {}}
 
     funarg_vars = {}
     local_vars = {}
     local_vars_order_mapping = {}
+    arg_vars_order_mapping = {}
     for ix, arg in enumerate(val.params):
         if not arg.val in funarg_vars:
             found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
             funarg_vars[arg.val] = {"id":arg, "type":found_type}
+            arg_vars_order_mapping[arg.val] = ix
         else:
             # Arg name was already used
             ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
@@ -322,7 +325,10 @@ def buildFuncEntry(val):
 
     temp_entry["arg_vars"] = funarg_vars
     temp_entry["local_vars"]  = local_vars
-    return temp_entry, local_vars_order_mapping
+
+    temp_mapping_entry["arg_vars_mapping"] = arg_vars_order_mapping
+    temp_mapping_entry["local_vars_mapping"] = local_vars_order_mapping
+    return temp_entry, temp_mapping_entry
 
 ''' TODO how should we handle errors / warnings?
 E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
@@ -389,16 +395,21 @@ def buildSymbolTable(ast):
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
+                    symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)] = []
 
                     temp_entry, temp_order_mapping = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+
+                    print(temp_entry["arg_vars"])
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping)
+                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
+                    symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
             else: # Already defined in the table, check for overloading
                 temp_entry, temp_order_mapping = buildFuncEntry(val)
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping)
+                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
+                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -441,6 +452,7 @@ def resolveNames(symbol_table):
     in_scope_globals = list(symbol_table.global_vars.keys())
     for f in symbol_table.functions: # Functions
         for i in range(0, len(symbol_table.functions[f])): # Overloaded functions
+            print(symbol_table.order_mapping['local_vars'][f][i])
             in_scope_locals = {'locals': [], 'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars']))}
             for v in symbol_table.functions[f][i]['def'].vardecls:
                 in_scope = list(map(lambda x: x[0], filter(
@@ -506,41 +518,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
             expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
-
-# TODO this works differently for typesyns as opposed to other types: typesyns don't allow foralls
-'''
-def resolveTypeName(typ, symbol_table, counter=-1):
-    if type(typ) is AST.TYPE:
-        typ.val = resolveTypeName(typ.val, symbol_table, counter=counter)
-        return typ
-    elif type(typ) is AST.BASICTYPE:
-        return typ
-    elif type(typ) is AST.TUPLETYPE:
-        typ.a = resolveTypeName(typ.a, symbol_table, counter=counter)
-        typ.b = resolveTypeName(typ.b, symbol_table, counter=counter)
-        return typ
-    elif type(typ) is AST.LISTTYPE:
-        typ.type = resolveTypeName(typ.type, symbol_table, counter=counter)
-        return typ
-    elif type(typ) is Token:
-        print("GOT A DAMN TOKEN")
-        print(typ.val)
-        if typ.val in symbol_table.type_syns:
-            print(typ, "IS IN THE TABLE!!!!!!!!!!!!!!")
-            # Check if it is in scope
-            if True: # TODO
-                return AST.RES_TYPE(module=None, type_id=typ)
-        #Either not in the symbol table or not in scope yet
-        if False: # Test if exists in other modules
-            pass
-        else: # Doesn't exist in other modules either, interpret as forall
-            raise Exception("Forall type not implemented")
-
-    else:
-        print("GOT SOMETHING ELSE")
-        print(typ)
-'''
-
 
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
@@ -675,13 +652,13 @@ def tokenToTypeId(token):
         raise Exception('Unknown token supplied.')
 
 ''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0):
+def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=False):
 
     if type(expr) is Token:
         val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
         val._start_pos = Position()
         if not AST.equalVals(val, exp_type):
-            if r == 0:
+            if r == 0 and not noErrors:
                 ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
             return False
         return True
@@ -691,18 +668,18 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0):
         for o in op_table[expr.fun.val][2]:
             if AST.equalVals(o.to_type, exp_type):
                 alternatives += 1
-                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, r+1)
-                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, r+1)
+                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, False)
+                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, False)
 
                 if not type1:
                     incorrect = 1
                 elif not type2:
                     incorrect = 2
 
-        if incorrect != 0:
+        if incorrect != 0 and not noErrors:
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
-        elif alternatives == 0:
+        elif alternatives == 0 and not noErrors:
             # There is no alternative of this operator which has the expected output type
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
         return True
@@ -710,7 +687,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0):
         if type(expr.val) is AST.RES_GLOBAL:
             var_typ = symbol_table.global_vars[expr.val.id.val]
             if not AST.equalVals(var_typ.type.val, exp_type):
-                if r == 0:
+                if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
                     return True
 
@@ -724,15 +701,53 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0):
                 typ = symbol_table.global_vars[expr.val.id.val].type.val
 
             if not AST.equalVals(typ, exp_type):
-                if r == 0:
+                if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False
             return True
 
         return False
     elif type(expr) is AST.FUNCALL:
+        identifier = (FunKindToUniq(expr.kind), expr.id.val)
+        out_type_matches = []
         print(expr)
-        pass
+        i = 0
+        for o in symbol_table.functions[identifier]:
+            if AST.equalVals(o['type'].to_type.val, exp_type):
+                out_type_matches.append((i, o))
+            i += 1
+
+        if len(out_type_matches) == 0:
+            if r == 0 and not noErrors:
+                ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
+            return False
+
+        fun_matches = 0
+        for o in out_type_matches:
+            identifier = (FunKindToUniq(func['def'].kind), func['def'].id.val)
+            print(identifier)
+            if len(o[1]['arg_vars']) == len(expr.args):
+                k = 0
+                order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
+
+                input_matches = 0
+                for i in range(0, len(expr.args)):
+                    arg_var = list(order_mapping.keys())[list(order_mapping.values()).index(i)]
+                    print("Printing arg var")
+                    print(arg_var)
+                    print(o[1]['arg_vars'][arg_var])
+                    res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
+                    if res:
+                        input_matches += 1
+
+                if input_matches == len(expr.args):
+                    fun_matches += 1
+
+        if fun_matches == 0 and not noErrors:
+            ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
+
+        return True
+
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
             ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
@@ -741,13 +756,15 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0):
         type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table, func)
         type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table, func)
 
-        return (type1 or type2)
+        return type1 or type2
 
     else:
         print("Unknown type")
         print(type(expr))
 
 def typecheck_func(func, symbol_table, op_table):
+    print("Arg vars")
+
     for vardecl in func['def'].vardecls:
         # Typecheck var decls
         typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
@@ -782,8 +799,10 @@ def typecheck_func(func, symbol_table, op_table):
 
 def typecheck_functions(symbol_table, op_table):
     for f in symbol_table.functions:
+        i = 0
         for o in symbol_table.functions[f]:
             typecheck_func(o, symbol_table, op_table)
+            i += 1
 
 def typecheck_globals(symbol_table, op_table):
     for g in symbol_table.global_vars:
