@@ -425,6 +425,7 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     scope = NONGLOBALSCOPE.GlobalVar
                 else:
                     ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
+                    print("Adding error")
                     break
 
                 pos = expr.contents[i]._start_pos
@@ -440,8 +441,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
         elif type(expr.contents[i]) is AST.FUNCALL:
             for k in range(0, len(expr.contents[i].args)):
                 expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
-        elif type(expr.contents[i]) is AST.DEFERREDEXPR:
-            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
 
