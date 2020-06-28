@@ -9,29 +9,26 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Int a = 2;  
-        Bool b = True;
         
-        /*g(a, b) :: Int Int -> Int {
-            return a > b;
-        }*/
-        
-        g(x, y) :: (Bool, (Int, Int)) Int -> Bool {
-            return x > 0;
+        g(x) :: Int -> Bool {
+            return False;
         }
         
-        h(x) :: Int -> Bool {
-            return True;
+        g(x) :: Int -> Char {
+            return 'c';
         }
         
-        h(x) :: Int -> Int {
+        h(z) :: Int -> Int {
+            return z;
+        }
+        
+        h(y) :: Bool -> Int {
             return 5;
-        }
+        }        
         
         f(x, y) :: Int Int -> Int {
             Bool a = True;
-
-            h(1);
+            Int x = h(g(1));
             
             return a;
         }

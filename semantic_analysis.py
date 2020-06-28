@@ -288,7 +288,6 @@ def buildSymbolTable(ast):
 
             # Test if this function is already defined
             fun_id = val.id.val
-            print(fun_id)
             if not (uniq_kind, fun_id) in symbol_table.functions:
                 if False: # TODO test if it is already defined in other module
                     pass
@@ -303,6 +302,7 @@ def buildSymbolTable(ast):
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
                     symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
+
 
             else: # Already defined in the table, check for overloading
                 temp_entry, temp_order_mapping = buildFuncEntry(val)
@@ -351,7 +351,6 @@ def resolveNames(symbol_table):
     in_scope_globals = list(symbol_table.global_vars.keys())
     for f in symbol_table.functions: # Functions
         for i in range(0, len(symbol_table.functions[f])): # Overloaded functions
-            print(symbol_table.order_mapping['local_vars'][f][i])
             in_scope_locals = {'locals': [], 'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars']))}
             for v in symbol_table.functions[f][i]['def'].vardecls:
                 in_scope = list(map(lambda x: x[0], filter(
