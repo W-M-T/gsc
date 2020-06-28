@@ -44,6 +44,7 @@ class ERR(IntEnum):
     AmbiguousFunCall = 28,
     AmbiguousNestedFunCall = 29,
     UndefinedFun = 30,
+    IllegalAccessorUsage = 31,
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -75,7 +76,8 @@ ERRMSG = {
     ERR.NoOverloadedFunWithArgs: 'No function definition of {} which takes the given argument types\n{}',
     ERR.AmbiguousFunCall: 'Ambigious function call, function {} has multiple possible output types\n {}',
     ERR.AmbiguousNestedFunCall: 'Ambigious function call, function {} has multiple possible input types\n {}',
-    ERR.UndefinedFun: 'Function {} is not defined\n{}'
+    ERR.UndefinedFun: 'Function {} is not defined\n{}',
+    ERR.IllegalAccessorUsage: 'Trying to usage accessor on variable that is not a tuple\n {}',
 }
 
 class WARN(IntEnum):

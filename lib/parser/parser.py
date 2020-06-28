@@ -59,6 +59,7 @@ Accessor_lookup = {
 @ps.generate
 def IdField():
     i = yield ps.token(TOKEN.IDENTIFIER)
+    # TODO: Add token to field type so we can use position information in errors.
     found_fields = yield ps.many(ps.token(TOKEN.ACCESSOR))
     found_fields = list(map(lambda x: Accessor_lookup[x.val], found_fields))
     return AST.VARREF(id=i, fields=found_fields)

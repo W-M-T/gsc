@@ -9,9 +9,14 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        f(x, y) :: Int Int -> Int {
+        main() :: -> Int {
+            //(Int, (Int, Int)) a = (2, (3, 7));
+            [Int] b = 2 : [];
             
-            return (a + 2);
+            //a.fst.snd = 5;
+            b.fst = 7;
+        
+            return 0;
         }
     ''')
 

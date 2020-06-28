@@ -2,7 +2,7 @@
 
 from lib.datastructure.position import Position
 from lib.datastructure.token import Token, TOKEN
-from lib.datastructure.AST import AST, FunKindToUniq
+from lib.datastructure.AST import AST, FunKindToUniq, Accessor
 from lib.datastructure.scope import NONGLOBALSCOPE
 
 from lib.debug.AST_prettyprinter import subprint_type
@@ -29,6 +29,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         val._start_pos = Position()
         if not AST.equalVals(val, exp_type):
             if r == 0 and not noErrors:
+
                 ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
             return False
         return True
@@ -62,6 +63,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                     return True
 
         elif type(expr.val) is AST.RES_NONGLOBAL:
+
             typ = None
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 typ = func['local_vars'][expr.val.id.val].type.val
@@ -140,7 +142,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
 def typecheck_stmts(func, symbol_table, op_table):
 
     for vardecl in func['def'].vardecls:
-        # Typecheck var decls
         typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
 
     stmts = list(reversed(func['def'].stmts))
@@ -156,6 +157,27 @@ def typecheck_stmts(func, symbol_table, op_table):
                     typ = func['arg_vars'][stmt.val.val.varref.val.id.val].type.val
                 else:
                     typ = symbol_table.global_vars[stmt.val.val.varref.val.id.val].type.val
+
+            fields = list(reversed(stmt.val.val.varref.val.fields))
+            print(fields)
+            print(typ)
+            print(type(fields[0]))
+            while len(fields) > 0:
+                field = fields.pop()
+                print(field)
+                if field == Accessor.FST or field == Accessor.SND:
+                    print(type(typ))
+                    if type(typ) is AST.TUPLETYPE:
+                        if field == Accessor.FST:
+                            typ = typ.a.val
+                        else:
+                            typ = typ.b.val
+                    else:
+                        ERROR_HANDLER.addError(ERR.IllegalAccessorUsage, [stmt.val.val.varref])
+                else:
+                    if type(typ) is AST.LISTTYPE:
+                        print(typ)
+
 
             if type(stmt.val.val) == AST.ASSIGNMENT:
                 typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
