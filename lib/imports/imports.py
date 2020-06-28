@@ -49,19 +49,21 @@ In order of priority:
 3: Environment variable
 4: Local directory
 '''
-def resolveFileName(name, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
-    #print(name.name.val,local_dir)
-    #option = "{}/{}.spl".format(local_dir, name)
-    #print(os.path.isfile(option))
+def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+    fullname = "{}{}".format(name, extension)
     exception_list = []
     # Try to import from the compiler argument-specified path for this specific import
     if name in file_mapping_arg:
         try:
-            try_path = file_mapping_arg[name]
+            try_path = file_mapping_arg[name] # TODO allow to specify with or without extension, but ignore it if provided
             infile = open(try_path)
+            print("Found through mapping")
             return infile, try_path
         except Exception as e:
+            print(e)
             exception_list.append(e)
+    else:
+        print(name,"not in mapping")
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
@@ -88,19 +90,18 @@ def resolveFileName(name, local_dir, file_mapping_arg={}, lib_dir_path=None, lib
         #return infile, try_path
     except Exception as e:
         exception_list.append(e)
-    raise FileNotFoundError(name)
+    raise FileNotFoundError("\n"+"\n".join(list(map(str,[name,*exception_list]))))
 
 def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
     importlist = ast.imports
     print(importlist)
     print("CWD",local_dir)
     print("--lp",lib_dir_path)
-    #print("is dir",os.path.isdir(local_dir))
-    #print(os.listdir(local_dir))
+    print("env",lib_dir_env)
 
     temp = []
     for imp in importlist:
         impname = imp.name.val
-        handle, path = resolveFileName("{}{}".format(impname, extension), local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
-        temp.append((impname,handle,path))
-    print(temp)
+        handle, path = resolveFileName(impname, extension, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+        temp.append({"name":impname,"filehandle":handle,"path":path})
+    return temp

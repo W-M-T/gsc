@@ -940,9 +940,15 @@ g (x) {
         #print(ERROR_HANDLER)
 
         if not args.H: # We need to actually read the headerfiles of the imports:
-            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile), lib_dir_path=args.lp)
+            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+            print(headerfiles)
+            for head in headerfiles:
+                data = head['filehandle'].read()
+                print(import_headers(data))
             exit()
-            pass
 
         symbol_table = buildSymbolTable(x, args.H)
         import_headers(export_headers(symbol_table))
