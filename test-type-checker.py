@@ -20,16 +20,20 @@ def main():
             return x > 0;
         }
         
+        h(x) :: Int -> Bool {
+            return True;
+        }
+        
+        h(x) :: Int -> Int {
+            return 5;
+        }
+        
         f(x, y) :: Int Int -> Int {
-            Bool egerg = True;
-            Bool a = False;
-            Bool d = g((a, (2, 3)), 4);
+            Bool a = True;
+
+            h(1);
             
-            g(2, 3);
-            
-            b = b - egerg;
-            
-            return b + g(5, 4);
+            return a;
         }
     ''')
 

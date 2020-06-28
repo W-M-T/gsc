@@ -68,8 +68,8 @@ ERRMSG = {
     ERR.UnexpectedTuple: 'Unexpected tuple encountered, expected {}\n{}',
     ERR.UndefinedGlobalVar: 'Global Variable {} is not defined\n{}',
     ERR.UndefinedVar: 'Variable {} is not defined\n{}',
-    ERR.NoOverloadedFunDef: 'No (overloaded) function definition of {} which results in {}\n{}',
-    ERR.NoOverloadedFunWithArgs: 'No (overloaded) function definition of {} which takes the given arguments\n{}'
+    ERR.NoOverloadedFunDef: 'No function definition of {} which results in {}\n{}',
+    ERR.NoOverloadedFunWithArgs: 'No function definition of {} which takes the given argument types\n{}'
 }
 
 class WARN(IntEnum):

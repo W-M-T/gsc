@@ -82,12 +82,12 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         out_type_matches = []
         i = 0
         for o in symbol_table.functions[identifier]:
-            if AST.equalVals(o['type'].to_type.val, exp_type):
+            if AST.equalVals(o['type'].to_type.val, exp_type) or exp_type is None:
                 out_type_matches.append((i, o))
             i += 1
 
         if len(out_type_matches) == 0:
-            if r == 0 and not noErrors:
+            if r == 0 and not noErrors and exp_type is not None:
                 ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
             return False
 
@@ -111,6 +111,9 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
             return False
 
+        print("FUNCTION MATCHES:")
+        print(func_matches)
+
         return func_matches > 0
 
     elif type(expr) is AST.TUPLE:
@@ -127,7 +130,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         print("Unknown type")
         print(type(expr))
 
-def typecheck_func(func, symbol_table, op_table):
+def typecheck_stmts(func, symbol_table, op_table):
 
     for vardecl in func['def'].vardecls:
         # Typecheck var decls
@@ -138,18 +141,20 @@ def typecheck_func(func, symbol_table, op_table):
     while len(stmts) > 0:
         stmt = stmts.pop()
         if type(stmt.val) == AST.ACTSTMT:
+            typ = None
+            if hasattr(stmt.val.val, 'varref'):
+                if stmt.val.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                    typ = func['local_vars'][stmt.val.val.varref.val.id.val].type.val
+                elif stmt.val.val.varref.val.scope == NONGLOBALSCOPE.ArgVar:
+                    typ = func['arg_vars'][stmt.val.val.varref.val.id.val].type.val
+                else:
+                    typ = symbol_table.global_vars[stmt.val.val.varref.val.id.val].type.val
+
             if type(stmt.val.val) == AST.ASSIGNMENT:
-                # TODO: Check if the assignment is correct given the variable type
-                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table, func_id)
-                pass
+                typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
             else: # Fun call
-                print("plan func call")
-                print(stmt.val)
-                #typecheck(stmt.val.val, , symbol_table, op_table, func)
-                for a in stmt.val.val.args:
-                    # TODO: Check if argument type matches signature
-                    # typecheck(a, TBD, symbol_table, op_table, func_id)
-                    pass
+                typecheck(stmt.val.val, typ, symbol_table, op_table, func)
+
         elif type(stmt.val) == AST.IFELSE:
             for b in stmt.val.condbranches:
                 typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
@@ -168,7 +173,7 @@ def typecheck_functions(symbol_table, op_table):
     for f in symbol_table.functions:
         i = 0
         for o in symbol_table.functions[f]:
-            typecheck_func(o, symbol_table, op_table)
+            typecheck_stmts(o, symbol_table, op_table)
             i += 1
 
 def typecheck_globals(symbol_table, op_table):

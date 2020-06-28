@@ -8,7 +8,10 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        Bool a = ~(f(b * 2, 5 * 8) && True);
+        [Char] a = 'a' : 'b' : 'c': [];
+        [Char] b = [] : 'b' : [] : 'c';
+        [Char] c = 'a' : 'b';
+        [Char] x = 'a' : ('b' : ('c': []));
     ''')
 
     tokenstream = tokenize(testprog)
@@ -32,6 +35,7 @@ def main():
     op_table = buildOperatorTable()
 
     fixExpression(ast, op_table)
+    print(ast)
     ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":
