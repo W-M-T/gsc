@@ -16,6 +16,7 @@ from lib.util.util import treemap, selectiveApply
 
 from lib.parser.parser import parseTokenStream
 from lib.debug.AST_prettyprinter import print_node, subprint_type
+import os
 from enum import IntEnum
 
 

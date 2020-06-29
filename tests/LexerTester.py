@@ -92,7 +92,7 @@ class LexerTester(unittest.TestCase):
     def test_lexer_failure_examples(self):
         for test_file in os.listdir('lexer/failure/'):
             with self.subTest():
-                proc = subprocess.run(["../lexer.py", "lexer/failure/" + test_file],
+                proc = subprocess.run(["../lib/parser/lexer.py", "lexer/failure/" + test_file],
                     stdout = subprocess.PIPE,
                     stderr = subprocess.STDOUT,
                 )
@@ -102,7 +102,7 @@ class LexerTester(unittest.TestCase):
     def test_lexer_success_examples(self):
         for test_file in os.listdir('lexer/success/'):
             with self.subTest():
-                proc = subprocess.run(["../lexer.py", "lexer/success/" + test_file],
+                proc = subprocess.run(["../lib/parser/lexer.py", "lexer/success/" + test_file],
                     stdout = subprocess.PIPE,
                     stderr = subprocess.STDOUT,
                 )

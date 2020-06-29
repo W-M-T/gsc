@@ -3,6 +3,7 @@
 import sys
 import re
 
+sys.path.insert(0, '../../')
 from lib.datastructure.token import TOKEN, Token
 from lib.datastructure.position import Position
 from lib.util.util import pointToLine
@@ -312,7 +313,7 @@ def tokenize(inputstream):
 if __name__ == "__main__":
     from argparse import ArgumentParser
     argparser = ArgumentParser(description="SPL Lexer")
-    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
+    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="../../example programs/p1_example.spl")
     args = argparser.parse_args()
 
     with open(args.infile, "r") as infile:

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
+sys.path.insert(0, '../../')
 from lib.datastructure.token import TOKEN, Token
 import parsec as ps
 from lib.datastructure.AST import AST, FunKind, Accessor
@@ -465,7 +467,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     from lib.parser.lexer import tokenize
     argparser = ArgumentParser(description="SPL Parser")
-    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
+    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="../../example programs/p1_example.spl")
     args = argparser.parse_args()
 
 
