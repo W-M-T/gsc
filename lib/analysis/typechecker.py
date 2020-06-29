@@ -81,19 +81,24 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         identifier = (FunKindToUniq(expr.kind), expr.id.val)
         out_type_matches = []
         i = 0
+
+        if identifier not in symbol_table.functions:
+            ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])
+            return True
+
         for o in symbol_table.functions[identifier]:
-            if AST.equalVals(o['type'].to_type.val, exp_type):
+            if AST.equalVals(o['type'].to_type.val, exp_type) or exp_type is None:
                 out_type_matches.append((i, o))
             i += 1
 
         if len(out_type_matches) == 0:
-            if r == 0 and not noErrors:
+            if r == 0 and not noErrors and exp_type is not None:
                 ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
             return False
 
         func_matches = 0
         for o in out_type_matches:
-            identifier = (FunKindToUniq(func['def'].kind), func['def'].id.val)
+            identifier = (FunKindToUniq(o[1]['def'].kind), o[1]['def'].id.val)
             if len(o[1]['arg_vars']) == len(expr.args):
                 order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
 
@@ -110,8 +115,13 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         if func_matches == 0 and not noErrors:
             ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
             return False
+        elif func_matches > 1 and exp_type is None:
+            ERROR_HANDLER.addError(ERR.AmbiguousFunCall , [expr.id.val, expr.id])
+            return False
+        elif func_matches > 1:
+            ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
 
-        return func_matches > 0
+        return True
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
@@ -127,7 +137,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         print("Unknown type")
         print(type(expr))
 
-def typecheck_func(func, symbol_table, op_table):
+def typecheck_stmts(func, symbol_table, op_table):
 
     for vardecl in func['def'].vardecls:
         # Typecheck var decls
@@ -138,18 +148,20 @@ def typecheck_func(func, symbol_table, op_table):
     while len(stmts) > 0:
         stmt = stmts.pop()
         if type(stmt.val) == AST.ACTSTMT:
+            typ = None
+            if hasattr(stmt.val.val, 'varref'):
+                if stmt.val.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                    typ = func['local_vars'][stmt.val.val.varref.val.id.val].type.val
+                elif stmt.val.val.varref.val.scope == NONGLOBALSCOPE.ArgVar:
+                    typ = func['arg_vars'][stmt.val.val.varref.val.id.val].type.val
+                else:
+                    typ = symbol_table.global_vars[stmt.val.val.varref.val.id.val].type.val
+
             if type(stmt.val.val) == AST.ASSIGNMENT:
-                # TODO: Check if the assignment is correct given the variable type
-                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table, func_id)
-                pass
+                typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
             else: # Fun call
-                print("plan func call")
-                print(stmt.val)
-                #typecheck(stmt.val.val, , symbol_table, op_table, func)
-                for a in stmt.val.val.args:
-                    # TODO: Check if argument type matches signature
-                    # typecheck(a, TBD, symbol_table, op_table, func_id)
-                    pass
+                typecheck(stmt.val.val, typ, symbol_table, op_table, func)
+
         elif type(stmt.val) == AST.IFELSE:
             for b in stmt.val.condbranches:
                 typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
@@ -168,7 +180,7 @@ def typecheck_functions(symbol_table, op_table):
     for f in symbol_table.functions:
         i = 0
         for o in symbol_table.functions[f]:
-            typecheck_func(o, symbol_table, op_table)
+            typecheck_stmts(o, symbol_table, op_table)
             i += 1
 
 def typecheck_globals(symbol_table, op_table):

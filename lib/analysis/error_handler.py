@@ -41,6 +41,9 @@ class ERR(IntEnum):
     UndefinedVar = 25,
     NoOverloadedFunDef = 26,
     NoOverloadedFunWithArgs = 27,
+    AmbiguousFunCall = 28,
+    AmbiguousNestedFunCall = 29,
+    UndefinedFun = 30,
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -68,8 +71,11 @@ ERRMSG = {
     ERR.UnexpectedTuple: 'Unexpected tuple encountered, expected {}\n{}',
     ERR.UndefinedGlobalVar: 'Global Variable {} is not defined\n{}',
     ERR.UndefinedVar: 'Variable {} is not defined\n{}',
-    ERR.NoOverloadedFunDef: 'No (overloaded) function definition of {} which results in {}\n{}',
-    ERR.NoOverloadedFunWithArgs: 'No (overloaded) function definition of {} which takes the given arguments\n{}'
+    ERR.NoOverloadedFunDef: 'No function definition of {} which results in {}\n{}',
+    ERR.NoOverloadedFunWithArgs: 'No function definition of {} which takes the given argument types\n{}',
+    ERR.AmbiguousFunCall: 'Ambigious function call, function {} has multiple possible output types\n {}',
+    ERR.AmbiguousNestedFunCall: 'Ambigious function call, function {} has multiple possible input types\n {}',
+    ERR.UndefinedFun: 'Function {} is not defined\n{}'
 }
 
 class WARN(IntEnum):

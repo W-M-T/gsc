@@ -278,7 +278,6 @@ def buildSymbolTable(ast, just_for_headerfile=True):
 
             # Test if this function is already defined
             fun_id = val.id.val
-            print(fun_id)
             if not (uniq_kind, fun_id) in symbol_table.functions:
                 if not just_for_headerfile:
                     # TODO test if it is already defined (with the same type) in other module
@@ -295,6 +294,7 @@ def buildSymbolTable(ast, just_for_headerfile=True):
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
                     symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
+
 
             else: # Already defined in the table, check for overloading
                 temp_entry, temp_order_mapping = buildFuncEntry(val)
@@ -344,7 +344,6 @@ def resolveNames(symbol_table):
     in_scope_globals = list(symbol_table.global_vars.keys())
     for f in symbol_table.functions: # Functions
         for i in range(0, len(symbol_table.functions[f])): # Overloaded functions
-            print(symbol_table.order_mapping['local_vars'][f][i])
             in_scope_locals = {'locals': [], 'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars']))}
             for v in symbol_table.functions[f][i]['def'].vardecls:
                 in_scope = list(map(lambda x: x[0], filter(
@@ -356,13 +355,38 @@ def resolveNames(symbol_table):
 
             in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
 
+            # Expressions and assignments
             treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, in_scope_globals, in_scope_locals)))
 
-    '''
-    Funcall naar module, (FunUniq, id) (nog geen type)
-    Varref naar module, scope (global of local + naam of arg + naam)
-    Type-token naar module, naam of forall type
-    '''
+'''
+Funcall naar module, (FunUniq, id) (nog geen type)
+Varref naar module, scope (global of local + naam of arg + naam)
+Type-token naar module, naam of forall type
+'''
+
+def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_locals={}):
+    scope = None
+    if assignment.varref.id.val in in_scope_locals['locals']:
+        scope = NONGLOBALSCOPE.LocalVar
+    elif assignment.varref.id.val in in_scope_locals['args']:
+        scope = NONGLOBALSCOPE.ArgVar
+    elif assignment.varref.id.val in in_scope_globals:
+        scope = NONGLOBALSCOPE.GlobalVar
+    else:
+        ERROR_HANDLER.addError(ERR.UndefinedVar, [assignment.varref.id.val, assignment.varref])
+
+    pos = assignment.varref._start_pos
+    assignment.varref = AST.RES_VARREF(val=AST.RES_NONGLOBAL(
+        scope=scope,
+        id=assignment.varref.id,
+        fields=assignment.varref.fields
+    ))
+    assignment.varref._start_pos = pos
+
+    return assignment
+
+# TODO: Really check if all expression types are handled correctly here.
 
 '''
 Resolve an expression with the following globals in scope
@@ -406,6 +430,9 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
         elif type(expr.contents[i]) is AST.TUPLE:
             expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
             expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
+        elif type(expr.contents[i]) is AST.FUNCALL:
+            for k in range(0, len(expr.contents[i].args)):
+                expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.DEFERREDEXPR:
             expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
@@ -425,7 +452,7 @@ def abstractToConcreteType(abstract_type, basic_types):
         raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
 '''
-Given the symbol table, produce the operator table including all builtin operators and its overloaded functions.
+Given the symbol table, produce the operator table for of all the builtin operators.
 '''
 def buildOperatorTable():
     op_table = {}
