@@ -6,8 +6,8 @@ import subprocess
 import sys
 import os
 
-# Makes it possible to import from the lexer
-sys.path.insert(0, '../')
+# Import hack
+sys.path.insert(0, os.path.join(sys.path[0],'../'))
 
 from lib.parser.lexer import REG_ID, REG_OP, REG_INT, REG_STR, REG_CHR
 
@@ -90,7 +90,7 @@ class LexerTester(unittest.TestCase):
                 self.compare(REG_STR, '"{}"'.format(s), "String %s was not matched")
 
     def test_lexer_failure_examples(self):
-        for test_file in os.listdir('lexer/failure/'):
+        for test_file in os.listdir('./lexer/failure/'):
             with self.subTest():
                 proc = subprocess.run(["../lib/parser/lexer.py", "lexer/failure/" + test_file],
                     stdout = subprocess.PIPE,
@@ -100,7 +100,7 @@ class LexerTester(unittest.TestCase):
                 self.assertNotEqual(proc.returncode, 0)
 
     def test_lexer_success_examples(self):
-        for test_file in os.listdir('lexer/success/'):
+        for test_file in os.listdir('./lexer/success/'):
             with self.subTest():
                 proc = subprocess.run(["../lib/parser/lexer.py", "lexer/success/" + test_file],
                     stdout = subprocess.PIPE,

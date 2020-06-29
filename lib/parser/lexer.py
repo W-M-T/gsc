@@ -3,7 +3,10 @@
 import sys
 import re
 
-sys.path.insert(0, '../../')
+# Import hack
+import os
+sys.path.insert(0, os.path.join(sys.path[0],'../../'))
+
 from lib.datastructure.token import TOKEN, Token
 from lib.datastructure.position import Position
 from lib.util.util import pointToLine

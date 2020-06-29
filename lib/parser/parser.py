@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
-sys.path.insert(0, '../../')
+# Import hack
+import os
+sys.path.insert(0, os.path.join(sys.path[0],'../../'))
+
 from lib.datastructure.token import TOKEN, Token
 import parsec as ps
 from lib.datastructure.AST import AST, FunKind, Accessor

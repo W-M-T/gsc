@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# Import hack
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0],'../../'))
+#print("SYSPATH:",sys.path)
+
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import AST, FunKind, Accessor
 import itertools
