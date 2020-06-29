@@ -3,7 +3,9 @@
 import sys
 import re
 
-from util import TOKEN, Token, Position, pointToLine
+from lib.datastructure.token import TOKEN, Token
+from lib.datastructure.position import Position
+from lib.util.util import pointToLine
 '''
 TODO
 Refactor tokenize along repeating pattern to improve readability

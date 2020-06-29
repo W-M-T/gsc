@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from util import TOKEN
+from lib.datastructure.token import TOKEN
 
 TOKEN_SYNTAX = {
     TOKEN.VAR             : "var",

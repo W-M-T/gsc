@@ -2,7 +2,6 @@
 
 import sys as _sys
 from keyword import iskeyword as _iskeyword
-from operator import itemgetter as _itemgetter
 from collections import Iterable
 
 
@@ -109,7 +108,8 @@ class AST:
 
 
 if __name__ == "__main__":
-    from util import Position, TOKEN, Token, Node
+    from lib.util.util import TOKEN, Token
+
     test1 = [
         Token(None, TOKEN.TYPESYN, None),
         Token(None, TOKEN.TYPE_IDENTIFIER, "String"),

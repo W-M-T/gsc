@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from util import Token, TOKEN
-from AST import AST, FunKind, Accessor
+from lib.datastructure.token import Token, TOKEN
+from lib.datastructure.AST import AST, FunKind, Accessor
 import itertools
 
 def flatten(xs):

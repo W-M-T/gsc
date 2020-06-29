@@ -2,102 +2,30 @@
 
 from lib.imports.imports import export_headers, import_headers, getImportFiles, HEADER_EXT, SOURCE_EXT
 from lib.analysis.error_handler import *
-from lib.analysis.builtin_sigs import BUILTIN_FUNCTIONS, BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
-from AST import AST, FunKind, Accessor, FunUniq, FunKindToUniq
-from parser import parseTokenStream
-from AST_prettyprinter import print_node, subprint_type
-from util import Token, TOKEN, Position
-import os
+from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
+from lib.datastructure.position import Position
+from lib.datastructure.token import Token, TOKEN
+from lib.datastructure.symbol_table import SymbolTable
+from lib.datastructure.scope import NONGLOBALSCOPE
+
+from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS, ILLEGAL_OP_IDENTIFIERS
+from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE
+from lib.builtins.functions import BUILTIN_FUNCTIONS
+
+from lib.util.util import treemap, selectiveApply
+
+from lib.parser.parser import parseTokenStream
+from lib.debug.AST_prettyprinter import print_node, subprint_type
 from enum import IntEnum
 
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
-
-# TODO python dict iteration is not deterministically the same: leads to different errors being first every time
-
-# Keep track if a local is an arg?
-# How to handle symbol table merging in case of imports?
-# Vars with or without type. Should be able to add type to func params
-# Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
-class SymbolTable():
-    def __init__(self, global_vars = {}, functions = {}, type_syns = {}):
-        # mapping of identifier to definition node
-        self.global_vars = global_vars
-
-        # (FunUniq, id) as identifier key
-        # maps to list of dicts
-        # dict has keys "type", "def", "arg_vars", "local_vars"
-        # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
-        # local_vars is dict of identifiers to vardecl def nodes
-        # def is None for BUILTINS
-        self.functions = functions
-        self.type_syns = type_syns
-
-        self.order_mapping = {"global_vars":{}, "local_vars":{}} # Order doesn't matter for functions
-        # This can be done more easily in newer versions of python, since dict order is deterministic there
-
-    '''
-    def getFunc(self, uniq, fid, normaltype):
-        flist = self.functions[(uniq, fid)]
-        #x for x in flist if 
-        return
-    '''
-
-
-    def repr_funcs(self):
-        temp = "\n=Regular:{}\n=Prefix:{}\n=Infix:{}"
-        filtered_uniqs = list(map(lambda y: list(filter(lambda x: x[0][0] == y, self.functions.items())), FunUniq))
-        filtered_uniqs = list(map(lambda x: "".join(list(map(SymbolTable.repr_func_uniq, x))), filtered_uniqs))
-        return temp.format(*filtered_uniqs)
-
-    def repr_func_uniq(func):
-        deflist = "\n".join(list(map(lambda x:
-                "{} :: {}\n\tArgs:{}\n\tLocals:{}".format(func[0][1], subprint_type(x["type"]), list(x["arg_vars"]), list(x["local_vars"])),
-            func[1])))
-        return "\n"+deflist
-
-    def repr_short(self):
-        return "=== Symbol table:\n== Global vars: {}\n== Functions: {}\n== Type synonyms: {}".format(
-            list(self.global_vars.keys()),
-            self.repr_funcs(),
-            "".join(list(map(lambda x: "\n{} = {}".format(x[0], print_node(x[1])), sorted(self.type_syns.items())))))
-
-    def __repr__(self):
-        return self.repr_short()
-
-    '''
-    def __repr__(self):
-        return "Symbol table:\nGlobal vars: {}\nFunctions: {}\nFunArgs: {}\nLocals: {}\nType synonyms: {}".format(self.global_vars, self.functions, self.funarg_vars, self.local_vars, self.type_syns)
-    '''
 
 
 '''
 W.r.t. name resolution:
 there's globals, locals and function parameters
 '''
-
-BUILTIN_TYPES = [
-    "Char",
-    "Int",
-    "Bool",
-    "Void"
-]
-
-VOID_TYPE = [
-    "Void"
-]
-
-ILLEGAL_OP_IDENTIFIERS = [
-    "->",
-    "::",
-    "=",
-    "*/"
-]
-
-class NONGLOBALSCOPE(IntEnum):
-    GlobalVar   = 1
-    ArgVar      = 2
-    LocalVar    = 3
 
 '''
 Replace all type synonyms in type with their definition, until the base case.
@@ -263,14 +191,17 @@ Return a dict with function info + a dict of local variable definition order
 '''
 def buildFuncEntry(val):
     temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
+    temp_mapping_entry = {"arg_vars": {}, "local_vars": {}}
 
     funarg_vars = {}
     local_vars = {}
     local_vars_order_mapping = {}
+    arg_vars_order_mapping = {}
     for ix, arg in enumerate(val.params):
         if not arg.val in funarg_vars:
             found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
             funarg_vars[arg.val] = {"id":arg, "type":found_type}
+            arg_vars_order_mapping[arg.val] = ix
         else:
             # Arg name was already used
             ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
@@ -287,7 +218,10 @@ def buildFuncEntry(val):
 
     temp_entry["arg_vars"] = funarg_vars
     temp_entry["local_vars"]  = local_vars
-    return temp_entry, local_vars_order_mapping
+
+    temp_mapping_entry["arg_vars_mapping"] = arg_vars_order_mapping
+    temp_mapping_entry["local_vars_mapping"] = local_vars_order_mapping
+    return temp_entry, temp_mapping_entry
 
 '''
 TODO We don't check for redefinition attempts of builtin functions or ops
@@ -353,16 +287,20 @@ def buildSymbolTable(ast, just_for_headerfile=True):
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
+                    symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)] = []
 
                     temp_entry, temp_order_mapping = buildFuncEntry(val)
                     #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+
                     symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping)
+                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
+                    symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
             else: # Already defined in the table, check for overloading
                 temp_entry, temp_order_mapping = buildFuncEntry(val)
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_entry)
+                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
+                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -396,32 +334,29 @@ def buildSymbolTable(ast, just_for_headerfile=True):
 def resolveNames(symbol_table):
     # Resolve names used in expressions in global variable definitions:
     # Order matters here as to what is in scope
-    print("RESOLVING VARS:")
-    in_scope_globals = []
-    print(symbol_table.order_mapping['global_vars'])
+
+    # Globals
     for glob_var_id, glob_var in symbol_table.global_vars.items():
         in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items())))
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
-        if len(in_scope) > len(in_scope_globals):
-            in_scope_globals = in_scope
 
-    print("Iterating over functions")
-    print("Globals")
-    print(in_scope_globals)
+    # Functions
+    in_scope_globals = list(symbol_table.global_vars.keys())
     for f in symbol_table.functions: # Functions
         for i in range(0, len(symbol_table.functions[f])): # Overloaded functions
-            print("Mapping")
-            print(symbol_table.order_mapping['local_vars'][f])
+            print(symbol_table.order_mapping['local_vars'][f][i])
+            in_scope_locals = {'locals': [], 'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars']))}
             for v in symbol_table.functions[f][i]['def'].vardecls:
-                in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['local_vars'][f][i][v.id.val] >
-                                                 symbol_table.order_mapping['local_vars'][f][i][x[0]],
-                                       symbol_table.functions[f][i]['local_vars'].items())))
-                in_scope_locals = {
-                    'locals': in_scope,
-                    'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars'])),
-                }
+                in_scope = list(map(lambda x: x[0], filter(
+                    lambda x: symbol_table.order_mapping['local_vars'][f][i][v.id.val] > symbol_table.order_mapping['local_vars'][f][i][x[0]],
+                    symbol_table.functions[f][i]['local_vars'].items())))
+
+                in_scope_locals['locals'] = in_scope
                 resolveExprNames(v.expr, symbol_table, False, in_scope_globals, in_scope_locals)
 
+            in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
+
+            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
 
     '''
     Funcall naar module, (FunUniq, id) (nog geen type)
@@ -437,7 +372,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
     for i in range(0, len(expr.contents)):
         if type(expr.contents[i]) is AST.VARREF:
             if glob:
-
                 if expr.contents[i].id.val not in in_scope_globals:
                     ERROR_HANDLER.addError(ERR.UndefinedGlobalVar, [expr.contents[i].id.val, expr.contents[i]])
                     break
@@ -450,12 +384,8 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                 ))
                 expr.contents[i]._start_pos = pos
             else:
-                print("Adding new local")
-                print(expr)
-                print(in_scope_globals)
-                print(in_scope_locals['args'])
-                print(in_scope_locals['locals'])
                 scope = None
+
                 if expr.contents[i].id.val in in_scope_locals['locals']:
                     scope = NONGLOBALSCOPE.LocalVar
                 elif expr.contents[i].id.val in in_scope_locals['args']:
@@ -473,45 +403,13 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     fields=expr.contents[i].fields
                 ))
                 expr.contents[i]._start_pos = pos
+        elif type(expr.contents[i]) is AST.TUPLE:
+            expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
+            expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.DEFERREDEXPR:
-            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob=glob)
+            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
-
-# TODO this works differently for typesyns as opposed to other types: typesyns don't allow foralls
-'''
-def resolveTypeName(typ, symbol_table, counter=-1):
-    if type(typ) is AST.TYPE:
-        typ.val = resolveTypeName(typ.val, symbol_table, counter=counter)
-        return typ
-    elif type(typ) is AST.BASICTYPE:
-        return typ
-    elif type(typ) is AST.TUPLETYPE:
-        typ.a = resolveTypeName(typ.a, symbol_table, counter=counter)
-        typ.b = resolveTypeName(typ.b, symbol_table, counter=counter)
-        return typ
-    elif type(typ) is AST.LISTTYPE:
-        typ.type = resolveTypeName(typ.type, symbol_table, counter=counter)
-        return typ
-    elif type(typ) is Token:
-        print("GOT A DAMN TOKEN")
-        print(typ.val)
-        if typ.val in symbol_table.type_syns:
-            print(typ, "IS IN THE TABLE!!!!!!!!!!!!!!")
-            # Check if it is in scope
-            if True: # TODO
-                return AST.RES_TYPE(module=None, type_id=typ)
-        #Either not in the symbol table or not in scope yet
-        if False: # Test if exists in other modules
-            pass
-        else: # Doesn't exist in other modules either, interpret as forall
-            raise Exception("Forall type not implemented")
-
-    else:
-        print("GOT SOMETHING ELSE")
-        print(typ)
-'''
-
 
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
@@ -529,7 +427,7 @@ def abstractToConcreteType(abstract_type, basic_types):
 '''
 Given the symbol table, produce the operator table including all builtin operators and its overloaded functions.
 '''
-def buildOperatorTable(symbol_table):
+def buildOperatorTable():
     op_table = {}
 
     basic_types = ['Int', 'Char', 'Bool']
@@ -560,7 +458,9 @@ def buildOperatorTable(symbol_table):
                                     )
                                 )
 
-    # TODO: Fix this when experimenting with custom operators
+    return op_table
+
+def mergeCustomOps(op_table, symbol_table):
     for x in symbol_table.functions:
         f = symbol_table.functions[x]
         if x[0] is FunUniq.INFIX:
@@ -599,6 +499,8 @@ def parseAtom(exp, ops, exp_index):
         # This should never happen
         print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
         print(type(exp[exp_index]))
+        print(exp[exp_index])
+        exit(1)
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
 def parseExpression(exp, ops, min_precedence = 1, exp_index = 0):
@@ -628,118 +530,6 @@ def fixExpression(ast, op_table):
     decorated_ast = treemap(ast, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: parseExpression(y.contents, op_table)[0]))
 
     return decorated_ast
-
-def tokenToTypeId(token):
-    if token.typ == TOKEN.INT:
-        return 'Int'
-    elif token.typ == TOKEN.CHAR:
-        return 'Char'
-    elif token.typ == TOKEN.BOOL:
-        return 'Bool'
-    elif token.typ == TOKEN.STRING:
-        return 'String'
-    else:
-        raise Exception('Unknown token supplied.')
-
-''' Type check the given expression '''
-def typecheck(expr, exp_type, symbol_table, op_table, r=0):
-
-    if type(expr) is Token:
-        val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
-        val._start_pos = Position()
-        if not AST.equalVals(val, exp_type):
-            if r == 0:
-                ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
-            return False
-        return True
-    elif type(expr) is AST.PARSEDEXPR:
-        incorrect = 0
-        alternatives = 0
-        for o in op_table[expr.fun.val][2]:
-            if AST.equalVals(o.to_type, exp_type):
-                alternatives += 1
-                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, r+1)
-                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, r+1)
-
-                if not type1:
-                    incorrect = 1
-                elif not type2:
-                    incorrect = 2
-
-        if incorrect != 0:
-            # There is no alternative of this operator which has the expected input types.
-            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
-        elif alternatives == 0:
-            # There is no alternative of this operator which has the expected output type
-            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
-        return True
-    elif type(expr) is AST.RES_VARREF:
-        if type(expr.val) is AST.RES_GLOBAL:
-            var_typ = symbol_table.global_vars[expr.val.id.val]
-            if not AST.equalVals(var_typ.type.val, exp_type):
-                if r == 0:
-                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
-                    return True
-        return False
-    elif type(expr) is AST.FUNCALL:
-        print(expr)
-        pass
-    elif type(expr) is AST.TUPLE:
-        if type(exp_type) is not AST.TUPLETYPE:
-            ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
-            return True
-
-        type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table)
-        type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table)
-
-        return (type1 or type2)
-
-    else:
-        print("Unknown type")
-        print(type(expr))
-
-def typecheck_func(func, symbol_table, op_table):
-    print(func)
-    for vardecl in func.vardecls:
-        # Typecheck var decls
-        typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table)
-
-    stmts = list(reversed(func.stmts))
-    ast_boolnode = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
-    while len(stmts) > 0:
-        stmt = stmts.pop()
-        print(stmt)
-        print(type(stmt.val))
-        if type(stmt.val) == AST.ACTSTMT:
-            if type(stmt.val.val) == AST.ASSIGNMENT:
-                # TODO: Check if the assignment is correct given the variable type
-                # typecheck(stmt.val.val.expr, TBD, symbol_table, op_table)
-                pass
-            else: # Fun call
-                for a in stmt.val.val.args:
-                    # TODO: Check if argument type matches signature
-                    # typecheck(a, TBD, symbol_table, op_table)
-                    pass
-        elif type(stmt.val) == AST.IFELSE:
-            for b in stmt.val.condbranches:
-                typecheck(b.expr, ast_boolnode, symbol_table, op_table)
-                stmts.extend(list(reversed(b.stmts)))
-        elif type(stmt.val) == AST.LOOP:
-            typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table)
-            stmts.extend(list(reversed(stmt.val.stmts)))
-        elif type(stmt.val) == AST.RETURN:
-            # TODO: Add expected type
-            # typecheck(stmt.val.expr, TBD, symbol_table, op_table)
-            pass
-
-    print("Done")
-
-def typecheck_globals(ast, symbol_table, op_table):
-    for g in symbol_table.global_vars:
-        print("Typechecking the following expression:")
-        print(symbol_table.global_vars[g].expr)
-        print(symbol_table.global_vars[g].type.val)
-        typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
 
 '''
 Goal of this function is:
@@ -796,33 +586,6 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 def analyseFunc(ast):
     treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
 
-def selectiveApply(typ, node, f):
-    if type(node) is typ:
-        return f(node)
-    return node
-
-def treemap(ast, f, replace=True):
-    def unpack(val, f):
-        if type(val) == list:
-            mapped_list = []
-            for el in val:
-                mapped_list.append(unpack(el, f))
-            return mapped_list
-        elif type(val) in AST.nodes:# Require enumlike construct for AST
-            return treemap(val, f, replace)
-        else:
-            return val
-
-    if replace:
-        ast = f(ast)
-    else:
-        f(ast)
-    if type(ast) is not Token:
-        for attr in ast.items():
-            ast[attr[0]] = unpack(attr[1], f)
-
-    return ast
-
 '''
 symbol table bevat:
 functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als in imports
@@ -841,7 +604,7 @@ def analyse(ast, filename):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    from lexer import tokenize
+    from lib.parser.lexer import tokenize
     argparser = ArgumentParser(description="SPL Semantic Analysis")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import libraries from", nargs="?", type=str)

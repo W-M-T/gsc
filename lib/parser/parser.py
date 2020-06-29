@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from util import pointToPosition, Position, TOKEN, Token
+from lib.datastructure.token import TOKEN, Token
 import parsec as ps
-from AST import AST, FunKind, Accessor
-from AST_prettyprinter import flatten, printAST
+from lib.datastructure.AST import AST, FunKind, Accessor
+from lib.debug.AST_prettyprinter import flatten, printAST
 
 
 @ps.generate
@@ -463,7 +463,7 @@ facR ( n ) :: Int -> Int {
 '''
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    from lexer import tokenize
+    from lib.parser.lexer import tokenize
     argparser = ArgumentParser(description="SPL Parser")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     args = argparser.parse_args()
