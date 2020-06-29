@@ -339,7 +339,7 @@ def ExpMore():
 def PrefixOpExp():
     op = yield ps.token(TOKEN.OP_IDENTIFIER)
     exp = yield ConvExp
-    return AST.FUNCALL(kind=FunKind.PREFIX, id=op, args=[exp])
+    return AST.FUNCALL(kind=FunKind.PREFIX, id=op, args=[AST.DEFERREDEXPR(contents=[exp])])
 
 @ps.generate
 def ExpLiteral():

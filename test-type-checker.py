@@ -9,12 +9,22 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
+        f(x) :: Int -> Int {
+            return x;
+        }
+        
+        infixl 7 ++ (x, y) :: Char Char -> Char {
+            return x;
+        }
+    
         main() :: -> Int {
             //(Int, (Int, Int)) a = (2, (3, 7));
             [Int] b = 2 : [];
             
             //a.fst.snd = 5;
-            b.fst = 7;
+            //b.fst = 7;
+            
+            Char a = 'a' ++ 5;
         
             return 0;
         }
@@ -38,9 +48,16 @@ def main():
     resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
-    # Parse expression
+    # Build operator table
     op_table = buildOperatorTable()
+    mergeCustomOps(op_table, symbol_table)
 
+    for i in op_table['infix_ops']:
+        print(i)
+        for iot in op_table['infix_ops'][i][2]:
+            print(print_node(iot))
+
+    # Parse expressions
     fixExpression(ast, op_table)
     ERROR_HANDLER.checkpoint()
 

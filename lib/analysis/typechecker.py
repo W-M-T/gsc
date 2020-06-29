@@ -2,7 +2,7 @@
 
 from lib.datastructure.position import Position
 from lib.datastructure.token import Token, TOKEN
-from lib.datastructure.AST import AST, FunKindToUniq, Accessor
+from lib.datastructure.AST import AST, FunKind, FunKindToUniq, Accessor
 from lib.datastructure.scope import NONGLOBALSCOPE
 
 from lib.debug.AST_prettyprinter import subprint_type
@@ -36,7 +36,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
     elif type(expr) is AST.PARSEDEXPR:
         incorrect = 0
         alternatives = 0
-        for o in op_table[expr.fun.val][2]:
+        for o in op_table['infix_ops'][expr.fun.val][2]:
             if AST.equalVals(o.to_type, exp_type):
                 alternatives += 1
                 type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, r+1, False)
@@ -63,7 +63,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                     return True
 
         elif type(expr.val) is AST.RES_NONGLOBAL:
-
             typ = None
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 typ = func['local_vars'][expr.val.id.val].type.val
@@ -80,50 +79,75 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
 
         return False
     elif type(expr) is AST.FUNCALL:
-        identifier = (FunKindToUniq(expr.kind), expr.id.val)
-        out_type_matches = []
-        i = 0
+        if expr.kind == FunKind.PREFIX:
+            out_type_matches = []
+            for op in op_table['prefix_ops'][expr.id.val]:
+                if AST.equalVals(op.to_type, exp_type):
+                    out_type_matches.append(op)
 
-        if identifier not in symbol_table.functions:
-            ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])
+            if len(out_type_matches) == 0:
+                if r == 0 and not noErrors:
+                    ERROR_HANDLER.addError(ERR.NoPrefixDefWithType, [expr.id.val, subprint_type(exp_type), expr.id])
+                return False
+
+            matches = 0
+            for m in out_type_matches:
+                res = typecheck(expr.args, m.from_types[0], symbol_table, op_table, func, r, noErrors=True)
+                if res:
+                    matches += 1
+
+            if matches == 0:
+                if r == 0 and not noErrors:
+                    ERROR_HANDLER.addError(ERR.NoPrefixWithInputType, [expr.id.val, expr.id])
+                return False
+
             return True
 
-        for o in symbol_table.functions[identifier]:
-            if AST.equalVals(o['type'].to_type.val, exp_type) or exp_type is None:
-                out_type_matches.append((i, o))
-            i += 1
+        else:
+            identifier = (FunKindToUniq(expr.kind), expr.id.val)
+            if identifier not in symbol_table.functions:
+                ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])
+                return True
 
-        if len(out_type_matches) == 0:
-            if r == 0 and not noErrors and exp_type is not None:
-                ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
-            return False
+            out_type_matches = []
+            i = 0
+            for o in symbol_table.functions[identifier]:
+                if AST.equalVals(o['type'].to_type.val, exp_type) or exp_type is None:
+                    out_type_matches.append((i, o))
+                i += 1
 
-        func_matches = 0
-        for o in out_type_matches:
-            identifier = (FunKindToUniq(o[1]['def'].kind), o[1]['def'].id.val)
-            if len(o[1]['arg_vars']) == len(expr.args):
-                order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
+            if len(out_type_matches) == 0:
+                if r == 0 and not noErrors and exp_type is not None:
+                    ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
+                return False
 
-                input_matches = 0
-                for i in range(0, len(expr.args)):
-                    arg_var = list(order_mapping.keys())[list(order_mapping.values()).index(i)]
-                    res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
-                    if res:
-                        input_matches += 1
+            func_matches = 0
+            for o in out_type_matches:
+                identifier = (FunKindToUniq(o[1]['def'].kind), o[1]['def'].id.val)
+                if len(o[1]['arg_vars']) == len(expr.args):
+                    order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
 
-                if input_matches == len(expr.args):
-                    func_matches += 1
+                    input_matches = 0
+                    for i in range(0, len(expr.args)):
+                        arg_var = list(order_mapping.keys())[list(order_mapping.values()).index(i)]
+                        res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
+                        if res:
+                            input_matches += 1
 
-        if func_matches == 0 and not noErrors:
-            ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
-            return False
-        elif func_matches > 1 and exp_type is None:
-            ERROR_HANDLER.addError(ERR.AmbiguousFunCall , [expr.id.val, expr.id])
-            return False
-        elif func_matches > 1:
-            ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
+                    if input_matches == len(expr.args):
+                        func_matches += 1
 
-        return True
+            if func_matches == 0:
+                if not noErrors:
+                    ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
+                return False
+            elif func_matches > 1 and exp_type is None:
+                ERROR_HANDLER.addError(ERR.AmbiguousFunCall , [expr.id.val, expr.id])
+                return False
+            elif func_matches > 1:
+                ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
+
+            return True
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
@@ -158,28 +182,23 @@ def typecheck_stmts(func, symbol_table, op_table):
                 else:
                     typ = symbol_table.global_vars[stmt.val.val.varref.val.id.val].type.val
 
-            fields = list(reversed(stmt.val.val.varref.val.fields))
-            print(fields)
-            print(typ)
-            print(type(fields[0]))
-            while len(fields) > 0:
-                field = fields.pop()
-                print(field)
-                if field == Accessor.FST or field == Accessor.SND:
-                    print(type(typ))
-                    if type(typ) is AST.TUPLETYPE:
-                        if field == Accessor.FST:
-                            typ = typ.a.val
-                        else:
-                            typ = typ.b.val
-                    else:
-                        ERROR_HANDLER.addError(ERR.IllegalAccessorUsage, [stmt.val.val.varref])
-                else:
-                    if type(typ) is AST.LISTTYPE:
-                        print(typ)
-
-
             if type(stmt.val.val) == AST.ASSIGNMENT:
+                fields = list(reversed(stmt.val.val.varref.val.fields))
+                while len(fields) > 0:
+                    field = fields.pop()
+                    print(field)
+                    if field == Accessor.FST or field == Accessor.SND:
+                        print(type(typ))
+                        if type(typ) is AST.TUPLETYPE:
+                            if field == Accessor.FST:
+                                typ = typ.a.val
+                            else:
+                                typ = typ.b.val
+                        else:
+                            ERROR_HANDLER.addError(ERR.IllegalAccessorUsage, [stmt.val.val.varref])
+                    else:
+                        if type(typ) is AST.LISTTYPE:
+                            print(typ)
                 typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
             else: # Fun call
                 typecheck(stmt.val.val, typ, symbol_table, op_table, func)
@@ -199,6 +218,7 @@ def typecheck_stmts(func, symbol_table, op_table):
     print("Typechecking has finished")
 
 def typecheck_functions(symbol_table, op_table):
+    print("Typechecking functions")
     for f in symbol_table.functions:
         i = 0
         for o in symbol_table.functions[f]:
@@ -206,5 +226,6 @@ def typecheck_functions(symbol_table, op_table):
             i += 1
 
 def typecheck_globals(symbol_table, op_table):
+    print("Typechecking globals")
     for g in symbol_table.global_vars:
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
