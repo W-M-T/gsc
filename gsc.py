@@ -24,6 +24,12 @@ def main():
         print("Input file needs to be .spl")
         exit()
 
+    compiler_target = {
+        'header' : args.H,
+        'object' : args.C,
+    #    'binary' : not (args.H or args.C)
+    }
+
 
 
 

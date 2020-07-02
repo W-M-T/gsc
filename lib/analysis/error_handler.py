@@ -44,6 +44,9 @@ class ERR(IntEnum):
     AmbiguousFunCall = 28,
     AmbiguousNestedFunCall = 29,
     UndefinedFun = 30,
+    # Import
+    ImportNotFound = 31
+    HeaderFormatIncorrect = 32
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -75,7 +78,9 @@ ERRMSG = {
     ERR.NoOverloadedFunWithArgs: 'No function definition of {} which takes the given argument types\n{}',
     ERR.AmbiguousFunCall: 'Ambigious function call, function {} has multiple possible output types\n {}',
     ERR.AmbiguousNestedFunCall: 'Ambigious function call, function {} has multiple possible input types\n {}',
-    ERR.UndefinedFun: 'Function {} is not defined\n{}'
+    ERR.UndefinedFun: 'Function {} is not defined\n{}',
+    ERR.ImportNotFound: 'Failed to import module: {}\n{}',
+    ERR.HeaderFormatIncorrect: 'Failed to parse headerfile "{}":\n{}'
 }
 
 class WARN(IntEnum):

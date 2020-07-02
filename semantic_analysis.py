@@ -184,8 +184,6 @@ def forbid_illegal_types(symbol_table):
     ERROR_HANDLER.checkpoint()
 
 
-
-
 '''
 Helper function for symbol table building
 Return a dict with function info + a dict of local variable definition order
@@ -645,13 +643,17 @@ if __name__ == "__main__":
         print("Invalid import mapping")
         exit()
     #print(import_mapping)
-    import_mapping = {a:b for (a,b) in import_mapping}
+    import_mapping = {a:os.path.splitext(b)[0] for (a,b) in import_mapping}
     print("Imports:",import_mapping)
 
     if not args.infile.endswith(SOURCE_EXT):
         print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
 
+    compiler_target = {
+        'header' : args.H,
+        'object' : not args.H
+    }
 
     with open(args.infile, "r") as infile:
         '''
@@ -710,7 +712,7 @@ g (x) {
     return 2;
 }//*/
 ''')
-        if False:
+        if False: # Debug
             tokenstream = tokenize(testprog)
 
             x = parseTokenStream(tokenstream, testprog)
@@ -730,15 +732,19 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
 
-        if not args.H: # We need to actually read the headerfiles of the imports:
+        if compiler_target['object']: # We need to actually read the headerfiles of the imports:
             headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-            print(headerfiles)
+            print("Headerfiles",headerfiles)
             for head in headerfiles:
                 data = head['filehandle'].read()
-                print(import_headers(data))
+                try:
+                    print(import_headers(data))
+                except Exception as e:
+                    ERROR_HANDLER.addError(ERR.HeaderFormatIncorrect, [head['path'], "\t{}: {}".format(e.__class__.__name__,str(e))])
+            ERROR_HANDLER.checkpoint()
             exit()
 
         symbol_table = buildSymbolTable(x, args.H)
