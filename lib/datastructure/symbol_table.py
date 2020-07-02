@@ -17,6 +17,7 @@ class SymbolTable():
         # dict has keys "type", "def", "arg_vars", "local_vars"
         # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
         # local_vars is dict of identifiers to vardecl def nodes
+        # def is None for BUILTINS
         self.functions = functions
         self.type_syns = type_syns
 

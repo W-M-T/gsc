@@ -1,0 +1,11 @@
+{
+  "functions": [],
+  "globals": [],
+  "typesyns": [
+    [
+      "B",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ]
+}
+

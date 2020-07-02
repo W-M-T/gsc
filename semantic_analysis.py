@@ -1,33 +1,27 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import export_headers, import_headers
+from lib.imports.imports import export_headers, import_headers, getImportFiles, HEADER_EXT, SOURCE_EXT
 from lib.analysis.error_handler import *
-
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.position import Position
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.symbol_table import SymbolTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
-from lib.builtins.operators import *
-from lib.builtins.types import *
-from lib.builtins.functions import *
+from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS, ILLEGAL_OP_IDENTIFIERS
+from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE
+from lib.builtins.functions import BUILTIN_FUNCTIONS
 
 from lib.util.util import treemap, selectiveApply
 
 from lib.parser.parser import parseTokenStream
 from lib.debug.AST_prettyprinter import print_node, subprint_type
+import os
 from enum import IntEnum
 
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
-# TODO python dict iteration is not deterministically the same: leads to different errors being first every time
-
-
-''' TODO how do we handle imports?? I.e. do we parse the file that we're importing from and then merge the AST's in some way?
-I think it would be best if you didn't have to explicitly import dependencies of a function you're importing to have it work, but you also don't want that dependency to end up in the namespace
-'''
 
 '''
 W.r.t. name resolution:
@@ -230,15 +224,15 @@ def buildFuncEntry(val):
     temp_mapping_entry["local_vars_mapping"] = local_vars_order_mapping
     return temp_entry, temp_mapping_entry
 
-''' TODO how should we handle errors / warnings?
-E.g. seperate passes for different analyses, with you only receiving errors for the other pass if the pass before it was errorless?
-Or should we show the error that is "first" in the file?
-How would that work given that some errors in early parts of the program are the result of an analysis result in a later part of the program?
-
+'''
 TODO We don't check for redefinition attempts of builtin functions or ops
 '''
-def buildSymbolTable(ast):
+def buildSymbolTable(ast, just_for_headerfile=True):
     symbol_table = SymbolTable()
+
+    # Add builtin functions to symbol table:
+    #builtin_ops = buildOperatorTable()
+    #TODO add this implementation
 
     # TODO Check for duplicates everywhere of course
     print("Imports")
@@ -252,11 +246,11 @@ def buildSymbolTable(ast):
             print("Var")
             var_id = val.id.val
             print(var_id)
-            if not var_id in symbol_table.global_vars:
-                if False: # TODO test if it exists in other module
-                    # TODO give warning (doesn't need to be instant, can be collected)
-                    # print("[ERROR] This variable was already defined in another module, which is now shadowed")
-                    ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [])
+            if not var_id in symbol_table.global_vars: # New global var decl
+                if not just_for_headerfile:
+                    # TODO test if it exists in other module
+                    pass
+                    # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [var_id])
                 else:
                     symbol_table.global_vars[var_id] = val
                     symbol_table.order_mapping["global_vars"][var_id] = index_global_var
@@ -264,20 +258,17 @@ def buildSymbolTable(ast):
             else:
                 # This global var identifier was already used
                 ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
-            #print_node(val)
+            #print(print_node(val))
 
         elif type(val) is AST.FUNDECL:
             print("Function")
-            print_node(val)
+            print(print_node(val))
             print("params")
             print(val.params)
 
             # Types are not normalised here yet, because we don't yet have all type syns
 
             uniq_kind = FunKindToUniq(val.kind)
-
-            if uniq_kind == FunUniq.INFIX:
-                pass
 
             # Test if argument count and type count match
             if val.type is not None:
@@ -289,8 +280,10 @@ def buildSymbolTable(ast):
             # Test if this function is already defined
             fun_id = val.id.val
             if not (uniq_kind, fun_id) in symbol_table.functions:
-                if False: # TODO test if it is already defined in other module
+                if not just_for_headerfile:
+                    # TODO test if it is already defined (with the same type) in other module
                     pass
+                    # ERROR_HANDLER.addWarning(WARN.ShadowFuncOtherModule, [uniq_kind.name, fun_id, print_node(val.type)])
                 else: # Completely new name
                     symbol_table.functions[(uniq_kind,fun_id)] = []
                     symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
@@ -320,9 +313,10 @@ def buildSymbolTable(ast):
                 ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
 
             if not type_id in symbol_table.type_syns:
-                if False: # TODO Test if it exists in another module
-                    # TODO give warning (doesn't need to be instant, can be collected)
-                    print("[ERROR] This type was already defined in another module, which is now shadowed")
+                if not just_for_headerfile:
+                    # TODO Test if it exists in another module
+                    pass
+                    # ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id])
                 else:
                     normalized_type = normalizeType(def_type, symbol_table)
                     symbol_table.type_syns[type_id] = normalized_type
@@ -686,6 +680,7 @@ if __name__ == "__main__":
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import libraries from", nargs="?", type=str)
     argparser.add_argument("--im", metavar="LIBNAME:PATH,...", help="Comma-separated library_name:path mapping list, to explicitly specify import paths", type=str)
+    argparser.add_argument("-H", help="Produce a header file instead of an executable", action="store_true")
     args = argparser.parse_args()
 
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
@@ -696,8 +691,8 @@ if __name__ == "__main__":
     import_mapping = {a:b for (a,b) in import_mapping}
     print("Imports:",import_mapping)
 
-    if not args.infile.endswith(".spl"):
-        print("Input file needs to be .spl")
+    if not args.infile.endswith(SOURCE_EXT):
+        print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
 
 
@@ -758,11 +753,17 @@ g (x) {
     return 2;
 }//*/
 ''')
-        tokenstream = tokenize(testprog)
-        #tokenstream = tokenize(infile)
+        if False:
+            tokenstream = tokenize(testprog)
 
-        x = parseTokenStream(tokenstream, testprog)
-        ERROR_HANDLER.setSourceMapping(testprog, None)
+            x = parseTokenStream(tokenstream, testprog)
+            ERROR_HANDLER.setSourceMapping(testprog, None)
+        else:
+            tokenstream = tokenize(infile)
+
+            x = parseTokenStream(tokenstream, infile)
+            ERROR_HANDLER.setSourceMapping(infile, None)
+
         #ERROR_HANDLER.debug = True
         #ERROR_HANDLER.hidewarn = True
         #print(x.tree_string())
@@ -771,7 +772,19 @@ g (x) {
 
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
-        symbol_table = buildSymbolTable(x)
+
+        if not args.H: # We need to actually read the headerfiles of the imports:
+            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+            print(headerfiles)
+            for head in headerfiles:
+                data = head['filehandle'].read()
+                print(import_headers(data))
+            exit()
+
+        symbol_table = buildSymbolTable(x, args.H)
         import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)

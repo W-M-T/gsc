@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# Import hack
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0],'../../'))
+#print("SYSPATH:",sys.path)
+
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import AST, FunKind, Accessor
 import itertools
@@ -184,7 +190,7 @@ def printAST(root):
     temp = print_node(root)
     return indent_print(temp, 0)
 
-def print_node(node):
+def print_node(node): # TODO The name of this function is really bad
     if type(node) in LOOKUP:
         if LOOKUP[type(node)] == []:
             raise Exception(str(type(node)) + " not defined yet")

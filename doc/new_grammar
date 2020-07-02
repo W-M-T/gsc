@@ -66,6 +66,7 @@ ConvExp     = id Field*
             | 'False'
             | 'True'
             | '(' Exp ')'
+			| '(' Exp ',' Exp ')'
             | FunCall
             | []
 

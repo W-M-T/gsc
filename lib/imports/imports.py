@@ -47,40 +47,59 @@ In order of priority:
 3: Environment variable
 4: Local directory
 '''
-def resolveFileName(name, local_dir, file_mapping_arg=None, lib_dir_path=None, lib_dir_env=None):
-    #print(name.name.val,local_dir)
-    #option = "{}/{}.spl".format(local_dir, name)
-    #print(os.path.isfile(option))
-
+def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+    fullname = "{}{}".format(name, extension)
+    exception_list = []
     # Try to import from the compiler argument-specified path for this specific import
     if name in file_mapping_arg:
         try:
-            option = file_mapping_arg[name]
-            infile = open(option)
-            return infile, option
+            try_path = file_mapping_arg[name] # TODO allow to specify with or without extension, but ignore it if provided
+            infile = open(try_path)
+            print("Found through mapping")
+            return infile, try_path
         except Exception as e:
             print(e)
+            exception_list.append(e)
+    else:
+        print(name,"not in mapping")
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
-            option = "{}/{}.spl".format(lib_dir_path, name)
-            infile = open(option)
-            return infile, option
+            try_path = os.path.join(lib_dir_path, name)
+            print(try_path)
+            infile = open(try_path)
+            return infile, try_path
         except Exception as e:
-            pass
+            exception_list.append(e)
     # Try to import from the environment variable-specified directory
     if lib_dir_env is not None:
         try:
-            option = "{}/{}.spl".format(lib_dir_env, name)
-            infile = open(option)
-            return infile, option
+            try_path = os.path.join(lib_dir_env, name)
+            infile = open(try_path)
+            return infile, try_path
         except Exception as e:
-            pass
+            exception_list.append(e)
     # Try to import from the same directory as our source file
     try:
-        option = "{}/{}.spl".format(local_dir, name)
-        infile = open(option)
-        return infile, option
-    except Exception as e:
         pass
-    raise FileNotFoundError
+        #try_path = os.path.join(local_dir, name)
+        #print(try_path)
+        #infile = open(try_path)
+        #return infile, try_path
+    except Exception as e:
+        exception_list.append(e)
+    raise FileNotFoundError("\n"+"\n".join(list(map(str,[name,*exception_list]))))
+
+def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+    importlist = ast.imports
+    print(importlist)
+    print("CWD",local_dir)
+    print("--lp",lib_dir_path)
+    print("env",lib_dir_env)
+
+    temp = []
+    for imp in importlist:
+        impname = imp.name.val
+        handle, path = resolveFileName(impname, extension, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+        temp.append({"name":impname,"filehandle":handle,"path":path})
+    return temp

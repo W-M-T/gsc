@@ -98,17 +98,21 @@ ERRMSG = {
 
 class WARN(IntEnum):
     ShadowVarOtherModule = 1
-    ShadowFunArg = 2
-    UnreachableStmtBranches = 3
-    UnreachableStmtContBreak = 4
-    UnreachableStmtReturn = 5
+    ShadowFuncOtherModule = 2
+    ShadowTypeOtherModule = 3
+    ShadowFunArg = 4
+    UnreachableStmtBranches = 5
+    UnreachableStmtContBreak = 6
+    UnreachableStmtReturn = 7
 
 WARNMSG = {
-    WARN.ShadowVarOtherModule: 'This variable was already defined in another module, which is now shadowed.',
+    WARN.ShadowVarOtherModule: 'Variable {} was already defined in another module, which is now shadowed',
+    WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed',
+    WARN.ShadowTypeOtherModule: 'Typedef {} was already defined in another module, which is now shadowed',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
     WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',
-    WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return.\n{}'
+    WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return\n{}'
 }
 
 class ErrorHandler():
