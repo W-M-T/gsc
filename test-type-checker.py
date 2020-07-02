@@ -52,16 +52,10 @@ def main():
     op_table = buildOperatorTable()
     mergeCustomOps(op_table, symbol_table)
 
-    #for i in op_table['infix_ops']:
-    #    print(i)
-    #    for iot in op_table['infix_ops'][i][2]:
-    #        print(print_node(iot))
-
     # Parse expressions
     fixExpression(ast, op_table)
     ERROR_HANDLER.checkpoint()
 
-    print(ast)
 
     # Type check
     typecheck_globals(symbol_table, op_table)

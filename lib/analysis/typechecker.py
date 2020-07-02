@@ -265,17 +265,11 @@ def typecheck_stmts(func, symbol_table, op_table):
             typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, func)
             pass
 
-    print("Typechecking has finished")
-
 def typecheck_functions(symbol_table, op_table):
-    print("Typechecking functions")
     for f in symbol_table.functions:
-        i = 0
         for o in symbol_table.functions[f]:
             typecheck_stmts(o, symbol_table, op_table)
-            i += 1
 
 def typecheck_globals(symbol_table, op_table):
-    print("Typechecking globals")
     for g in symbol_table.global_vars:
         typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
