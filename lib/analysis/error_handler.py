@@ -44,13 +44,15 @@ class ERR(IntEnum):
     AmbiguousFunCall = 28,
     AmbiguousNestedFunCall = 29,
     UndefinedFun = 30,
-    IllegalAccessorUsage = 31,
+    IllegalTupleAccessorUsage = 31,
     UndefinedPrefixOp = 32,
     NoPrefixDefWithType = 33,
     NoPrefixWithInputType = 34,
     AmbiguousPrefixOp = 35,
     InconsistentOpDecl = 36,
     DuplicateOpDef = 37,
+    UnexpectedEmptyList = 38,
+    IllegalListAccessorUsage = 39,
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -83,13 +85,15 @@ ERRMSG = {
     ERR.AmbiguousFunCall: 'Ambigious function call, function {} has multiple possible output types\n {}',
     ERR.AmbiguousNestedFunCall: 'Ambigious function call, function {} has multiple possible input types\n {}',
     ERR.UndefinedFun: 'Function {} is not defined\n{}',
-    ERR.IllegalAccessorUsage: 'Trying to usage accessor on variable that is not a tuple\n{}',
+    ERR.IllegalTupleAccessorUsage: 'Trying to usage tuple accessor on variable that is not a tuple\n{}',
     ERR.UndefinedPrefixOp: 'Prefix operator "{}" is not defined\n{}',
     ERR.NoPrefixDefWithType: 'No prefix operator definition for "{}" with type {}\n{}',
     ERR.NoPrefixWithInputType: 'No definition of prefix operator "{}" which has the given argument type\n{}',
     ERR.AmbiguousPrefixOp: 'Ambigious usage of prefix operator, ',
     ERR.InconsistentOpDecl: 'Inconsistent declaration of operator {}, fixity and precedence have to be equal to initial definition\n{}',
     ERR.DuplicateOpDef: 'Duplicate operator definition for operator {}, operator with the exact same type was already defined\n{}',
+    ERR.UnexpectedEmptyList: 'Unexpected empty list encountered\n{}',
+    ERR.IllegalListAccessorUsage: 'Trying to usage list accessor on variable that is not a list\n{}'
 }
 
 class WARN(IntEnum):

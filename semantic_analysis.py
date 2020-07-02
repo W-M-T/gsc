@@ -453,7 +453,7 @@ def abstractToConcreteType(abstract_type, basic_types):
     elif abstract_type in basic_types:
         return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, abstract_type))]
     elif abstract_type == '[T]':
-        return [AST.LISTTYPE(type=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b))) for b in basic_types]
+        return [AST.LISTTYPE(type=AST.TYPE(val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)))) for b in basic_types]
     else:
         raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
@@ -476,7 +476,7 @@ def buildOperatorTable():
                 for st in second_types:
                         for ot in output_types:
                             if len(first_types) == len(second_types) == len(basic_types):
-                                if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type) and AST.equalVals(ft, ot.type)):
+                                if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type.val) and AST.equalVals(ft, ot.type.val)):
                                     op_table['infix_ops'][o][2].append(
                                         AST.FUNTYPE(
                                             from_types=[ft, st],

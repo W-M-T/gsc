@@ -9,22 +9,22 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        f(x) :: Int -> Int {
-            return x;
-        }
-        
-        infixl 7 ++ (x, y) :: Char Char -> Char {
-            return x;
-        }
+    
+        (Int, Int) x = (5, 3);
+        Int y = x.fst;
     
         main() :: -> Int {
             //(Int, (Int, Int)) a = (2, (3, 7));
-            [Int] b = 2 : [];
+            [Int] b = 5 : 3 : [];
+            //[Int] a = 2 : 3 : [];
             
+            Int a = 3;
             //a.fst.snd = 5;
-            //b.fst = 7;
+            Int c = 5;
             
-            Char a = 'a' ++ 5;
+            b.hd = a.tl;
+            
+            //Char a = 'a' ++ 5;
         
             return 0;
         }
@@ -52,14 +52,16 @@ def main():
     op_table = buildOperatorTable()
     mergeCustomOps(op_table, symbol_table)
 
-    for i in op_table['infix_ops']:
-        print(i)
-        for iot in op_table['infix_ops'][i][2]:
-            print(print_node(iot))
+    #for i in op_table['infix_ops']:
+    #    print(i)
+    #    for iot in op_table['infix_ops'][i][2]:
+    #        print(print_node(iot))
 
     # Parse expressions
     fixExpression(ast, op_table)
     ERROR_HANDLER.checkpoint()
+
+    print(ast)
 
     # Type check
     typecheck_globals(symbol_table, op_table)

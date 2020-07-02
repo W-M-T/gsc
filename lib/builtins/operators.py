@@ -6,7 +6,7 @@ BUILTIN_INFIX_OPS = {
     "%": (["Int Int -> Int"], 7, "L"),
     "+": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
     "-": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    ":": (["T [T] -> [T]"], 5, "L"),
+    ":": (["T [T] -> [T]"], 5, "R"),
     "==": (["T T -> Bool"], 4, "L"),
     "<": (["T T -> Bool"], 4, "L"),
     ">": (["T T -> Bool"], 4, "L"),

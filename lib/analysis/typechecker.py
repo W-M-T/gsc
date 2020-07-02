@@ -5,7 +5,7 @@ from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import AST, FunKind, FunKindToUniq, Accessor
 from lib.datastructure.scope import NONGLOBALSCOPE
 
-from lib.debug.AST_prettyprinter import subprint_type
+from lib.debug.AST_prettyprinter import subprint_type, print_node
 
 from lib.analysis.error_handler import ERR, ERROR_HANDLER
 
@@ -18,6 +18,8 @@ def tokenToTypeId(token):
         return 'Bool'
     elif token.typ == TOKEN.STRING:
         return 'String'
+    elif token.typ == TOKEN.EMPTY_LIST:
+        return '[]'
     else:
         raise Exception('Unknown token supplied.')
 
@@ -25,11 +27,16 @@ def tokenToTypeId(token):
 def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=False):
 
     if type(expr) is Token:
+        if expr.typ == TOKEN.EMPTY_LIST:
+            if type(exp_type) == AST.LISTTYPE:
+                return True
+            else:
+                ERROR_HANDLER.addError(ERR.UnexpectedEmptyList, [expr])
+
         val = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, tokenToTypeId(expr)))
         val._start_pos = Position()
         if not AST.equalVals(val, exp_type):
             if r == 0 and not noErrors:
-
                 ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
             return False
         return True
@@ -52,12 +59,33 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
         elif alternatives == 0 and not noErrors:
             # There is no alternative of this operator which has the expected output type
+
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
         return True
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
-            var_typ = symbol_table.global_vars[expr.val.id.val]
-            if not AST.equalVals(var_typ.type.val, exp_type):
+            typ = symbol_table.global_vars[expr.val.id.val].type.val
+
+            fields = list(reversed(expr.val.fields))
+            while len(fields) > 0:
+                field = fields.pop()
+                if field == Accessor.FST or field == Accessor.SND:
+                    if type(typ) is AST.TUPLETYPE:
+                        if field == Accessor.FST:
+                            typ = typ.a.val
+                        else:
+                            typ = typ.b.val
+                    else:
+                        ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [expr])
+                elif field == Accessor.HD or field == Accessor.TL:
+                    if type(typ) is AST.LISTTYPE:
+                        typ = typ.type.val
+                    else:
+                        ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [expr])
+                else:
+                    raise Exception("Unknown accessor encountered: %s " % str(field))
+
+            if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
                     return True
@@ -70,6 +98,25 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 typ = func['arg_vars'][expr.val.id.val]['type'].val
             else:
                 typ = symbol_table.global_vars[expr.val.id.val].type.val
+
+            fields = list(reversed(expr.val.fields))
+            while len(fields) > 0:
+                field = fields.pop()
+                if field == Accessor.FST or field == Accessor.SND:
+                    if type(typ) is AST.TUPLETYPE:
+                        if field == Accessor.FST:
+                            typ = typ.a.val
+                        else:
+                            typ = typ.b.val
+                    else:
+                        ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [expr])
+                elif field == Accessor.HD or field == Accessor.TL:
+                    if type(typ) is AST.LISTTYPE:
+                        typ = typ.type.val
+                    else:
+                        ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [expr])
+                else:
+                    raise Exception("Unknown accessor encountered: %s " % str(field))
 
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
@@ -186,19 +233,22 @@ def typecheck_stmts(func, symbol_table, op_table):
                 fields = list(reversed(stmt.val.val.varref.val.fields))
                 while len(fields) > 0:
                     field = fields.pop()
-                    print(field)
                     if field == Accessor.FST or field == Accessor.SND:
-                        print(type(typ))
                         if type(typ) is AST.TUPLETYPE:
                             if field == Accessor.FST:
                                 typ = typ.a.val
                             else:
                                 typ = typ.b.val
                         else:
-                            ERROR_HANDLER.addError(ERR.IllegalAccessorUsage, [stmt.val.val.varref])
-                    else:
+                            ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [stmt.val.val.varref])
+                    elif field == Accessor.HD or field == Accessor.SND:
                         if type(typ) is AST.LISTTYPE:
-                            print(typ)
+                            typ = typ.type.val
+                        else:
+                            ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [stmt.val.val.varref])
+                    else:
+                        raise Exception("Unknown accessor encountered: %s " + field)
+
                 typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
             else: # Fun call
                 typecheck(stmt.val.val, typ, symbol_table, op_table, func)
