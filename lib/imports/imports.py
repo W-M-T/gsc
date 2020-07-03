@@ -3,20 +3,15 @@
 from lib.imports.header_parser import parse_type
 import json
 from lib.datastructure.AST import FunUniq, AST
+from lib.datastructure.token import TOKEN
 from lib.analysis.error_handler import *
 import os
+from collections import OrderedDict
 
 HEADER_EXT = ".spld"
 OBJECT_EXT = ".splo"
 SOURCE_EXT = ".spl"
 
-'''
-Voorbeeld:
-A import B
-B import C
-object file van B bevat bytecode voor B en C
-zdd het linken van A alleen de object file van B nodig heeft
-'''
 '''
 TODO?
 add module dependency info somewhere. Either in header file or in object file
@@ -29,7 +24,7 @@ def export_headers(symbol_table):
         "globals": temp_globals,
         "typesyns": temp_typesyns,
         "functions": temp_functions
-        }
+    }
     return json.dumps(temp_packet, sort_keys=True,indent=2)
 
 
@@ -57,12 +52,13 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
         try:
             try_path = file_mapping_arg[name] + extension
             infile = open(try_path)
-            print("Found through mapping")
+            #print("Found through mapping")
             return infile, try_path
         except Exception as e:
             exception_list.append(e)
     else:
-        print(name,"not in mapping")
+        #print(name,"not in mapping")
+        pass
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
@@ -92,19 +88,101 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
 
 def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
     importlist = ast.imports
+
+    unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
     print(importlist)
     print("CWD",local_dir)
     print("--lp",lib_dir_path)
     print("env",lib_dir_env)
 
-    temp = []
-    for imp in importlist:
-        impname = imp.name.val
+    temp = {}
+    for impname in unique_names:
         try:
             handle, path = resolveFileName(impname, extension, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
-            temp.append({"name":impname,"filehandle":handle,"path":path})
+            temp[impname] = {"name":impname,"filehandle":handle,"path":path}
         except Exception as e:
             ERROR_HANDLER.addError(ERR.ImportNotFound, [impname, "\t" + "\n\t".join(str(e).split("\n"))])
 
     ERROR_HANDLER.checkpoint()
     return temp
+
+'''
+Parse a list of headerfiles to json and subset the symbols that are in scope
+'''
+def getExternalSymbols(ast, headerfiles):
+    importlist = ast.imports
+
+    # Read all headerfiles
+    #print("Headerfiles",headerfiles)
+    for head in headerfiles.values():
+        data = head['filehandle'].read()
+        try:
+            symbols = import_headers(data)
+            head['symbols'] = symbols
+        except Exception as e:
+            ERROR_HANDLER.addError(ERR.HeaderFormatIncorrect, [head['path'], "\t{}: {}".format(e.__class__.__name__,str(e))])
+
+    # Close all the opened filehandles
+    for head in headerfiles.values():
+        head['filehandle'].close()
+    ERROR_HANDLER.checkpoint()
+
+    # Add the desired imports to a datastructure
+    external_symbols = {
+        'globals':{},
+        'typesyns':{},
+        'functions':{}
+    }
+
+    # Collect all imports for the same module and give warnings
+    unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
+
+    for modname in unique_names:
+        cur_imports = list(filter(lambda x: x.name.val == modname, importlist))
+        print(modname,cur_imports)
+
+        # Test if there is both an importall and a regular import for the same module
+        if any(map(lambda x: x.importlist is None, cur_imports)) and len(cur_imports) > 1:
+            ERROR_HANDLER.addWarning(WARN.MultiKindImport, [modname, cur_imports])
+            ERROR_HANDLER.checkpoint()
+
+        # Combine all other imports for this module
+        all_cur_imports = [item for x in cur_imports if x.importlist is not None for item in x.importlist]
+        print("ALL CUR:",all_cur_imports)
+
+        # Test if an identifier is being imported multiple times
+        id_imports = list(filter(lambda x: x.name.typ == TOKEN.IDENTIFIER, all_cur_imports))
+        #op_imports = list(filter(lambda x: type(x) is TOKEN.OP_IDENTIFIER, all_cur_imports)) TODO
+        type_imports = list(filter(lambda x: x.name.typ == TOKEN.TYPE_IDENTIFIER, all_cur_imports))
+
+        unique_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, id_imports)))
+        unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
+        print("ALL ID:",id_imports)
+        print("ALL TYPE:",type_imports)
+
+        for uq_id in unique_ids:
+            matching = list(filter(lambda x: x.name.val == uq_id, id_imports))
+            if len(matching) > 1:
+                ERROR_HANDLER.addWarning(WARN.DuplicateIdSameModuleImport, [uq_id, modname, list(map(lambda x: x.name,matching))])
+                ERROR_HANDLER.checkpoint()
+        for uq_type_id in unique_type_ids:
+            matching = list(filter(lambda x: x.name.val == uq_type_id, type_imports))
+            if len(matching) > 1:
+                ERROR_HANDLER.addWarning(WARN.DuplicateTypeSameModuleImport, [uq_type_id, modname, list(map(lambda x: x.name,matching))])
+                ERROR_HANDLER.checkpoint()
+
+
+        return
+
+        for imp_node in cur_imports:
+            if imp_node.importlist is not None: # Not importall
+                for impstatement in imp_node.importlist:
+                    # Select only the imports that are desired
+                    print(impstatement)
+
+        cur_symbols = headerfiles[modname]['symbols']
+
+
+
+def addSymbols(target, element):
+    pass

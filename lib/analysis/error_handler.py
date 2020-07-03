@@ -47,6 +47,9 @@ class ERR(IntEnum):
     # Import
     ImportNotFound = 31
     HeaderFormatIncorrect = 32
+    DuplicateImportGlobal = 33
+    DuplicateImportType = 34
+    DuplicateImportFun = 35
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -80,7 +83,10 @@ ERRMSG = {
     ERR.AmbiguousNestedFunCall: 'Ambigious function call, function {} has multiple possible input types\n {}',
     ERR.UndefinedFun: 'Function {} is not defined\n{}',
     ERR.ImportNotFound: 'Failed to import module: {}\n{}',
-    ERR.HeaderFormatIncorrect: 'Failed to parse headerfile "{}":\n{}'
+    ERR.HeaderFormatIncorrect: 'Failed to parse headerfile "{}":\n{}',
+    ERR.DuplicateImportGlobal: 'Global variable "{}" is imported from multiple modules:{}',
+    ERR.DuplicateImportType: 'Type synonym "{}" is imported from multiple modules:{}',
+    ERR.DuplicateImportFun: 'Function "{}" is imported from multiple modules:{}',
 }
 
 class WARN(IntEnum):
@@ -91,6 +97,9 @@ class WARN(IntEnum):
     UnreachableStmtBranches = 5
     UnreachableStmtContBreak = 6
     UnreachableStmtReturn = 7
+    MultiKindImport = 8
+    DuplicateIdSameModuleImport = 9
+    DuplicateTypeSameModuleImport = 10
 
 WARNMSG = {
     WARN.ShadowVarOtherModule: 'Variable {} was already defined in another module, which is now shadowed',
@@ -99,7 +108,10 @@ WARNMSG = {
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
     WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',
-    WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return\n{}'
+    WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return\n{}',
+    WARN.MultiKindImport: 'Both importall and specific imports defined for module "{}":\n{}',
+    WARN.DuplicateIdSameModuleImport: 'Multiple imports for the same identifier "{}" from module "{}":\n{}',
+    WARN.DuplicateTypeSameModuleImport: 'Multiple imports for the same type identifier "{}" from module "{}":\n{}'
 }
 
 class ErrorHandler():
@@ -143,6 +155,10 @@ class ErrorHandler():
                         info.append(pointToPosition(self.sourcecode, t.pos))
                     elif type(t) in AST.nodes:
                         info.append(pointToPosition(self.sourcecode, t._start_pos))
+                    elif type(t) is list and len(t) > 0 and all(map(lambda x: type(x) is Token, t)):
+                        info.append("\n".join(map(lambda x: pointToPosition(self.sourcecode, x.pos), t)))
+                    elif type(t) is list and len(t) > 0 and all(map(lambda x: type(x) in AST.nodes, t)):
+                        info.append("\n".join(map(lambda x: pointToPosition(self.sourcecode, x._start_pos), t)))
                     else:
                         info.append(str(t))
                 print(ERRCOLOR.FAIL + "[ERROR] %s" % (ERRMSG[e['type']].format(*info)) + ERRCOLOR.ENDC)
@@ -155,6 +171,10 @@ class ErrorHandler():
                         info.append(pointToPosition(self.sourcecode, t.pos))
                     elif type(t) in AST.nodes:
                         info.append(pointToPosition(self.sourcecode, t._start_pos))
+                    elif type(t) is list and len(t) > 0 and all(map(lambda x: type(x) is Token, t)):
+                        info.append("\n".join(map(lambda x: pointToPosition(self.sourcecode, x.pos), t)))
+                    elif type(t) is list and len(t) > 0 and all(map(lambda x: type(x) in AST.nodes, t)):
+                        info.append("\n".join(map(lambda x: pointToPosition(self.sourcecode, x._start_pos), t)))
                     else:
                         info.append(str(t))
                 print(ERRCOLOR.WARNING + "[WARNING] %s" % (WARNMSG[w['type']].format(*info)) + ERRCOLOR.ENDC)

@@ -1,0 +1,10 @@
+type Coord = (Int, Int)
+
+Coord here = (2,2);
+
+swap (x) :: Coord -> Coord {
+    temp = x.tl;
+    x.tl = x.hd;
+    x.hd = temp;
+    return x;
+}

@@ -1,0 +1,27 @@
+{
+  "functions": [
+    [
+      [
+        "FUNC",
+        "swap"
+      ],
+      [
+        "TYPE(val=\"Coord\")"
+      ],
+      "TYPE(val=\"Coord\")"
+    ]
+  ],
+  "globals": [
+    [
+      "here",
+      "TYPE(val=\"Coord\")"
+    ]
+  ],
+  "typesyns": [
+    [
+      "Coord",
+      "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
+    ]
+  ]
+}
+
