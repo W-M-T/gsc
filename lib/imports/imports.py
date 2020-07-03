@@ -141,46 +141,66 @@ def getExternalSymbols(ast, headerfiles):
         cur_imports = list(filter(lambda x: x.name.val == modname, importlist))
         print(modname,cur_imports)
 
-        # Test if there is both an importall and a regular import for the same module
+        # Test if there is both an importall and another import for the same module
         if any(map(lambda x: x.importlist is None, cur_imports)) and len(cur_imports) > 1:
             ERROR_HANDLER.addWarning(WARN.MultiKindImport, [modname, cur_imports])
             ERROR_HANDLER.checkpoint()
 
         # Combine all other imports for this module
         all_cur_imports = [item for x in cur_imports if x.importlist is not None for item in x.importlist]
-        print("ALL CUR:",all_cur_imports)
+        #print("ALL CUR:",all_cur_imports)
 
-        # Test if an identifier is being imported multiple times
         id_imports = list(filter(lambda x: x.name.typ == TOKEN.IDENTIFIER, all_cur_imports))
-        #op_imports = list(filter(lambda x: type(x) is TOKEN.OP_IDENTIFIER, all_cur_imports)) TODO
+        op_imports = list(filter(lambda x: x.name.typ == TOKEN.OP_IDENTIFIER, all_cur_imports))
         type_imports = list(filter(lambda x: x.name.typ == TOKEN.TYPE_IDENTIFIER, all_cur_imports))
+        #print("ALL ID:",id_imports)
+        #print("ALL OP:",op_imports)
+        #print("ALL TYPE:",type_imports)
 
+        # Test for identifiers that are imported multiple times
+        # Also, select the desired symbols and give error if they don't exist
+        cur_symbols = headerfiles[modname]['symbols']
         unique_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, id_imports)))
+        unique_op_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, op_imports)))
         unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
-        print("ALL ID:",id_imports)
-        print("ALL TYPE:",type_imports)
 
         for uq_id in unique_ids:
             matching = list(filter(lambda x: x.name.val == uq_id, id_imports))
             if len(matching) > 1:
                 ERROR_HANDLER.addWarning(WARN.DuplicateIdSameModuleImport, [uq_id, modname, list(map(lambda x: x.name,matching))])
-                ERROR_HANDLER.checkpoint()
+            if uq_id in cur_symbols['globals']:
+                pass
+            elif (FunUniq.FUNC, uq_id) in cur_symbols['functions']:
+                pass
+            else:
+                print(cur_symbols)
+                ERROR_HANDLER.addError(ERR.ImportIdentifierNotFound, [uq_id, modname, headerfiles[modname]['path']])
+
+
+        for uq_op_id in unique_op_ids:
+            matching = list(filter(lambda x: x.name.val == uq_op_id, op_imports))
+            if len(matching) > 1:
+                ERROR_HANDLER.addWarning(WARN.DuplicateOpSameModuleImport, [uq_op_id, modname, list(map(lambda x: x.name,matching))])
+
+            if (FunUniq.PREFIX, uq_op_id) in cur_symbols['functions']:
+                pass
+            elif (FunUniq.INFIX, uq_op_id) in cur_symbols['functions']:
+                pass
+            else:
+                ERROR_HANDLER.addError(ERR.ImportOpIdentifierNotFound, [uq_op_id, modname, headerfiles[modname]['path']])
+
+
         for uq_type_id in unique_type_ids:
             matching = list(filter(lambda x: x.name.val == uq_type_id, type_imports))
             if len(matching) > 1:
                 ERROR_HANDLER.addWarning(WARN.DuplicateTypeSameModuleImport, [uq_type_id, modname, list(map(lambda x: x.name,matching))])
-                ERROR_HANDLER.checkpoint()
 
+            if uq_type_id in cur_symbols['typesyns']:
+                pass
+            else:
+                ERROR_HANDLER.addError(ERR.ImportTypeSynNotFound, [uq_type_id, modname, headerfiles[modname]['path']])
 
-        return
-
-        for imp_node in cur_imports:
-            if imp_node.importlist is not None: # Not importall
-                for impstatement in imp_node.importlist:
-                    # Select only the imports that are desired
-                    print(impstatement)
-
-        cur_symbols = headerfiles[modname]['symbols']
+        ERROR_HANDLER.checkpoint()
 
 
 

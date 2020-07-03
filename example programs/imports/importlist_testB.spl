@@ -8,3 +8,6 @@ swap (x) :: Coord -> Coord {
     x.hd = temp;
     return x;
 }
+prefix + (x) :: Int -> Int {
+    return 2;
+}

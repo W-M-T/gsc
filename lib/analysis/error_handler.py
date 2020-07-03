@@ -50,6 +50,9 @@ class ERR(IntEnum):
     DuplicateImportGlobal = 33
     DuplicateImportType = 34
     DuplicateImportFun = 35
+    ImportIdentifierNotFound = 36
+    ImportOpIdentifierNotFound = 37
+    ImportTypeSynNotFound = 38
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -87,6 +90,9 @@ ERRMSG = {
     ERR.DuplicateImportGlobal: 'Global variable "{}" is imported from multiple modules:{}',
     ERR.DuplicateImportType: 'Type synonym "{}" is imported from multiple modules:{}',
     ERR.DuplicateImportFun: 'Function "{}" is imported from multiple modules:{}',
+    ERR.ImportIdentifierNotFound: 'Tried to import an identifier "{}" from module {} that was not found in the headerfile {}',
+    ERR.ImportOpIdentifierNotFound: 'Tried to import an operator identifier "{}" from module {} that was not found in the headerfile {}',
+    ERR.ImportTypeSynNotFound: 'Tried to import a type identifier "{}" from module {} that was not found in the headerfile {}',
 }
 
 class WARN(IntEnum):
@@ -99,7 +105,8 @@ class WARN(IntEnum):
     UnreachableStmtReturn = 7
     MultiKindImport = 8
     DuplicateIdSameModuleImport = 9
-    DuplicateTypeSameModuleImport = 10
+    DuplicateOpSameModuleImport = 10
+    DuplicateTypeSameModuleImport = 11
 
 WARNMSG = {
     WARN.ShadowVarOtherModule: 'Variable {} was already defined in another module, which is now shadowed',
@@ -109,8 +116,9 @@ WARNMSG = {
     WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',
     WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return\n{}',
-    WARN.MultiKindImport: 'Both importall and specific imports defined for module "{}":\n{}',
+    WARN.MultiKindImport: 'Both importall and other imports defined for module "{}":\n{}',
     WARN.DuplicateIdSameModuleImport: 'Multiple imports for the same identifier "{}" from module "{}":\n{}',
+    WARN.DuplicateOpSameModuleImport: 'Multiple imports for the same operator identifier "{}" from module "{}":\n{}',
     WARN.DuplicateTypeSameModuleImport: 'Multiple imports for the same type identifier "{}" from module "{}":\n{}'
 }
 

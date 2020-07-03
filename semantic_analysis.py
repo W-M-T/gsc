@@ -741,7 +741,7 @@ g (x) {
             exit()
 
         symbol_table = buildSymbolTable(x, compiler_target['header'])
-        #print(export_headers(symbol_table))
+        print(export_headers(symbol_table))
         import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)

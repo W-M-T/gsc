@@ -9,6 +9,16 @@
         "TYPE(val=\"Coord\")"
       ],
       "TYPE(val=\"Coord\")"
+    ],
+    [
+      [
+        "PREFIX",
+        "+"
+      ],
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ],
   "globals": [
@@ -24,4 +34,3 @@
     ]
   ]
 }
-
