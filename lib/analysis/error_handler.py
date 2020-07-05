@@ -53,6 +53,7 @@ class ERR(IntEnum):
     DuplicateOpDef = 37,
     UnexpectedEmptyList = 38,
     IllegalListAccessorUsage = 39,
+    GlobalDefMustBeConstant = 40,
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -93,7 +94,8 @@ ERRMSG = {
     ERR.InconsistentOpDecl: 'Inconsistent declaration of operator {}, fixity and precedence have to be equal to initial definition\n{}',
     ERR.DuplicateOpDef: 'Duplicate operator definition for operator {}, operator with the exact same type was already defined\n{}',
     ERR.UnexpectedEmptyList: 'Unexpected empty list encountered\n{}',
-    ERR.IllegalListAccessorUsage: 'Trying to usage list accessor on variable that is not a list\n{}'
+    ERR.IllegalListAccessorUsage: 'Trying to usage list accessor on variable that is not a list\n{}',
+    ERR.GlobalDefMustBeConstant: 'Global variable definition must be constant\n{}'
 }
 
 class WARN(IntEnum):

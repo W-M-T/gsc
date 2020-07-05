@@ -241,7 +241,9 @@ class AST:
     # a :: AST.EXPR, b :: AST.EXPR
     TUPLE = syntaxnode("TUPLE", "a", "b")
     # val :: AST.FUNCALL or literal or identifier
-    PARSEDEXPR = syntaxnode("PARSEDEXPR", "fun", "arg1", "arg2") # TODO evaluate this
+    PARSEDEXPR = syntaxnode("PARSEDEXPR", "fun", "arg1", "arg2")
+
+    TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ")
 
     # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")
