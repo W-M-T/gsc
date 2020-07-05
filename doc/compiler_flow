@@ -1,0 +1,12 @@
+A. Maken van een headerfile op zich
+	Alleen huidige bestand nodig
+B. Maken objectfile
+	Headerfiles van imports nodig, deze worden gebruikt om te kunnen typechecken
+C. Maken binary (direct)
+	Alleen huidige bestand nodig, en het mag geen imports hebben
+
+D. Linken van objectfiles
+	Objectfiles van elke nodig
+
+Oftewel in A-D is er geen enkele situatie waar je zowel de headerfile als de objectfile van een gegeven bestand tegelijk nodig hebt.
+Eventueel is er een use case waar je een bestand in 1 keer zou willen compilen en linken met zijn imports, maar dat kun je net zo goed in 2 stappen doen

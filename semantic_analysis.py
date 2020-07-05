@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import export_headers, import_headers, getImportFiles, HEADER_EXT, SOURCE_EXT
+from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.position import Position
@@ -34,7 +34,7 @@ Circularity is no concern because that is caught in the name resolution step for
 We prevent pointer problems by rewriting type syns directly when they are added to to the symbol table
 This also means that we should never need to recurse after rewriting a type syn once, because the rewrite result should already be normalized.
 '''
-def normalizeType(inputtype, symbol_table):
+def normalizeType(inputtype, symbol_table): # TODO add proper error handling
     if type(inputtype) is AST.TYPE:
         inputtype.val = normalizeType(inputtype.val, symbol_table)
         if type(inputtype.val) is AST.TYPE: # Unwrap so we don't have double occurrences of TYPE nodes
@@ -67,7 +67,7 @@ def normalizeType(inputtype, symbol_table):
         print("Case not captured:",inputtype)
         exit()
 
-def normalizeAllTypes(symbol_table):
+def normalizeAllTypes(symbol_table): # TODO clean this up and add proper error handling
     # Normalize type syn definitions:
     # Not necessary because this is done during the creation of the symbol table, in order to require sequentiality
 
@@ -184,8 +184,6 @@ def forbid_illegal_types(symbol_table):
     ERROR_HANDLER.checkpoint()
 
 
-
-
 '''
 Helper function for symbol table building
 Return a dict with function info + a dict of local variable definition order
@@ -227,7 +225,7 @@ def buildFuncEntry(val):
 '''
 TODO We don't check for redefinition attempts of builtin functions or ops
 '''
-def buildSymbolTable(ast, just_for_headerfile=True):
+def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
     symbol_table = SymbolTable()
 
     # Add builtin functions to symbol table:
@@ -251,10 +249,10 @@ def buildSymbolTable(ast, just_for_headerfile=True):
                     # TODO test if it exists in other module
                     pass
                     # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [var_id])
-                else:
-                    symbol_table.global_vars[var_id] = val
-                    symbol_table.order_mapping["global_vars"][var_id] = index_global_var
-                    index_global_var += 1
+
+                symbol_table.global_vars[var_id] = val
+                symbol_table.order_mapping["global_vars"][var_id] = index_global_var
+                index_global_var += 1
             else:
                 # This global var identifier was already used
                 ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
@@ -284,17 +282,18 @@ def buildSymbolTable(ast, just_for_headerfile=True):
                     # TODO test if it is already defined (with the same type) in other module
                     pass
                     # ERROR_HANDLER.addWarning(WARN.ShadowFuncOtherModule, [uniq_kind.name, fun_id, print_node(val.type)])
-                else: # Completely new name
-                    symbol_table.functions[(uniq_kind,fun_id)] = []
-                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
-                    symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)] = []
 
-                    temp_entry, temp_order_mapping = buildFuncEntry(val)
-                    #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+                # Completely new name
+                symbol_table.functions[(uniq_kind,fun_id)] = []
+                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
+                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)] = []
 
-                    symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                    symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
-                    symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
+                temp_entry, temp_order_mapping = buildFuncEntry(val)
+                #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+
+                symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
+                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
+                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
 
             else: # Already defined in the table, check for overloading
@@ -317,9 +316,8 @@ def buildSymbolTable(ast, just_for_headerfile=True):
                     # TODO Test if it exists in another module
                     pass
                     # ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id])
-                else:
-                    normalized_type = normalizeType(def_type, symbol_table)
-                    symbol_table.type_syns[type_id] = normalized_type
+                normalized_type = normalizeType(def_type, symbol_table)
+                symbol_table.type_syns[type_id] = normalized_type
             else:
                 # Type identifier already used
                 ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, symbol_table.type_syns[val.type_id.val]])
@@ -700,13 +698,17 @@ if __name__ == "__main__":
         print("Invalid import mapping")
         exit()
     #print(import_mapping)
-    import_mapping = {a:b for (a,b) in import_mapping}
+    import_mapping = {a:os.path.splitext(b)[0] for (a,b) in import_mapping}
     print("Imports:",import_mapping)
 
     if not args.infile.endswith(SOURCE_EXT):
         print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
 
+    compiler_target = {
+        'header' : args.H,
+        'object' : not args.H
+    }
 
     with open(args.infile, "r") as infile:
         '''
@@ -765,7 +767,7 @@ g (x) {
     return 2;
 }//*/
 ''')
-        if False:
+        if False: # Debug
             tokenstream = tokenize(testprog)
 
             x = parseTokenStream(tokenstream, testprog)
@@ -785,18 +787,28 @@ g (x) {
         #file_mappings = resolveImports(x, args.infile, import_mapping, args.lp, os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
         #print(ERROR_HANDLER)
 
-        if not args.H: # We need to actually read the headerfiles of the imports:
+        if compiler_target['object']: # We need to actually read the headerfiles of the imports:
             headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-            print(headerfiles)
-            for head in headerfiles:
-                data = head['filehandle'].read()
-                print(import_headers(data))
+            getExternalSymbols(x, headerfiles)
+            exit()
+        else:
+            symbol_table = buildSymbolTable(x, compiler_target['header'])
+
+            header_json = export_headers(symbol_table)
+
+            outfile_name = os.path.splitext(args.infile)[0] + HEADER_EXT
+
+            try:
+                with open(outfile_name,"w") as outfile:
+                    outfile.write(header_json)
+                    print("Succesfully written headerfile",outfile_name)
+            except Exception as e:
+                print("{}: {}".format(e.__class__.__name__,str(e)))
             exit()
 
-        symbol_table = buildSymbolTable(x, args.H)
         import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)

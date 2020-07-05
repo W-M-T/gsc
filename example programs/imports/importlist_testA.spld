@@ -1,0 +1,16 @@
+{
+  "functions": [
+    [
+      [
+        "FUNC",
+        "main"
+      ],
+      null,
+      "FUNC",
+      [],
+      "TYPE(val=\"Void\")"
+    ]
+  ],
+  "globals": [],
+  "typesyns": []
+}

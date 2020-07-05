@@ -4,3 +4,5 @@ builds/
 *.swo
 *.swn
 .idea/
+*.sublime-project
+*.sublime-workspace

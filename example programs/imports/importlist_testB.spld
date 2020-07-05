@@ -1,0 +1,69 @@
+{
+  "functions": [
+    [
+      [
+        "FUNC",
+        "swap"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=\"Coord\")"
+      ],
+      "TYPE(val=\"Coord\")"
+    ],
+    [
+      [
+        "FUNC",
+        "swap"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=\"Coord\")"
+    ],
+    [
+      [
+        "INFIX",
+        "--"
+      ],
+      4,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "PREFIX",
+        "++"
+      ],
+      null,
+      "PREFIX",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ],
+  "globals": [
+    [
+      "here",
+      "TYPE(val=\"Coord\")"
+    ],
+    [
+      "nothere",
+      "TYPE(val=\"Coord\")"
+    ]
+  ],
+  "typesyns": [
+    [
+      "Coord",
+      "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
+    ]
+  ]
+}
