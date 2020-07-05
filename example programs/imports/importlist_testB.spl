@@ -1,6 +1,7 @@
 type Coord = (Int, Int)
 
 Coord here = (2,2);
+Coord nothere = (3,3);
 
 swap (x) :: Coord -> Coord {
     temp = x.tl;
@@ -8,6 +9,13 @@ swap (x) :: Coord -> Coord {
     x.hd = temp;
     return x;
 }
-prefix + (x) :: Int -> Int {
+swap (x) :: Int -> Coord {
+    return (x,x);
+}
+prefix ++ (x) :: Int -> Int {
     return 2;
+}
+
+infixl 4 -- (a,b) :: Int Int -> Int {
+    return b;
 }

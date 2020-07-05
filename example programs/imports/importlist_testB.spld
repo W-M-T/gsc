@@ -5,6 +5,8 @@
         "FUNC",
         "swap"
       ],
+      null,
+      "FUNC",
       [
         "TYPE(val=\"Coord\")"
       ],
@@ -12,10 +14,37 @@
     ],
     [
       [
-        "PREFIX",
-        "+"
+        "FUNC",
+        "swap"
       ],
+      null,
+      "FUNC",
       [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=\"Coord\")"
+    ],
+    [
+      [
+        "PREFIX",
+        "++"
+      ],
+      null,
+      "PREFIX",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "INFIX",
+        "--"
+      ],
+      4,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
         "TYPE(val=BASICTYPE(type_id=\"Int\"))"
       ],
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"
@@ -24,6 +53,10 @@
   "globals": [
     [
       "here",
+      "TYPE(val=\"Coord\")"
+    ],
+    [
+      "nothere",
       "TYPE(val=\"Coord\")"
     ]
   ],

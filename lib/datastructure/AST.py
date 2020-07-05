@@ -264,6 +264,9 @@ class AST:
     # module :: string of module name or None for Built in, id :: TOKEN
     RES_TYPE = syntaxnode("RES_TYPE", "module", "type_id")
 
+    # module :: string of module name or None for Built in, orig_id :: string
+    EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id")
+
     # Create node list to support __contains__ and __iter__: TODO make this not hacky
     nodes = [
         SPL,
@@ -296,7 +299,8 @@ class AST:
         RES_VARREF,
         RES_GLOBAL,
         RES_NONGLOBAL,
-        RES_TYPE
+        RES_TYPE,
+        EXTERNAL
     ]
 
     def equalVals(node1, node2): # Same structure and values (not necessarily same tokens)

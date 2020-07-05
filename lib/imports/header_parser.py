@@ -11,7 +11,10 @@ RE_NAME = r"[_A-Z]+"
 RE_ATTR = r"[_a-z]+"
 RE_SEP = r"\s*,\s*"
 RE_BASE = r"\"[A-Z][a-zA-Z0-9_]*\"" # This is duplicated from the lexer (will lead to problems if one is changed without the other)
-#TODO add operator parsing
+
+'''
+This file is only used to parse types, since other symbols can be (de)serialised natively
+'''
 
 @ps.generate
 def BASENAME():

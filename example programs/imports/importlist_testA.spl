@@ -1,8 +1,11 @@
-from importlist_testB import here, +
-from importlist_testB import Coord, swap, +
-//from importlist_testB import swap, Coord, +
+from importlist_testB import here, ++
+from importlist_testB import nothere
+from importlist_testB import Coord as IntTup, swap, ++
+from importlist_testB import swap, Coord, ++
 //importall importlist_testB
 
 main() :: -> Void {
+    Coord x = (2,2);
     swap(here);
 }
+

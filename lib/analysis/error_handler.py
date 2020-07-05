@@ -53,6 +53,8 @@ class ERR(IntEnum):
     ImportIdentifierNotFound = 36
     ImportOpIdentifierNotFound = 37
     ImportTypeSynNotFound = 38
+    ClashImportGlobal = 39
+    ClashImportType = 40
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -93,6 +95,8 @@ ERRMSG = {
     ERR.ImportIdentifierNotFound: 'Tried to import an identifier "{}" from module {} that was not found in the headerfile {}',
     ERR.ImportOpIdentifierNotFound: 'Tried to import an operator identifier "{}" from module {} that was not found in the headerfile {}',
     ERR.ImportTypeSynNotFound: 'Tried to import a type identifier "{}" from module {} that was not found in the headerfile {}',
+    ERR.ClashImportGlobal: 'Multiple clashing definitions for global variable identifier "{}" in imports:\n{}',
+    ERR.ClashImportType: 'Multiple clashing definitions for type identifier "{}" in imports:\n{}',
 }
 
 class WARN(IntEnum):

@@ -739,9 +739,21 @@ g (x) {
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             getExternalSymbols(x, headerfiles)
             exit()
+        else:
+            symbol_table = buildSymbolTable(x, compiler_target['header'])
 
-        symbol_table = buildSymbolTable(x, compiler_target['header'])
-        print(export_headers(symbol_table))
+            header_json = export_headers(symbol_table)
+
+            outfile_name = os.path.splitext(args.infile)[0] + HEADER_EXT
+
+            try:
+                with open(outfile_name,"w") as outfile:
+                    outfile.write(header_json)
+                    print("Succesfully written headerfile",outfile_name)
+            except Exception as e:
+                print("{}: {}".format(e.__class__.__name__,str(e)))
+            exit()
+
         import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)
