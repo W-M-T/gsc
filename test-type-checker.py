@@ -9,28 +9,24 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        
-        g(x) :: Int -> Bool {
-            return False;
-        }
-        
-        g(x) :: Int -> Char {
-            return 'c';
-        }
-        
-        h(z) :: Int -> Int {
-            return z;
-        }
-        
-        h(y) :: Bool -> Int {
-            return 5;
-        }        
-        
-        f(x, y) :: Int Int -> Int {
-            Bool a = True;
-            Int x = h(g(1));
+    
+        (Int, Int) x = (5, 3);
+        Int y = x.fst;
+    
+        main() :: -> Int {
+            //(Int, (Int, Int)) a = (2, (3, 7));
+            [Int] b = 5 : 3 : [];
+            //[Int] a = 2 : 3 : [];
             
-            return a;
+            Int a = 3;
+            //a.fst.snd = 5;
+            Int c = 5;
+            
+            b.hd = a.tl;
+            
+            //Char a = 'a' ++ 5;
+        
+            return 0;
         }
     ''')
 
@@ -52,11 +48,14 @@ def main():
     resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
-    # Parse expression
+    # Build operator table
     op_table = buildOperatorTable()
+    mergeCustomOps(op_table, symbol_table)
 
+    # Parse expressions
     fixExpression(ast, op_table)
     ERROR_HANDLER.checkpoint()
+
 
     # Type check
     typecheck_globals(symbol_table, op_table)

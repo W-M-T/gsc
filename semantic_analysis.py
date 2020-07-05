@@ -417,6 +417,7 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     scope = NONGLOBALSCOPE.GlobalVar
                 else:
                     ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
+                    print("Adding error")
                     break
 
                 pos = expr.contents[i]._start_pos
@@ -432,8 +433,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
         elif type(expr.contents[i]) is AST.FUNCALL:
             for k in range(0, len(expr.contents[i].args)):
                 expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
-        elif type(expr.contents[i]) is AST.DEFERREDEXPR:
-            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
 
@@ -446,7 +445,7 @@ def abstractToConcreteType(abstract_type, basic_types):
     elif abstract_type in basic_types:
         return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, abstract_type))]
     elif abstract_type == '[T]':
-        return [AST.LISTTYPE(type=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b))) for b in basic_types]
+        return [AST.LISTTYPE(type=AST.TYPE(val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)))) for b in basic_types]
     else:
         raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
@@ -454,11 +453,11 @@ def abstractToConcreteType(abstract_type, basic_types):
 Given the symbol table, produce the operator table for of all the builtin operators.
 '''
 def buildOperatorTable():
-    op_table = {}
+    op_table = {'infix_ops': {}, 'prefix_ops': {}}
 
     basic_types = ['Int', 'Char', 'Bool']
     for o in BUILTIN_INFIX_OPS:
-        op_table[o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
+        op_table['infix_ops'][o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
         for x in BUILTIN_INFIX_OPS[o][0]:
             first_type, second_type, _, output_type = x.split()
             first_types = abstractToConcreteType(first_type, basic_types)
@@ -468,21 +467,36 @@ def buildOperatorTable():
             for ft in first_types:
                 for st in second_types:
                         for ot in output_types:
-                            if len(first_types) == len(second_types) == len(output_types) == len(basic_types):
-                                if AST.equalVals(ft, st) and AST.equalVals(st, ot):
-                                    op_table[o][2].append(
+                            if len(first_types) == len(second_types) == len(basic_types):
+                                if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type.val) and AST.equalVals(ft, ot.type.val)):
+                                    op_table['infix_ops'][o][2].append(
                                         AST.FUNTYPE(
                                             from_types=[ft, st],
                                             to_type=ot
                                         )
                                     )
                             else:
-                                op_table[o][2].append(
+                                op_table['infix_ops'][o][2].append(
                                     AST.FUNTYPE(
                                         from_types=[ft, st],
                                         to_type=ot
                                     )
                                 )
+
+    for o in BUILTIN_PREFIX_OPS:
+        op_table['prefix_ops'][o[0]] = []
+        in_type, _, out_type = o[1].split()
+        in_type_node = abstractToConcreteType(in_type, basic_types)
+        out_type_node = abstractToConcreteType(out_type, basic_types)
+
+        for in_t in in_type_node:
+            for out_t in out_type_node:
+                op_table['prefix_ops'][o[0]].append(
+                    AST.FUNTYPE(
+                        from_types=[in_t],
+                        to_type=out_t
+                    )
+                )
 
     return op_table
 
@@ -491,16 +505,43 @@ def mergeCustomOps(op_table, symbol_table):
         f = symbol_table.functions[x]
         if x[0] is FunUniq.INFIX:
             precedence = 'L' if f[0]['def'].kind == FunKind.INFIXL else 'R'
-            # TODO: Do something about this T T -> T thingie
-            op_table[x[1]] = ("T T -> T", f[0]['def'].fixity.val, precedence)
+            if x[1] not in op_table['infix_ops']:
+                op_table['infix_ops'][x[1]] = (f[0]['def'].fixity.val, precedence,[] )
 
-    return op_table
+            for o in f:
+                precedence = 'L' if o['def'].kind == FunKind.INFIXL else 'R'
+                if op_table['infix_ops'][x[1]][0] == o['def'].fixity.val and op_table['infix_ops'][x[1]][1] == precedence:
+                    ft = AST.FUNTYPE(
+                        from_types=[o['type'].from_types[0].val, o['type'].from_types[1].val],
+                        to_type=o['type'].to_type.val
+                    )
+                    cnt = 0
+                    for ot in op_table['infix_ops'][x[1]][2]:
+                        if AST.equalVals(ft, ot):
+                            cnt += 1
+
+                    if cnt == 0:
+                        op_table['infix_ops'][x[1]][2].append(ft)
+                    else:
+                        ERROR_HANDLER.addError(ERR.DuplicateOpDef, [o['def'].id.val, o['def'].id])
+                else:
+                    ERROR_HANDLER.addError(ERR.InconsistentOpDecl, [o['def'].id.val, o['def'].id])
+
+        elif x[0] is FunUniq.PREFIX:
+            if x[1] not in op_table['prefix_ops']:
+                op_table['prefix_ops'][x[1]] = []
+
+            for o in f:
+                op_table['prefix_ops'][x[1]].append(AST.FUNTYPE(
+                    from_types=[o['type'].from_types[0].val],
+                    to_type=o['type'].to_type.val
+                ))
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
-def parseAtom(exp, ops, exp_index):
+def parseAtom(exp, op_table, exp_index):
 
-    def recurse(exp, ops):
-        recurse_res, _ = parseExpression(exp, ops)
+    def recurse(exp, op_table):
+        recurse_res, _ = parseExpression(exp, op_table)
         return recurse_res
 
     # TODO: Think about lists.
@@ -508,16 +549,18 @@ def parseAtom(exp, ops, exp_index):
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        return recurse(exp[exp_index].contents, ops), exp_index + 1
+        return recurse(exp[exp_index].contents, op_table), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
+        if exp[exp_index].id.val not in op_table['prefix_ops']:
+            ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
-        sub_expr = recurse(prefix.args, ops)
+        sub_expr = recurse(prefix.args, op_table)
         return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
         func_args = []
         funcall = exp[exp_index]
         for arg in funcall.args:
-            sub_exp = recurse(arg.contents, ops)
+            sub_exp = recurse(arg.contents, op_table)
             func_args.append(sub_exp)
 
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
@@ -529,24 +572,24 @@ def parseAtom(exp, ops, exp_index):
         exit(1)
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(exp, ops, min_precedence = 1, exp_index = 0):
-    result, exp_index = parseAtom(exp, ops, exp_index)
+def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(exp, op_table, exp_index)
 
     while True:
-        if exp_index < len(exp) and exp[exp_index].val not in ops:
+        if exp_index < len(exp) and exp[exp_index].val not in op_table['infix_ops']:
             # TODO: Check that this works
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or ops[exp[exp_index].val][0] < min_precedence:
+        elif exp_index >= len(exp) or op_table['infix_ops'][exp[exp_index].val][0] < min_precedence:
             break
 
-        if ops[exp[exp_index].val][1] == 'L':
-            next_min_prec = ops[exp[exp_index].val][0] + 1
+        if op_table['infix_ops'][exp[exp_index].val][1] == 'L':
+            next_min_prec = op_table['infix_ops'][exp[exp_index].val][0] + 1
         else:
-            next_min_prec = ops[exp[exp_index].val][0]
+            next_min_prec = op_table['infix_ops'][exp[exp_index].val][0]
         op = exp[exp_index]
         exp_index += 1
-        rh_expr, exp_index = parseExpression(exp, ops, next_min_prec, exp_index)
+        rh_expr, exp_index = parseExpression(exp, op_table, next_min_prec, exp_index)
         result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
 
     return result, exp_index

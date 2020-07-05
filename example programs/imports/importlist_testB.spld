@@ -26,18 +26,6 @@
     ],
     [
       [
-        "PREFIX",
-        "++"
-      ],
-      null,
-      "PREFIX",
-      [
-        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
-      ],
-      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
-    ],
-    [
-      [
         "INFIX",
         "--"
       ],
@@ -45,6 +33,18 @@
       "INFIXL",
       [
         "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "PREFIX",
+        "++"
+      ],
+      null,
+      "PREFIX",
+      [
         "TYPE(val=BASICTYPE(type_id=\"Int\"))"
       ],
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"

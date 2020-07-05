@@ -44,17 +44,26 @@ class ERR(IntEnum):
     AmbiguousFunCall = 28,
     AmbiguousNestedFunCall = 29,
     UndefinedFun = 30,
+    IllegalTupleAccessorUsage = 31,
+    UndefinedPrefixOp = 32,
+    NoPrefixDefWithType = 33,
+    NoPrefixWithInputType = 34,
+    AmbiguousPrefixOp = 35,
+    InconsistentOpDecl = 36,
+    DuplicateOpDef = 37,
+    UnexpectedEmptyList = 38,
+    IllegalListAccessorUsage = 39,
     # Import
-    ImportNotFound = 31
-    HeaderFormatIncorrect = 32
-    DuplicateImportGlobal = 33
-    DuplicateImportType = 34
-    DuplicateImportFun = 35
-    ImportIdentifierNotFound = 36
-    ImportOpIdentifierNotFound = 37
-    ImportTypeSynNotFound = 38
-    ClashImportGlobal = 39
-    ClashImportType = 40
+    ImportNotFound = 40,
+    HeaderFormatIncorrect = 41,
+    DuplicateImportGlobal = 42,
+    DuplicateImportType = 43,
+    DuplicateImportFun = 44,
+    ImportIdentifierNotFound = 45,
+    ImportOpIdentifierNotFound = 46,
+    ImportTypeSynNotFound = 47,
+    ClashImportGlobal = 48,
+    ClashImportType = 49
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -87,6 +96,15 @@ ERRMSG = {
     ERR.AmbiguousFunCall: 'Ambigious function call, function {} has multiple possible output types\n {}',
     ERR.AmbiguousNestedFunCall: 'Ambigious function call, function {} has multiple possible input types\n {}',
     ERR.UndefinedFun: 'Function {} is not defined\n{}',
+    ERR.IllegalTupleAccessorUsage: 'Trying to usage tuple accessor on variable that is not a tuple\n{}',
+    ERR.UndefinedPrefixOp: 'Prefix operator "{}" is not defined\n{}',
+    ERR.NoPrefixDefWithType: 'No prefix operator definition for "{}" with type {}\n{}',
+    ERR.NoPrefixWithInputType: 'No definition of prefix operator "{}" which has the given argument type\n{}',
+    ERR.AmbiguousPrefixOp: 'Ambigious usage of prefix operator, ',
+    ERR.InconsistentOpDecl: 'Inconsistent declaration of operator {}, fixity and precedence have to be equal to initial definition\n{}',
+    ERR.DuplicateOpDef: 'Duplicate operator definition for operator {}, operator with the exact same type was already defined\n{}',
+    ERR.UnexpectedEmptyList: 'Unexpected empty list encountered\n{}',
+    ERR.IllegalListAccessorUsage: 'Trying to usage list accessor on variable that is not a list\n{}',
     ERR.ImportNotFound: 'Failed to import module: {}\n{}',
     ERR.HeaderFormatIncorrect: 'Failed to parse headerfile "{}":\n{}',
     ERR.DuplicateImportGlobal: 'Global variable "{}" is imported from multiple modules:{}',
