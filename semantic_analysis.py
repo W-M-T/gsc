@@ -325,7 +325,7 @@ def resolveNames(symbol_table):
 
     # Globals
     for glob_var_id, glob_var in symbol_table.global_vars.items():
-        in_scope = list(map(lambda x: x[0], filter(lambda x: list(symbol_table.global_vars.keys()).index(glob_var_id) > list(symbol_table.global_vars.values()).index(x[0]), symbol_table.global_vars.keys())))
+        in_scope = list(map(lambda x: x[0], filter(lambda x: list(symbol_table.global_vars.keys()).index(glob_var_id) > list(symbol_table.global_vars.values()).index(x[0]), symbol_table.global_vars.items())))
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
 
     # Functions
