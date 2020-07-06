@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 
 BUILTIN_INFIX_OPS = {
-    "*": (["Int Int -> Int"], 7, "L"),
-    "/": (["Int Int -> Int"], 7, "L"),
-    "%": (["Int Int -> Int"], 7, "L"),
-    "+": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    "-": (["Int Int -> Int", "Char Char -> Char"], 6, "L"),
-    ":": (["T [T] -> [T]"], 5, "R"),
-    "==": (["T T -> Bool"], 4, "L"),
-    "<": (["T T -> Bool"], 4, "L"),
-    ">": (["T T -> Bool"], 4, "L"),
-    "<=": (["T T -> Bool"], 4, "L"),
-    ">=": (["T T -> Bool"], 4, "L"),
-    "!=": (["T T -> Bool"], 4, "L"),
-    "&&": (["Bool Bool -> Bool"], 3, "R"),
-    "||": (["Bool Bool -> Bool"], 2, "R")
+    "*": (["Int Int -> Int"], 7, "L", "MUL"),
+    "/": (["Int Int -> Int"], 7, "L", "DIV"),
+    "%": (["Int Int -> Int"], 7, "L", "MOD"),
+    "+": (["Int Int -> Int", "Char Char -> Char"], 6, "L", "ADD"),
+    "-": (["Int Int -> Int", "Char Char -> Char"], 6, "L", "SUB"),
+    ":": (["T [T] -> [T]"], 5, "R", None),
+    "==": (["T T -> Bool"], 4, "L", "EQ"),
+    "<": (["T T -> Bool"], 4, "L", "LT"),
+    ">": (["T T -> Bool"], 4, "L", "GT"),
+    "<=": (["T T -> Bool"], 4, "L", "LE"),
+    ">=": (["T T -> Bool"], 4, "L", "GE"),
+    "!=": (["T T -> Bool"], 4, "L", "NE"),
+    "&&": (["Bool Bool -> Bool"], 3, "AND"),
+    "||": (["Bool Bool -> Bool"], 2, "OR")
 }
 
 # TODO finalize the info in here
 
 BUILTIN_PREFIX_OPS = [
-    ("!", "Bool -> Bool"),
-    ("-", "Int -> Int"),
+    ("!", "Bool -> Bool", "not"),
+    ("-", "Int -> Int", "neg"),
 ]
 
 ILLEGAL_OP_IDENTIFIERS = [

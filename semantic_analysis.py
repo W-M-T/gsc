@@ -355,8 +355,8 @@ def resolveNames(symbol_table):
             in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
 
             # Expressions and assignments
-            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
-            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, in_scope_globals, in_scope_locals)))
 
 '''
 Funcall naar module, (FunUniq, id) (nog geen type)
@@ -417,7 +417,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     scope = NONGLOBALSCOPE.GlobalVar
                 else:
                     ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
-                    print("Adding error")
                     break
 
                 pos = expr.contents[i]._start_pos
@@ -431,8 +430,9 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
             expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
             expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.FUNCALL:
-            for k in range(0, len(expr.contents[i].args)):
-                expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
+            if expr.contents[i].args is not None:
+                for k in range(0, len(expr.contents[i].args)):
+                    expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
 
@@ -469,17 +469,21 @@ def buildOperatorTable():
                         for ot in output_types:
                             if len(first_types) == len(second_types) == len(basic_types):
                                 if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type.val) and AST.equalVals(ft, ot.type.val)):
-                                    op_table['infix_ops'][o][2].append(
-                                        AST.FUNTYPE(
-                                            from_types=[ft, st],
-                                            to_type=ot
+                                    op_table['infix_ops'][o][2].append((
+                                            AST.FUNTYPE(
+                                                from_types=[ft, st],
+                                                to_type=ot
+                                            ),
+                                            True
                                         )
                                     )
                             else:
-                                op_table['infix_ops'][o][2].append(
-                                    AST.FUNTYPE(
-                                        from_types=[ft, st],
-                                        to_type=ot
+                                op_table['infix_ops'][o][2].append((
+                                        AST.FUNTYPE(
+                                            from_types=[ft, st],
+                                            to_type=ot
+                                        ),
+                                        True
                                     )
                                 )
 
@@ -492,9 +496,12 @@ def buildOperatorTable():
         for in_t in in_type_node:
             for out_t in out_type_node:
                 op_table['prefix_ops'][o[0]].append(
-                    AST.FUNTYPE(
-                        from_types=[in_t],
-                        to_type=out_t
+                    (
+                        AST.FUNTYPE(
+                            from_types=[in_t],
+                            to_type=out_t
+                        ),
+                        True
                     )
                 )
 
@@ -521,7 +528,7 @@ def mergeCustomOps(op_table, symbol_table):
                             cnt += 1
 
                     if cnt == 0:
-                        op_table['infix_ops'][x[1]][2].append(ft)
+                        op_table['infix_ops'][x[1]][2].append((ft, False))
                     else:
                         ERROR_HANDLER.addError(ERR.DuplicateOpDef, [o['def'].id.val, o['def'].id])
                 else:
@@ -532,10 +539,15 @@ def mergeCustomOps(op_table, symbol_table):
                 op_table['prefix_ops'][x[1]] = []
 
             for o in f:
-                op_table['prefix_ops'][x[1]].append(AST.FUNTYPE(
-                    from_types=[o['type'].from_types[0].val],
-                    to_type=o['type'].to_type.val
-                ))
+                op_table['prefix_ops'][x[1]].append(
+                    (
+                        AST.FUNTYPE(
+                            from_types=[o['type'].from_types[0].val],
+                            to_type=o['type'].to_type.val
+                        ),
+                        False
+                    )
+                )
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
 def parseAtom(exp, op_table, exp_index):
@@ -544,13 +556,12 @@ def parseAtom(exp, op_table, exp_index):
         recurse_res, _ = parseExpression(exp, op_table)
         return recurse_res
 
-    # TODO: Think about lists.
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         return recurse(exp[exp_index].contents, op_table), exp_index + 1
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
         if exp[exp_index].id.val not in op_table['prefix_ops']:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
@@ -559,9 +570,10 @@ def parseAtom(exp, op_table, exp_index):
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
         func_args = []
         funcall = exp[exp_index]
-        for arg in funcall.args:
-            sub_exp = recurse(arg.contents, op_table)
-            func_args.append(sub_exp)
+        if funcall.args is not None:
+            for arg in funcall.args:
+                sub_exp = recurse(arg.contents, op_table)
+                func_args.append(sub_exp)
 
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
@@ -577,7 +589,6 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
 
     while True:
         if exp_index < len(exp) and exp[exp_index].val not in op_table['infix_ops']:
-            # TODO: Check that this works
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
         elif exp_index >= len(exp) or op_table['infix_ops'][exp[exp_index].val][0] < min_precedence:

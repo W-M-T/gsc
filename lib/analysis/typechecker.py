@@ -23,13 +23,18 @@ def tokenToTypeId(token):
     else:
         raise Exception('Unknown token supplied.')
 
+# TODO: Void functions
+# TODO: Check if Strings ===== [Char]??
+# TODO: What about print and get input functions
+
 ''' Type check the given expression '''
 def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=False):
+
 
     if type(expr) is Token:
         if expr.typ == TOKEN.EMPTY_LIST:
             if type(exp_type) == AST.LISTTYPE:
-                return True
+                return True, expr
             else:
                 ERROR_HANDLER.addError(ERR.UnexpectedEmptyList, [expr])
 
@@ -38,30 +43,43 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         if not AST.equalVals(val, exp_type):
             if r == 0 and not noErrors:
                 ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
-            return False
-        return True
+            return False, expr
+        return True, expr
     elif type(expr) is AST.PARSEDEXPR:
         incorrect = 0
         alternatives = 0
+        match = None
+        arg1 = None
+        arg2 = None
+
         for o in op_table['infix_ops'][expr.fun.val][2]:
-            if AST.equalVals(o.to_type, exp_type):
+            if AST.equalVals(o[0].to_type, exp_type):
                 alternatives += 1
-                type1 = typecheck(expr.arg1, o.from_types[0], symbol_table, op_table, func, r+1, False)
-                type2 = typecheck(expr.arg2, o.from_types[1], symbol_table, op_table, func, r+1, False)
+                type1, a1 = typecheck(expr.arg1, o[0].from_types[0], symbol_table, op_table, func, r+1, False)
+                type2, a2 = typecheck(expr.arg2, o[0].from_types[1], symbol_table, op_table, func, r+1, False)
 
                 if not type1:
                     incorrect = 1
                 elif not type2:
                     incorrect = 2
+                else:
+                    match = o
+                    arg1 = a1
+                    arg2 = a2
 
-        if incorrect != 0 and not noErrors:
+        if match is None and not noErrors:
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
+            return True, expr
         elif alternatives == 0 and not noErrors:
             # There is no alternative of this operator which has the expected output type
-
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
-        return True
+            return True, expr
+        elif match is not None and func is None and match[1] is False:
+            ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
+            return True, expr
+
+        return True, AST.TYPEDEXPR(fun=expr.fun, arg1=arg1, arg2=arg2, typ=match[0], builtin=match[1])
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
             typ = symbol_table.global_vars[expr.val.id.val].type.val
@@ -88,7 +106,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
-                    return True
+                    return True, expr
 
         elif type(expr.val) is AST.RES_NONGLOBAL:
             typ = None
@@ -121,40 +139,50 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
-                return False
-            return True
+                return False, expr
+            return True, expr
 
-        return False
+        return False, expr
     elif type(expr) is AST.FUNCALL:
         if expr.kind == FunKind.PREFIX:
             out_type_matches = []
             for op in op_table['prefix_ops'][expr.id.val]:
-                if AST.equalVals(op.to_type, exp_type):
+                if AST.equalVals(op[0].to_type, exp_type):
                     out_type_matches.append(op)
 
             if len(out_type_matches) == 0:
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.NoPrefixDefWithType, [expr.id.val, subprint_type(exp_type), expr.id])
-                return False
+                return False, expr
 
             matches = 0
+            match = None
             for m in out_type_matches:
-                res = typecheck(expr.args, m.from_types[0], symbol_table, op_table, func, r, noErrors=True)
+                res = typecheck(expr.args, m[0].from_types[0], symbol_table, op_table, func, r, noErrors=True)
                 if res:
                     matches += 1
+                    match = m
 
             if matches == 0:
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.NoPrefixWithInputType, [expr.id.val, expr.id])
-                return False
+                return False, expr
+            else:
+                if match is not None and func is None and match[1] is False:
+                    print("ERROR")
+                    ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
 
-            return True
+            return True, expr
 
         else:
+            if func is None:
+                ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
+                return True, expr
+
             identifier = (FunKindToUniq(expr.kind), expr.id.val)
             if identifier not in symbol_table.functions:
                 ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])
-                return True
+                return True, expr
 
             out_type_matches = []
             i = 0
@@ -166,7 +194,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             if len(out_type_matches) == 0:
                 if r == 0 and not noErrors and exp_type is not None:
                     ERROR_HANDLER.addError(ERR.NoOverloadedFunDef, [expr.id.val, subprint_type(exp_type), expr.id])
-                return False
+                return False, expr
 
             func_matches = 0
             for o in out_type_matches:
@@ -187,31 +215,29 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             if func_matches == 0:
                 if not noErrors:
                     ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
-                return False
+                return False, expr
             elif func_matches > 1 and exp_type is None:
                 ERROR_HANDLER.addError(ERR.AmbiguousFunCall , [expr.id.val, expr.id])
                 return False
             elif func_matches > 1:
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
 
-            return True
+            return True, expr
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
             ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
-            return True
+            return True, expr
 
         type1 = typecheck(expr.a, exp_type.a.val, symbol_table, op_table, func)
         type2 = typecheck(expr.b, exp_type.b.val, symbol_table, op_table, func)
 
-        return type1 or type2
+        return type1 or type2, expr
 
     else:
-        print("Unknown type")
-        print(type(expr))
+        raise Exception('Unknown type of expression encountered in typechecking')
 
 def typecheck_stmts(func, symbol_table, op_table):
-
     for vardecl in func['def'].vardecls:
         typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
 
@@ -249,20 +275,20 @@ def typecheck_stmts(func, symbol_table, op_table):
                     else:
                         raise Exception("Unknown accessor encountered: %s " + field)
 
-                typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
+                _, stmt.val.val.expr = typecheck(stmt.val.val.expr, typ, symbol_table, op_table, func)
             else: # Fun call
-                typecheck(stmt.val.val, typ, symbol_table, op_table, func)
+                _, stmt.val.val = typecheck(stmt.val.val, typ, symbol_table, op_table, func)
 
         elif type(stmt.val) == AST.IFELSE:
             for b in stmt.val.condbranches:
-                typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
+                if b.expr is not None:
+                    _, b.expr = typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
                 stmts.extend(list(reversed(b.stmts)))
         elif type(stmt.val) == AST.LOOP:
-            typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, func)
+            _, stmt.val.cond = typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, func)
             stmts.extend(list(reversed(stmt.val.stmts)))
         elif type(stmt.val) == AST.RETURN:
-            # TODO: Add expected type
-            typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, func)
+            _, stmt.val.expr = typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, func)
             pass
 
 def typecheck_functions(symbol_table, op_table):
@@ -270,6 +296,7 @@ def typecheck_functions(symbol_table, op_table):
         for o in symbol_table.functions[f]:
             typecheck_stmts(o, symbol_table, op_table)
 
+# TODO: Restrict this to only literals and builtin operators
 def typecheck_globals(symbol_table, op_table):
     for g in symbol_table.global_vars:
-        typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
+        _, symbol_table.global_vars[g].expr = typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, op_table)
