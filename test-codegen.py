@@ -9,17 +9,19 @@ from lib.codegen.codegen import generate_code
 def main():
     from io import StringIO
 
-    testprog = StringIO('''
-        infixr 7 ++ (a, b) :: Int Int -> Int {
-            return a + b;
-        }
-    
-        Int a = 5 ++ 3;
+    testprog = StringIO('''    
+        Int a = 5;
+        Int b = 3;
         
-        f(a, d) :: Int Int -> Int {
-            Int c = 5;
-            Int b = 3;
-            return a ++ b;
+        main() :: -> Bool {
+            Int c = d;
+            
+            if(c > b) {
+                return True;
+            }
+            else {
+                return False;
+            }
         }
     ''')
 
@@ -54,7 +56,8 @@ def main():
     typecheck_functions(symbol_table, op_table)
     ERROR_HANDLER.checkpoint()
 
-    generate_code(symbol_table)
+
+    generate_code(symbol_table, "main")
 
 if __name__ == "__main__":
     main()

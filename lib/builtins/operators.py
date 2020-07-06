@@ -20,8 +20,8 @@ BUILTIN_INFIX_OPS = {
 # TODO finalize the info in here
 
 BUILTIN_PREFIX_OPS = [
-    ("!", "Bool -> Bool"),
-    ("-", "Int -> Int"),
+    ("!", "Bool -> Bool", "not"),
+    ("-", "Int -> Int", "neg"),
 ]
 
 ILLEGAL_OP_IDENTIFIERS = [

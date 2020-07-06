@@ -33,8 +33,15 @@ def treemap(ast, f, replace=True):
     else:
         f(ast)
     if type(ast) is not Token:
-        for attr in ast.items():
-            ast[attr[0]] = unpack(attr[1], f)
+        # TODO: Is this really a correct solution?
+        if type(ast) is list:
+            res = []
+            for x in ast:
+                res.append(unpack(x, f))
+            ast = res
+        else:
+            for attr in ast.items():
+                ast[attr[0]] = unpack(attr[1], f)
 
     return ast
 

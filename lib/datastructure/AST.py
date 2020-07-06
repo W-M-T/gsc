@@ -243,7 +243,7 @@ class AST:
     # val :: AST.FUNCALL or literal or identifier
     PARSEDEXPR = syntaxnode("PARSEDEXPR", "fun", "arg1", "arg2")
 
-    TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ")
+    TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ", "builtin")
 
     # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")

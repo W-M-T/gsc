@@ -23,8 +23,13 @@ def tokenToTypeId(token):
     else:
         raise Exception('Unknown token supplied.')
 
+# TODO: Void functions
+# TODO: Check if Strings ===== [Char]??
+# TODO: What about print and get input functions
+
 ''' Type check the given expression '''
 def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=False):
+
 
     if type(expr) is Token:
         if expr.typ == TOKEN.EMPTY_LIST:
@@ -62,7 +67,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                     arg1 = a1
                     arg2 = a2
 
-        if incorrect != 0 and not noErrors:
+        if match is None and not noErrors:
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
         elif alternatives == 0 and not noErrors:
@@ -71,7 +76,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         elif match is not None and func is None and match[1] is False:
                 ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
 
-        return True, AST.TYPEDEXPR(fun=expr.fun, arg1=arg1, arg2=arg2, typ=match)
+        return True, AST.TYPEDEXPR(fun=expr.fun, arg1=arg1, arg2=arg2, typ=match[0], builtin=match[1])
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
             typ = symbol_table.global_vars[expr.val.id.val].type.val
@@ -136,13 +141,10 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
 
         return False, expr
     elif type(expr) is AST.FUNCALL:
-        if func is None:
-            ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
-
         if expr.kind == FunKind.PREFIX:
             out_type_matches = []
             for op in op_table['prefix_ops'][expr.id.val]:
-                if AST.equalVals(op.to_type, exp_type):
+                if AST.equalVals(op[0].to_type, exp_type):
                     out_type_matches.append(op)
 
             if len(out_type_matches) == 0:
@@ -151,15 +153,20 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 return False, expr
 
             matches = 0
+            match = None
             for m in out_type_matches:
-                res = typecheck(expr.args, m.from_types[0], symbol_table, op_table, func, r, noErrors=True)
+                res = typecheck(expr.args, m[0].from_types[0], symbol_table, op_table, func, r, noErrors=True)
                 if res:
                     matches += 1
+                    match = m
 
             if matches == 0:
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.NoPrefixWithInputType, [expr.id.val, expr.id])
                 return False, expr
+            else:
+                if match is not None and func is None and match[1] is False:
+                    ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
 
             return True, expr
 
@@ -220,8 +227,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         return type1 or type2, expr
 
     else:
-        print("Unknown type")
-        print(type(expr))
+        raise Exception('Unknown type of expression encountered in typechecking')
 
 def typecheck_stmts(func, symbol_table, op_table):
     for vardecl in func['def'].vardecls:
@@ -267,7 +273,8 @@ def typecheck_stmts(func, symbol_table, op_table):
 
         elif type(stmt.val) == AST.IFELSE:
             for b in stmt.val.condbranches:
-                _, b.expr = typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
+                if b.expr is not None:
+                    _, b.expr = typecheck(b.expr, ast_boolnode, symbol_table, op_table, func)
                 stmts.extend(list(reversed(b.stmts)))
         elif type(stmt.val) == AST.LOOP:
             _, stmt.val.cond = typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, func)

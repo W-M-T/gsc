@@ -355,8 +355,8 @@ def resolveNames(symbol_table):
             in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
 
             # Expressions and assignments
-            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
-            treemap(symbol_table.functions[f][i]['def'], lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, in_scope_globals, in_scope_locals)))
 
 '''
 Funcall naar module, (FunUniq, id) (nog geen type)
@@ -417,7 +417,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     scope = NONGLOBALSCOPE.GlobalVar
                 else:
                     ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
-                    print("Adding error")
                     break
 
                 pos = expr.contents[i]._start_pos
@@ -562,7 +561,7 @@ def parseAtom(exp, op_table, exp_index):
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         return recurse(exp[exp_index].contents, op_table), exp_index + 1
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 2: # Prefix
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
         if exp[exp_index].id.val not in op_table['prefix_ops']:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
