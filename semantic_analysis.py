@@ -16,8 +16,10 @@ from lib.util.util import treemap, selectiveApply
 
 from lib.parser.parser import parseTokenStream
 from lib.debug.AST_prettyprinter import print_node, subprint_type
+
 import os
 from enum import IntEnum
+from collections import OrderedDict
 
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
@@ -189,13 +191,13 @@ Helper function for symbol table building
 Return a dict with function info + a dict of local variable definition order
 '''
 def buildFuncEntry(val):
-    temp_entry = {"type": val.type, "def": val,"arg_vars": {}, "local_vars":{}}
-    temp_mapping_entry = {"arg_vars": {}, "local_vars": {}}
+    temp_entry = {"type": val.type, "def": val}# "arg_vars": OrderedDict(), "local_vars":OrderedDict()}
+    temp_mapping_entry = {"arg_vars": OrderedDict(), "local_vars": OrderedDict()}
 
-    funarg_vars = {}
-    local_vars = {}
-    local_vars_order_mapping = {}
-    arg_vars_order_mapping = {}
+    funarg_vars = OrderedDict()
+    local_vars = OrderedDict()
+    local_vars_order_mapping = OrderedDict()
+    arg_vars_order_mapping = OrderedDict()
     for ix, arg in enumerate(val.params):
         if not arg.val in funarg_vars:
             found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
@@ -241,9 +243,9 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
     for decl in ast.decls:
         val = decl.val
         if type(val) is AST.VARDECL:
-            print("Var")
+            #print("Var")
             var_id = val.id.val
-            print(var_id)
+            #print(var_id)
             if not var_id in symbol_table.global_vars: # New global var decl
                 if not just_for_headerfile:
                     # TODO test if it exists in other module
@@ -259,11 +261,11 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
             #print(print_node(val))
 
         elif type(val) is AST.FUNDECL:
-            print("Function")
-            print(val)
-            print(print_node(val))
-            print("params")
-            print(val.params)
+            #print("Function")
+            #print(val)
+            #print(print_node(val))
+            #print("params")
+            #print(val.params)
 
             # Types are not normalised here yet, because we don't yet have all type syns
 

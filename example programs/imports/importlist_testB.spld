@@ -2,30 +2,6 @@
   "functions": [
     [
       [
-        "FUNC",
-        "swap"
-      ],
-      null,
-      "FUNC",
-      [
-        "TYPE(val=\"Coord\")"
-      ],
-      "TYPE(val=\"Coord\")"
-    ],
-    [
-      [
-        "FUNC",
-        "swap"
-      ],
-      null,
-      "FUNC",
-      [
-        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
-      ],
-      "TYPE(val=\"Coord\")"
-    ],
-    [
-      [
         "INFIX",
         "--"
       ],
@@ -48,15 +24,39 @@
         "TYPE(val=BASICTYPE(type_id=\"Int\"))"
       ],
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "swap"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=\"Coord\")"
+      ],
+      "TYPE(val=\"Coord\")"
+    ],
+    [
+      [
+        "FUNC",
+        "swap"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=\"Coord\")"
     ]
   ],
   "globals": [
     [
-      "here",
+      "nothere",
       "TYPE(val=\"Coord\")"
     ],
     [
-      "nothere",
+      "here",
       "TYPE(val=\"Coord\")"
     ]
   ],

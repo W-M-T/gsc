@@ -2,6 +2,7 @@
 
 from lib.debug.AST_prettyprinter import print_node, subprint_type
 from lib.datastructure.AST import FunUniq
+from collections import OrderedDict
 
 # Keep track if a local is an arg?
 # How to handle symbol table merging in case of imports?
@@ -10,7 +11,7 @@ from lib.datastructure.AST import FunUniq
 class SymbolTable():
     def __init__(self, global_vars = {}, functions = {}, type_syns = {}):
         # mapping of identifier to definition node
-        self.global_vars = global_vars
+        self.global_vars = OrderedDict(global_vars)
 
         # (FunUniq, id) as identifier key
         # maps to list of dicts
@@ -18,10 +19,10 @@ class SymbolTable():
         # arg_vars is dict of identifiers to dict: {"id":id-token, "type":Type}
         # local_vars is dict of identifiers to vardecl def nodes
         # def is None for BUILTINS
-        self.functions = functions
-        self.type_syns = type_syns
+        self.functions = OrderedDict(functions)
+        self.type_syns = OrderedDict(type_syns)
 
-        self.order_mapping = {"global_vars":{}, "local_vars":{}, "arg_vars": {}} # Order doesn't matter for functions
+        self.order_mapping = {"global_vars": OrderedDict(), "local_vars": OrderedDict(), "arg_vars": OrderedDict()} # Order doesn't matter for functions
         # This can be done more easily in newer versions of python, since dict order is deterministic there
 
     '''
