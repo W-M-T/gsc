@@ -5,7 +5,7 @@ from lib.datastructure.AST import *
 from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS
 
-def generate_expr(expr, var_mapping = {}):
+def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
     if type(expr) is Token:
         if expr.typ is TOKEN.INT:
             return ['LDC ' + str(expr.val)]
@@ -17,9 +17,9 @@ def generate_expr(expr, var_mapping = {}):
             raise Exception("Unknown type")
     elif type(expr) is AST.TYPEDEXPR:
         if expr.fun.val in BUILTIN_INFIX_OPS and expr.builtin:
-
-            res = generate_expr(expr.arg1, var_mapping)
-            res.extend(generate_expr(expr.arg2, var_mapping))
+            print("ARG1",expr.arg1)
+            res = generate_expr(expr.arg1, var_mapping, arg_mapping)
+            res.extend(generate_expr(expr.arg2, var_mapping, arg_mapping))
             res.append(BUILTIN_INFIX_OPS[expr.fun.val][3])
 
             return res
@@ -37,9 +37,12 @@ def generate_expr(expr, var_mapping = {}):
 
             return res
         else:
+            print(expr)
             res = []
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 res.append('LDL ' + var_mapping[expr.val.id.val])
+            else:
+                res.append('LDL ' + arg_mapping[expr.val.id.val])
 
             return res
 
@@ -47,18 +50,9 @@ def generate_expr(expr, var_mapping = {}):
         if expr.uniq == FunUniq.FUNC:
             print(expr)
             res = []
-            res.append('LDR SP')
-            res.append('LDC 3')
-            res.append('ADD')
-            res.append('STR SP')
 
             for a in expr.args:
-                res.extend(generate_expr(a, var_mapping))
-
-            res.append('LDR SP')
-            res.append('LDC ' + str(len(expr.args) + 2))
-            res.append('SUB')
-            res.append('STR SP')
+                res.extend(generate_expr(a, var_mapping, arg_mapping))
 
             module = expr.module if expr.module is not None else "test"
 
@@ -76,26 +70,33 @@ def generate_expr(expr, var_mapping = {}):
         raise Exception("Dikke BMW")
 
 def generate_func(func, symbol_table, module_name):
+    print("generating func:",func['def'].id.val)
     code = []
 
-    link_count = '00' if len(func['arg_vars']) == 0 else str(len(func['arg_vars']))
+    link_count = '00' #if len(func['arg_vars']) == 0 else str(len(func['arg_vars']))
 
     code.append('LINK ' + link_count)
 
+    arg_mapping = {}
     var_mapping = {}
-    var_index = 1
+    
+    arg_index = -2
+    for arg in func['arg_vars']:
+        arg_mapping[arg] = str(arg_index)
+        arg_index -=1
+    var_index = 0
     for vardecl in func['def'].vardecls:
         var_mapping[vardecl.id.val] = '00' if var_index == 0 else str(var_index)
         var_index += 1
         print(vardecl.expr)
-        code.extend(generate_expr(vardecl.expr, var_mapping))
+        code.extend(generate_expr(vardecl.expr, var_mapping, arg_mapping))
 
     print(var_mapping)
 
     for stmt in func['def'].stmts:
         if type(stmt.val) == AST.RETURN:
             if stmt.val.expr is not None:
-                code.extend(generate_expr(stmt.val.expr, var_mapping))
+                code.extend(generate_expr(stmt.val.expr, var_mapping, arg_mapping))
             code.append('STR RR')
             code.append('UNLINK')
             code.append('RET')

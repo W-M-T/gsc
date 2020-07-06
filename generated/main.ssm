@@ -1,28 +1,28 @@
-// DEPEDENCIES:
+// DEPENDENCIES:
 // INIT SECTION
-LDC 0
-LDC main_global_b
-sta 00
-LDC 97
-LDC main_global_c
-sta 00
+
 // ENTRYPOINT
-bra main
+BRA main
 // GLOBAL SECTION
-main_global_b: NOP
-main_global_c: NOP
 // FUNCTION SECTION
-main_func_g_0: LINK 00
-LDC 98
+test_func_main_0: LINK 00
+LDC 2
+LDC 3
+BSR test_func_prod_0
+LDR RR
+LDL 00
 STR RR
 UNLINK
 RET
-main_func_main_0: LINK 00
-LDC 5
+test_func_prod_0: LINK 00
+LDL -2
+LDL -1
+MUL
 STR RR
 UNLINK
 RET
 // MAIN
-main: BSR main_func_main_0
+main: BSR test_func_main_0
 LDR RR
 TRAP 00
+
