@@ -11,10 +11,10 @@ def main():
 
     testprog = StringIO('''    
         Int a = 5;
-        Int b = 3;
+        Bool b = main();
         
         main() :: -> Bool {
-            Int c = d;
+            Int c = a;
             
             if(c > b) {
                 return True;

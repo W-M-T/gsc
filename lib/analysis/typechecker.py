@@ -70,11 +70,14 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
         if match is None and not noErrors:
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
+            return True, expr
         elif alternatives == 0 and not noErrors:
             # There is no alternative of this operator which has the expected output type
             ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
+            return True, expr
         elif match is not None and func is None and match[1] is False:
-                ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
+            ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
+            return True, expr
 
         return True, AST.TYPEDEXPR(fun=expr.fun, arg1=arg1, arg2=arg2, typ=match[0], builtin=match[1])
     elif type(expr) is AST.RES_VARREF:
@@ -166,11 +169,16 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 return False, expr
             else:
                 if match is not None and func is None and match[1] is False:
+                    print("ERROR")
                     ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
 
             return True, expr
 
         else:
+            if func is None:
+                ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
+                return True, expr
+
             identifier = (FunKindToUniq(expr.kind), expr.id.val)
             if identifier not in symbol_table.functions:
                 ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])

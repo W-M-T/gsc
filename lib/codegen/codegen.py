@@ -28,6 +28,7 @@ def generate_expr(expr):
         print(expr)
         if expr.kind == FunKind.PREFIX:
             print("test")
+
     else:
         print(type(expr))
 
@@ -47,8 +48,13 @@ def generate_code(symbol_table, module_name):
         code[key] = generate_expr(symbol_table.global_vars[g].expr)
 
     for f in symbol_table.functions:
-        pass
-
+        key = module_name
+        if symbol_table.functions[f]['def'].kind is FunKind.PREFIX:
+            key += '_prefix_'
+        elif symbol_table.functions[f]['def'].kind is FunKind.INFIXL or symbol_table.functions[f]['def'].kind is FunKind.INFIXR:
+            key += '_infix_'
+        else:
+            key += '_func_'
     print(code)
 
     print(build_code(code))
