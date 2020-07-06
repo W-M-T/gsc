@@ -4,24 +4,19 @@ from lib.parser.lexer import tokenize
 from lib.parser.parser import *
 from semantic_analysis import *
 from lib.analysis.typechecker import *
-from lib.codegen.codegen import generate_code
+from lib.codegen.codegen import generate_object_file
 
 def main():
     from io import StringIO
 
     testprog = StringIO('''    
         Int a = 5;
-        Bool b = main();
+        Int b = 9 + 4;
         
-        main() :: -> Bool {
+        main() :: -> Int {
             Int c = a;
             
-            if(c > b) {
-                return True;
-            }
-            else {
-                return False;
-            }
+            return c;
         }
     ''')
 
@@ -56,8 +51,7 @@ def main():
     typecheck_functions(symbol_table, op_table)
     ERROR_HANDLER.checkpoint()
 
-
-    generate_code(symbol_table, "main")
+    generate_object_file(symbol_table, "main")
 
 if __name__ == "__main__":
     main()
