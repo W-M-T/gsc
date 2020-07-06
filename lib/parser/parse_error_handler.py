@@ -67,5 +67,6 @@ class ParseError(RuntimeError):
         self.expected = pretty_expected
         self.pos = pos
 
+    # TODO: Prettify this, remove stacktrace and add colors for consistency.
     def __str__(self):
         return "An exception occured at {}\nExpected one of the following:\n{}".format(self.pos, self.expected)

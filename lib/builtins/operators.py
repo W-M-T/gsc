@@ -13,8 +13,8 @@ BUILTIN_INFIX_OPS = {
     "<=": (["T T -> Bool"], 4, "L", "LE"),
     ">=": (["T T -> Bool"], 4, "L", "GE"),
     "!=": (["T T -> Bool"], 4, "L", "NE"),
-    "&&": (["Bool Bool -> Bool"], 3, "AND"),
-    "||": (["Bool Bool -> Bool"], 2, "OR")
+    "&&": (["Bool Bool -> Bool"], 3, "L", "AND"),
+    "||": (["Bool Bool -> Bool"], 2, "L", "OR")
 }
 
 # TODO finalize the info in here

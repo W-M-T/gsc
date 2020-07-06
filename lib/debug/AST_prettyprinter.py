@@ -14,6 +14,7 @@ def flatten(xs):
     return list(itertools.chain(*xs))
 
 def map_print(xs):
+    print(xs)
     return list(map(lambda y: print_node(y), xs))
 
 

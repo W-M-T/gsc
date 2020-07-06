@@ -243,16 +243,11 @@ class AST:
     # val :: AST.FUNCALL or literal or identifier
     PARSEDEXPR = syntaxnode("PARSEDEXPR", "fun", "arg1", "arg2")
 
-    TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ", "builtin")
-
     # id :: TOKEN, fields :: [Accessor]
     VARREF = syntaxnode("VARREF", "id", "fields")
 
 
     # Name Resolution nodes ===========================================================
-    # id :: TOKEN, uniq :: FunUniq, args :: [AST.EXPR]
-    RES_FUNCALL = syntaxnode("RES_FUNCALL", "id", "uniq", "args")
-
     # val :: AST.RES_GLOBAL or AST.RES_NONGLOBAL
     RES_VARREF = syntaxnode("RES_VARREF", "val")
 
@@ -268,6 +263,13 @@ class AST:
 
     # module :: string of module name or None for Built in, orig_id :: string
     EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id")
+
+
+    # Typed nodes
+    TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ", "builtin")
+
+    # oid = Overloaded id
+    TYPED_FUNCALL = syntaxnode("TYPED_FUNCALL", "id", "uniq", "args", "oid", "module")
 
     # Create node list to support __contains__ and __iter__: TODO make this not hacky
     nodes = [
@@ -294,10 +296,11 @@ class AST:
         ASSIGNMENT,
         FUNCALL,
         DEFERREDEXPR,
+        TYPEDEXPR,
         TUPLE,
         PARSEDEXPR,
         VARREF,
-        RES_FUNCALL,
+        TYPED_FUNCALL,
         RES_VARREF,
         RES_GLOBAL,
         RES_NONGLOBAL,

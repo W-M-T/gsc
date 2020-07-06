@@ -260,6 +260,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
 
         elif type(val) is AST.FUNDECL:
             print("Function")
+            print(val)
             print(print_node(val))
             print("params")
             print(val.params)
@@ -371,16 +372,24 @@ def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_lo
     elif assignment.varref.id.val in in_scope_locals['args']:
         scope = NONGLOBALSCOPE.ArgVar
     elif assignment.varref.id.val in in_scope_globals:
-        scope = NONGLOBALSCOPE.GlobalVar
+        scope = None
     else:
         ERROR_HANDLER.addError(ERR.UndefinedVar, [assignment.varref.id.val, assignment.varref])
+        return assignment
 
     pos = assignment.varref._start_pos
-    assignment.varref = AST.RES_VARREF(val=AST.RES_NONGLOBAL(
-        scope=scope,
-        id=assignment.varref.id,
-        fields=assignment.varref.fields
-    ))
+    if scope is not None:
+        assignment.varref = AST.RES_VARREF(val=AST.RES_NONGLOBAL(
+            scope=scope,
+            id=assignment.varref.id,
+            fields=assignment.varref.fields
+        ))
+    else:
+        assignment.varref = AST.RES_VARREF(val=AST.RES_GLOBAL(
+            module=None,
+            id=assignment.varref.id,
+            fields=assignment.varref.fields
+        ))
     assignment.varref._start_pos = pos
 
     return assignment
@@ -407,32 +416,38 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                 ))
                 expr.contents[i]._start_pos = pos
             else:
-                scope = None
 
+                scope = None
                 if expr.contents[i].id.val in in_scope_locals['locals']:
                     scope = NONGLOBALSCOPE.LocalVar
                 elif expr.contents[i].id.val in in_scope_locals['args']:
                     scope = NONGLOBALSCOPE.ArgVar
                 elif expr.contents[i].id.val in in_scope_globals:
-                    scope = NONGLOBALSCOPE.GlobalVar
+                    scope = None
                 else:
                     ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
                     break
 
                 pos = expr.contents[i]._start_pos
-                expr.contents[i] = AST.RES_VARREF(val=AST.RES_NONGLOBAL(
-                    scope=scope,
-                    id=expr.contents[i].id,
-                    fields=expr.contents[i].fields
-                ))
+                if scope is not None:
+                    expr.contents[i] = AST.RES_VARREF(val=AST.RES_NONGLOBAL(
+                        scope=scope,
+                        id=expr.contents[i].id,
+                        fields=expr.contents[i].fields
+                    ))
+                else:
+                    expr.contents[i] = AST.RES_VARREF(val=AST.RES_GLOBAL(
+                        module=None,
+                        id=expr.contents[i].id,
+                        fields=expr.contents[i].fields
+                    ))
                 expr.contents[i]._start_pos = pos
         elif type(expr.contents[i]) is AST.TUPLE:
             expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
             expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.FUNCALL:
-            if expr.contents[i].args is not None:
-                for k in range(0, len(expr.contents[i].args)):
-                    expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
+            for k in range(0, len(expr.contents[i].args)):
+                expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
 

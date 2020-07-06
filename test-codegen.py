@@ -10,13 +10,14 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''    
-        Int a = 5;
-        Int b = 9 + 4;
-        
         main() :: -> Int {
-            Int c = a;
+            Int value = prod(2, 3);
             
-            return c;
+            return value;
+        }
+        
+        prod(a, b) :: Int Int -> Int {
+            return a * b;
         }
     ''')
 
@@ -51,7 +52,7 @@ def main():
     typecheck_functions(symbol_table, op_table)
     ERROR_HANDLER.checkpoint()
 
-    generate_object_file(symbol_table, "main")
+    generate_object_file(symbol_table, "test")
 
 if __name__ == "__main__":
     main()

@@ -3,6 +3,5 @@
 from enum import IntEnum
 
 class NONGLOBALSCOPE(IntEnum):
-    GlobalVar   = 1
-    ArgVar      = 2
-    LocalVar    = 3
+    ArgVar      = 1
+    LocalVar    = 2

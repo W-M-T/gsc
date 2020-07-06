@@ -44,6 +44,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             if r == 0 and not noErrors:
                 ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
             return False, expr
+
         return True, expr
     elif type(expr) is AST.PARSEDEXPR:
         incorrect = 0
@@ -67,13 +68,13 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                     arg1 = a1
                     arg2 = a2
 
+        if alternatives == 0 and not noErrors:
+            # There is no alternative of this operator which has the expected output type
+            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
+            return True, expr
         if match is None and not noErrors:
             # There is no alternative of this operator which has the expected input types.
             ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
-            return True, expr
-        elif alternatives == 0 and not noErrors:
-            # There is no alternative of this operator which has the expected output type
-            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
             return True, expr
         elif match is not None and func is None and match[1] is False:
             ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
@@ -105,8 +106,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
 
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
-                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(var_typ.type), subprint_type(exp_type), expr])
-                    return True, expr
+                    ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
+                return False, expr
 
         elif type(expr.val) is AST.RES_NONGLOBAL:
             typ = None
@@ -115,7 +116,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             elif expr.val.scope == NONGLOBALSCOPE.ArgVar:
                 typ = func['arg_vars'][expr.val.id.val]['type'].val
             else:
-                typ = symbol_table.global_vars[expr.val.id.val].type.val
+                raise Exception("I want to hear this...")
 
             fields = list(reversed(expr.val.fields))
             while len(fields) > 0:
@@ -140,9 +141,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False, expr
-            return True, expr
 
-        return False, expr
+        return True, expr
     elif type(expr) is AST.FUNCALL:
         if expr.kind == FunKind.PREFIX:
             out_type_matches = []
@@ -158,7 +158,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             matches = 0
             match = None
             for m in out_type_matches:
-                res = typecheck(expr.args, m[0].from_types[0], symbol_table, op_table, func, r, noErrors=True)
+                res, _ = typecheck(expr.args, m[0].from_types[0], symbol_table, op_table, func, r, noErrors=True)
+
                 if res:
                     matches += 1
                     match = m
@@ -169,7 +170,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 return False, expr
             else:
                 if match is not None and func is None and match[1] is False:
-                    print("ERROR")
                     ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
 
             return True, expr
@@ -197,6 +197,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                 return False, expr
 
             func_matches = 0
+            match = None
             for o in out_type_matches:
                 identifier = (FunKindToUniq(o[1]['def'].kind), o[1]['def'].id.val)
                 if len(o[1]['arg_vars']) == len(expr.args):
@@ -208,6 +209,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
                         res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
                         if res:
                             input_matches += 1
+                            match = o
 
                     if input_matches == len(expr.args):
                         func_matches += 1
@@ -222,7 +224,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             elif func_matches > 1:
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
 
-            return True, expr
+            return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=expr.args, oid=match[0], module=None)
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
@@ -239,7 +241,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
 
 def typecheck_stmts(func, symbol_table, op_table):
     for vardecl in func['def'].vardecls:
-        typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
+        _, vardecl.expr = typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, func)
 
     stmts = list(reversed(func['def'].stmts))
     ast_boolnode = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
