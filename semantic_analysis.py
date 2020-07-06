@@ -188,31 +188,27 @@ def forbid_illegal_types(symbol_table):
 
 '''
 Helper function for symbol table building
-Return a dict with function info + a dict of local variable definition order
+Return a dict with function info (insertion order is meaningful)
 '''
 def buildFuncEntry(val):
     temp_entry = {"type": val.type, "def": val}# "arg_vars": OrderedDict(), "local_vars":OrderedDict()}
-    temp_mapping_entry = {"arg_vars": OrderedDict(), "local_vars": OrderedDict()}
 
     funarg_vars = OrderedDict()
     local_vars = OrderedDict()
-    local_vars_order_mapping = OrderedDict()
-    arg_vars_order_mapping = OrderedDict()
+
     for ix, arg in enumerate(val.params):
         if not arg.val in funarg_vars:
             found_type = val.type.from_types[ix] if val.type is not None and ix in range(len(val.type.from_types)) else None
             funarg_vars[arg.val] = {"id":arg, "type":found_type}
-            arg_vars_order_mapping[arg.val] = ix
         else:
             # Arg name was already used
             ERROR_HANDLER.addError(ERR.DuplicateArgName, [arg])
-    for index_local, vardecl in enumerate(val.vardecls):
+    for vardecl in val.vardecls:
         if vardecl.id.val in funarg_vars:
             # The local var id is already an arg id
             ERROR_HANDLER.addWarning(WARN.ShadowFunArg, [vardecl.id])
         if not vardecl.id.val in local_vars:
             local_vars[vardecl.id.val] = vardecl
-            local_vars_order_mapping[vardecl.id.val] = index_local
         else:
             # The local var id was already used
             ERROR_HANDLER.addError(ERR.DuplicateVarDef, [vardecl.id, local_vars[vardecl.id.val].id])
@@ -220,9 +216,7 @@ def buildFuncEntry(val):
     temp_entry["arg_vars"] = funarg_vars
     temp_entry["local_vars"]  = local_vars
 
-    temp_mapping_entry["arg_vars_mapping"] = arg_vars_order_mapping
-    temp_mapping_entry["local_vars_mapping"] = local_vars_order_mapping
-    return temp_entry, temp_mapping_entry
+    return temp_entry
 
 '''
 TODO We don't check for redefinition attempts of builtin functions or ops
@@ -239,7 +233,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
     for el in ast.imports:
         print(el)
     print("Decls")
-    index_global_var = 0
+    
     for decl in ast.decls:
         val = decl.val
         if type(val) is AST.VARDECL:
@@ -253,8 +247,6 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
                     # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [var_id])
 
                 symbol_table.global_vars[var_id] = val
-                symbol_table.order_mapping["global_vars"][var_id] = index_global_var
-                index_global_var += 1
             else:
                 # This global var identifier was already used
                 ERROR_HANDLER.addError(ERR.DuplicateGlobalVarId, [val.id, symbol_table.global_vars[var_id].id])
@@ -288,22 +280,16 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
 
                 # Completely new name
                 symbol_table.functions[(uniq_kind,fun_id)] = []
-                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)] = []
-                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)] = []
 
-                temp_entry, temp_order_mapping = buildFuncEntry(val)
+                temp_entry = buildFuncEntry(val)
                 #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
 
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
-                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
 
             else: # Already defined in the table, check for overloading
-                temp_entry, temp_order_mapping = buildFuncEntry(val)
+                temp_entry = buildFuncEntry(val)
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-                symbol_table.order_mapping["local_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["local_vars_mapping"])
-                symbol_table.order_mapping["arg_vars"][(uniq_kind,fun_id)].append(temp_order_mapping["arg_vars_mapping"])
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -339,7 +325,7 @@ def resolveNames(symbol_table):
 
     # Globals
     for glob_var_id, glob_var in symbol_table.global_vars.items():
-        in_scope = list(map(lambda x: x[0], filter(lambda x: symbol_table.order_mapping['global_vars'][glob_var_id] > symbol_table.order_mapping['global_vars'][x[0]] ,symbol_table.global_vars.items())))
+        in_scope = list(map(lambda x: x[0], filter(lambda x: list(symbol_table.global_vars.keys()).index(glob_var_id) > list(symbol_table.global_vars.values()).index(x[0]), symbol_table.global_vars.keys())))
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
 
     # Functions
@@ -349,7 +335,7 @@ def resolveNames(symbol_table):
             in_scope_locals = {'locals': [], 'args': list(map(lambda x: x[0], symbol_table.functions[f][i]['arg_vars']))}
             for v in symbol_table.functions[f][i]['def'].vardecls:
                 in_scope = list(map(lambda x: x[0], filter(
-                    lambda x: symbol_table.order_mapping['local_vars'][f][i][v.id.val] > symbol_table.order_mapping['local_vars'][f][i][x[0]],
+                    lambda x: list(symbol_table.functions[f][i]['local_vars'].keys()).index(v.id.val) > list(symbol_table.functions[f][i]['local_vars'].keys()).index(x[0]),
                     symbol_table.functions[f][i]['local_vars'].items())))
 
                 in_scope_locals['locals'] = in_scope

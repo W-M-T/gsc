@@ -22,9 +22,6 @@ class SymbolTable():
         self.functions = OrderedDict(functions)
         self.type_syns = OrderedDict(type_syns)
 
-        self.order_mapping = {"global_vars": OrderedDict(), "local_vars": OrderedDict(), "arg_vars": OrderedDict()} # Order doesn't matter for functions
-        # This can be done more easily in newer versions of python, since dict order is deterministic there
-
     '''
     def getFunc(self, uniq, fid, normaltype):
         flist = self.functions[(uniq, fid)]
