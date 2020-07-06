@@ -11,6 +11,11 @@ from collections import OrderedDict
 HEADER_EXT = ".spld"
 OBJECT_EXT = ".splo"
 SOURCE_EXT = ".spl"
+TARGET_EXT = ".ssm"
+
+'''
+TODO Validate filenames using REG_FIL from lexer
+'''
 
 '''
 TODO?
@@ -189,7 +194,7 @@ def getExternalSymbols(ast, headerfiles):
                 match_orig = match.name.val
                 effective_id = match.alias.val if match.alias is not None else match_orig
 
-                if match_orig in cur_symbols['globals'] or (FunUniq.FUNC, match_orig) in cur_symbols['functions']:
+                if match_orig in cur_symbols['globals'] or (FunUniq.FUNC, match_orig) in cur_symbols['functions']: # Try to import id that exists in the header
                     if match_orig in cur_symbols['globals']:
                         found_global = cur_symbols['globals'][match_orig]
 

@@ -1,0 +1,13 @@
+// DEPENDENCIES:
+// DEPEND modname_1
+// DEPEND modname_2
+// INIT SECTION:
+code om globals te initialiseren
+// ENTRYPOINT:
+bra main
+// GLOBAL SECTION:
+addressen gereserveerd voor globals
+// FUNCTION SECTION:
+functiedefinities
+// MAIN:
+main: bra modname_func_main

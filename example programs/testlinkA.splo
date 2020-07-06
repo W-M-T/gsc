@@ -1,0 +1,34 @@
+// DEPENDENCIES:
+// DEPEND testlinkB
+// INIT SECTION:
+LDC 9
+LDC 4
+ADD
+LDC testlinkA_global_b
+sta 00
+LDC 5
+LDC testlinkA_global_a
+sta 00
+// ENTRYPOINT:
+bra main
+// GLOBAL SECTION:
+testlinkA_global_b: NOP
+testlinkA_global_a: NOP
+// FUNCTION SECTION:
+testlinkA_func_main_0: LINK 00
+LDC testlinkA_global_a
+LDA 00
+LDL 1
+LDL 1
+LDL 2
+ADD
+STR RR
+UNLINK
+RET
+// MAIN:
+main: BSR testlinkA_func_main_0
+LDR RR
+BSR testlinkB_func_main_0
+LDR RR
+ADD
+TRAP 00

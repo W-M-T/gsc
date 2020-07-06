@@ -378,7 +378,7 @@ def FunCall():
     fname = yield ps.token(TOKEN.IDENTIFIER)
     yield ps.token(TOKEN.PAR_OPEN)
     found_args = yield ps.times(ActArgs, 0,1)
-    found_args = found_args[0] if len(found_args) > 0 else None
+    found_args = found_args[0] if len(found_args) > 0 else []
     yield ps.token(TOKEN.PAR_CLOSE)
     return AST.FUNCALL(id=fname, kind=FunKind.FUNC, args=found_args)
 
