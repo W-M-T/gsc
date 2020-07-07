@@ -1,6 +1,6 @@
 __pycache__/
 builds/
-generated/
+generated/*
 *.swp
 *.swo
 *.swn
