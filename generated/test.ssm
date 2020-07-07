@@ -5,19 +5,19 @@
 BRA main
 // GLOBAL SECTION
 // FUNCTION SECTION
-test_func_prod_0: LINK 00
-LDL -3
-LDL -2
-MUL
-STR RR
-UNLINK
-RET
 test_func_main_0: LINK 00
 LDC 2
 LDC 3
 BSR test_func_prod_0
 LDR RR
 LDL 00
+STR RR
+UNLINK
+RET
+test_func_prod_0: LINK 00
+LDL -2
+LDL -3
+MUL
 STR RR
 UNLINK
 RET

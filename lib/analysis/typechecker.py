@@ -200,16 +200,18 @@ def typecheck(expr, exp_type, symbol_table, op_table, func=None, r=0, noErrors=F
             match = None
             for o in out_type_matches:
                 identifier = (FunKindToUniq(o[1]['def'].kind), o[1]['def'].id.val)
-                if len(o[1]['arg_vars']) == len(expr.args):
-                    order_mapping = symbol_table.order_mapping['arg_vars'][identifier][o[0]]
 
+                # TODO: You can make better errors for this
+                if len(o[1]['arg_vars']) == len(expr.args):
                     input_matches = 0
-                    for i in range(0, len(expr.args)):
-                        arg_var = list(order_mapping.keys())[list(order_mapping.values()).index(i)]
-                        res = typecheck(expr.args[i], o[1]['arg_vars'][arg_var]['type'].val, symbol_table, op_table, func, r, noErrors=True)
+
+                    i = 0
+                    for a in o[1]['arg_vars']:
+                        res, _ = typecheck(expr.args[i], o[1]['arg_vars'][a]['type'].val, symbol_table, op_table, func, r, noErrors=True)
                         if res:
                             input_matches += 1
                             match = o
+                        i += 1
 
                     if input_matches == len(expr.args):
                         func_matches += 1
