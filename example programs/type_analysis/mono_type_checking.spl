@@ -1,10 +1,10 @@
 // In monomorphic type systems, every type needs its own identity function
-idInt (x) :: Int -> Int {
-    return x;
+main () :: -> Int {
+    return 1;
 }
 
 idBool(x) :: Bool -> Bool{
     return x;
 }
 
-[([Int], [(Int, Bool)])] xx = ([], (1, True) : (2, False) : []) : [];
+//[([Int], [(Int, Bool)])] xx = ([], (1, True) : (2, False) : []) : [];

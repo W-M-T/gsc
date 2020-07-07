@@ -7,8 +7,8 @@ infixl 2 -- (a, b) :: Int Int -> Int {
 }
 
 main ( ) :: -> Void {
-    var x = 2--3;
-    var y = 2- -3;
+    Int x = 2--3;
+    Int y = 2- -3;
     print(x);
     print(y);
 }
