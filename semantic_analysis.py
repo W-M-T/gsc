@@ -791,7 +791,8 @@ g (x) {
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-            getExternalSymbols(x, headerfiles)
+            a = getExternalSymbols(x, headerfiles)
+            print(a)
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])
