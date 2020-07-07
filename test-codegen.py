@@ -14,13 +14,6 @@ def main():
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default=None)
     args = argparser.parse_args()
 
-<<<<<<< HEAD
-    testprog = StringIO('''
-        Int b  = 5;
-    
-        main() :: -> Int {
-            Int value = read();
-=======
     if not args.infile is None:
         if not args.infile.endswith(SOURCE_EXT):
             print("Input file needs to be {}".format(SOURCE_EXT))
@@ -37,7 +30,6 @@ def main():
 
         testprog = StringIO('''
             Int b  = 5;
->>>>>>> db4a18bab90fe27c74010d7bc9a6c49a0c4ead95
         
             main() :: -> Int {
                 Char value = read();

@@ -1,6 +1,7 @@
 __pycache__/
 builds/
 generated/*
+!generated/.gitkeep
 *.swp
 *.swo
 *.swn
