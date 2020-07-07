@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from lib.imports.imports import IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT
+from lib.imports.imports import IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT, TARGET_EXT
 from lib.imports.objectfile_imports import getObjectFiles, OBJECT_COMMENT_PREFIX, OBJECT_FORMAT
 from lib.analysis.error_handler import *
 
@@ -29,11 +29,12 @@ SECTION_COMMENT_LOOKUP = {
 }
 def linkObjectFiles(mod_dicts, main_mod_name):
     head = ("// SSM ASSEMBLY GENERATED ON {}".format(datetime.now().strftime("%c"))).upper()
+    sep_line = "//" + "="*(len(head)-2)+"\n"
     result = ""
-    result += "="*len(head)+"\n"
+    result += sep_line
     result += head + "\n"
     result += "// © Ward Theunisse & Ischa Stork 2020\n"
-    result += "="*len(head)+"\n"
+    result += sep_line
     result += buildSection(mod_dicts, 'global_inits')
     result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + "\n"
     result += "BRA main\n"
@@ -54,6 +55,7 @@ def main():
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import object files from", nargs="?", type=str)
     argparser.add_argument("--im", metavar="LIBNAME:PATH,...", help="Comma-separated object_file:path mapping list, to explicitly specify object file paths", type=str)
     argparser.add_argument("-o", metavar="OUTPUT", help="Output filename", type=str)
+    argparser.add_argument("--stdout", help="Output to stdout", action="store_true")
     args = argparser.parse_args()
 
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
@@ -61,16 +63,19 @@ def main():
         print("Invalid import mapping")
         exit()
 
-    '''
     if not args.infile.endswith(OBJECT_EXT):
         print("Input file needs to be {}".format(OBJECT_EXT))
         exit()
 
-    if not os.path.isfile(args.infile):
-        print("Input file does not exist: {}".format(args.infile))
-        exit()
-    '''
-    
+    main_mod_path = args.infile[:-len(OBJECT_EXT)]
+    main_mod_name = os.path.basename(main_mod_path)
+
+    if args.o:
+        outfile_name = args.o
+    else:
+        outfile_name = main_mod_path + TARGET_EXT
+
+
     mod_dicts = getObjectFiles(
         args.infile,
         os.path.dirname(args.infile),
@@ -78,9 +83,22 @@ def main():
         lib_dir_path=args.lp,
         lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
     )
-    main_mod_name = os.path.basename(args.infile)[:-len(OBJECT_EXT)] if os.path.basename(args.infile).endswith(OBJECT_EXT) else os.path.basename(args.infile)
+
     end = linkObjectFiles(mod_dicts, main_mod_name)
-    print(end)
+    #print(end)
+
+    if not args.stdout:
+        try:
+            with open(outfile_name, "w") as outfile:
+                outfile.write(end)
+                print('Succesfully written excecutable "{}"'.format(outfile_name))
+        except Exception as e:
+            print(e.__class__.__name__, str(e))
+    else:
+        print(end)
+
+
+
     '''
     for struct in mod_dicts:
         for k,v in struct.items():
@@ -107,23 +125,6 @@ def main():
         exit()
     '''
     exit()
-
-    # Open all input files
-    handle_dict = {}
-    try:
-        for filename in args.infiles:
-            temp_handle = open(filename,"r")
-            handle_dict[filename] = temp_handle
-    except Exception as e:
-        print("Error opening input files:")
-        print(e)
-
-    link(handle_dict)
-
-    # Close the input files
-    for k,v in handle_dict.items():
-        v.close()
-
 
 if __name__ == "__main__":
     main()
