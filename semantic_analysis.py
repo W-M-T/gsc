@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT
+from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT, IMPORT_DIR_ENV_VAR_NAME
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.position import Position
@@ -20,9 +20,6 @@ from lib.debug.AST_prettyprinter import print_node, subprint_type
 import os
 from enum import IntEnum
 from collections import OrderedDict
-
-
-IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
 
 '''
@@ -325,7 +322,7 @@ def resolveNames(symbol_table):
 
     # Globals
     for glob_var_id, glob_var in symbol_table.global_vars.items():
-        in_scope = list(map(lambda x: x[0], filter(lambda x: list(symbol_table.global_vars.keys()).index(glob_var_id) > list(symbol_table.global_vars.values()).index(x[0]), symbol_table.global_vars.items())))
+        in_scope = list(map(lambda x: x[0], filter(lambda x: list(symbol_table.global_vars.keys()).index(glob_var_id) > list(symbol_table.global_vars.keys()).index(x[0]), symbol_table.global_vars.items())))
         glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
 
     # Functions
