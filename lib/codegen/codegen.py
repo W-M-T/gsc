@@ -17,7 +17,6 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
             raise Exception("Unknown type")
     elif type(expr) is AST.TYPEDEXPR:
         if expr.fun.val in BUILTIN_INFIX_OPS and expr.builtin:
-            print("ARG1",expr.arg1)
             res = generate_expr(expr.arg1, var_mapping, arg_mapping)
             res.extend(generate_expr(expr.arg2, var_mapping, arg_mapping))
             res.append(BUILTIN_INFIX_OPS[expr.fun.val][3])
@@ -37,7 +36,7 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
 
             return res
         else:
-            print(expr)
+            #print(expr)
             res = []
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 res.append('LDL ' + var_mapping[expr.val.id.val])
@@ -48,7 +47,7 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
 
     elif type(expr) is AST.TYPED_FUNCALL:
         if expr.uniq == FunUniq.FUNC:
-            print(expr)
+            #print(expr)
             res = []
 
             for a in expr.args:
@@ -63,11 +62,11 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
         else:
             raise Exception("Not implemented")
     elif type(expr) is AST.TUPLE:
-        pass
+        raise Exception("Not implemented")
     else:
         print(expr)
         print(type(expr))
-        raise Exception("Dikke BMW")
+        raise Exception("Unknown expression type encountered")
 
 def generate_func(func, symbol_table, module_name):
     print("generating func:",func['def'].id.val)
@@ -83,15 +82,13 @@ def generate_func(func, symbol_table, module_name):
     arg_index = -2
     for arg in func['arg_vars']:
         arg_mapping[arg] = str(arg_index)
-        arg_index -=1
+        arg_index -= 1
     var_index = 0
     for vardecl in func['def'].vardecls:
         var_mapping[vardecl.id.val] = '00' if var_index == 0 else str(var_index)
         var_index += 1
-        print(vardecl.expr)
         code.extend(generate_expr(vardecl.expr, var_mapping, arg_mapping))
 
-    print(var_mapping)
 
     for stmt in func['def'].stmts:
         if type(stmt.val) == AST.RETURN:
@@ -104,8 +101,6 @@ def generate_func(func, symbol_table, module_name):
     return code
 
 def build_object_file(module_name, global_code, global_labels, function_code):
-    object_file = ''
-
     # Depedencies
     object_file = '// DEPENDENCIES:\n'
 
@@ -164,7 +159,6 @@ def generate_object_file(symbol_table, module_name):
             function_code[key] = generate_func(of, symbol_table, module_name)
             o += 1
 
-    print(function_code)
     gen_code = build_object_file(module_name, global_code, global_labels, function_code)
     print(gen_code)
 
