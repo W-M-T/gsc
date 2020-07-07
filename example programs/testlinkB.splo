@@ -4,12 +4,12 @@ LDC 1
 LDC 2
 ADD
 LDC testlinkB_global_b
-sta 00
+STA 00
 LDC 4
 LDC testlinkB_global_a
-sta 00
+STA 00
 // ENTRYPOINT:
-bra main
+BRA main
 // GLOBAL SECTION:
 testlinkB_global_b: NOP
 testlinkB_global_a: NOP

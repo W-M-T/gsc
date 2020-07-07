@@ -8,7 +8,7 @@ HEADER_EXT = ".spld"
 def resolveImports(ast, filename, file_mapping_arg, lib_dir_path, lib_dir_env): # TODO consider what happens when there is a lexing / parse error in one of the imports
     local_dir = os.path.dirname(os.path.realpath(filename))
 
-    filename_asimport = os.path.basename(filename).rstrip(".spl")
+    filename_asimport = os.path.basename(filename).rstrip(".spl") # Looking back, this is not even correct
 
     print("Resolving imports..")
 

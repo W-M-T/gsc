@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT
+from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT, IMPORT_DIR_ENV_VAR_NAME
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.position import Position
@@ -20,9 +20,6 @@ from lib.debug.AST_prettyprinter import print_node, subprint_type
 import os
 from enum import IntEnum
 from collections import OrderedDict
-
-
-IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
 
 '''
@@ -823,7 +820,8 @@ g (x) {
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-            getExternalSymbols(x, headerfiles)
+            a = getExternalSymbols(x, headerfiles)
+            print(a)
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])

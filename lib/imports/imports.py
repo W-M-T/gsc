@@ -5,13 +5,24 @@ import json
 from lib.datastructure.AST import FunUniq, AST
 from lib.datastructure.token import TOKEN
 from lib.analysis.error_handler import *
-import os
+
 from collections import OrderedDict
+from lib.parser.lexer import REG_FIL
+
+import os
 
 HEADER_EXT = ".spld"
 OBJECT_EXT = ".splo"
 SOURCE_EXT = ".spl"
 TARGET_EXT = ".ssm"
+
+IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
+
+
+'''
+everything breaks if the object files linked with are generated from a different version of a source file than its headerfile
+solution: have headerfile and object file encode the md5sum of their source file + add this md5sum after the module name for each dependency in the object file
+'''
 
 '''
 TODO Validate filenames using REG_FIL from lexer
@@ -39,9 +50,9 @@ def export_headers(symbol_table):
 def import_headers(json_string): # Can return exception, so put in try-except
     load_packet = json.loads(json_string)
     temp_packet = {}
-    temp_packet["globals"] = {k:parse_type(v) for k,v in load_packet["globals"]}
-    temp_packet["typesyns"] = {k:parse_type(v) for k,v in load_packet["typesyns"]}
-    temp_packet["functions"] = {}
+    temp_packet["globals"] = OrderedDict([(k,parse_type(v)) for k,v in load_packet["globals"]])
+    temp_packet["typesyns"] = OrderedDict([(k,parse_type(v)) for k,v in load_packet["typesyns"]])
+    temp_packet["functions"] = OrderedDict()
     for (uq, k),fix,kind,from_ts,to_t in load_packet["functions"]:
         if (FunUniq[uq], k) not in temp_packet["functions"]:
             temp_packet["functions"][(FunUniq[uq], k)] = []
@@ -50,6 +61,7 @@ def import_headers(json_string): # Can return exception, so put in try-except
             "kind":kind,
             "type":AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
         })
+        print(fix,kind,AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t)))
 
     return temp_packet
 
@@ -148,18 +160,18 @@ def getExternalSymbols(ast, headerfiles):
     # Add the desired imports to a datastructure
     external_symbols = {
         # Effective identifier to dict with type, module and original identifier
-        'globals':{},
+        'globals': OrderedDict(),
         # Effective identifier to dict with type, module and original identifier
-        'typesyns':{},
+        'typesyns': OrderedDict(),
         # (FunUniq, Effective identifier) to list with (dict with type, module and original identifier)
-        'functions':{}
+        'functions': OrderedDict()
     }
 
     # Collect all imports for the same module and give warnings
     unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
     for modname in unique_names:
         cur_imports = list(filter(lambda x: x.name.val == modname, importlist))
-        print(modname,cur_imports)
+        #print(modname,cur_imports)
 
         # Test if there is both an importall and another import for the same module
         if any(map(lambda x: x.importlist is None, cur_imports)) and len(cur_imports) > 1:
@@ -180,7 +192,7 @@ def getExternalSymbols(ast, headerfiles):
         # Test for identifiers that are imported multiple times
         # Also, select the desired symbols and give error if they don't exist
         cur_symbols = headerfiles[modname]['symbols']
-        print("SYMBOLS",cur_symbols)
+        #print("SYMBOLS",cur_symbols)
         unique_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, id_imports)))
         unique_op_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, op_imports)))
         unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
