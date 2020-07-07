@@ -61,14 +61,18 @@ def parseObjectFile(data):
     return temp
 
 def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
-    #unique_names = list(OrderedDict.fromkeys(map(lambda x: x, parsed_main['dependencies']))) # order preserving uniqueness
-    #print(importlist)
-    print("CWD",local_dir)
-    print("--lp",lib_dir_path)
-    print("env",lib_dir_env)
+    '''
+    if not args.infile.endswith(OBJECT_EXT):
+        print("Input file needs to be {}".format(OBJECT_EXT))
+        exit()
+
+    if not os.path.isfile(args.infile):
+        print("Input file does not exist: {}".format(args.infile))
+        exit()
+    '''
 
     main_mod_name = os.path.basename(main_filename)[:-len(OBJECT_EXT)] if os.path.basename(main_filename).endswith(OBJECT_EXT) else os.path.basename(main_filename)
-    print(main_mod_name)
+    #print(main_mod_name)
     try:
         main_filehandle = open(main_filename)
     except Exception as e:
@@ -81,7 +85,7 @@ def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=N
     openlist = [(main_filehandle, main_filename)]
     while openlist:
         cur_handle, cur_name = openlist.pop()
-        print("Reading", cur_name)
+        #print("Reading", cur_name)
         data = cur_handle.read()
         cur_handle.close()
         obj_struct = parseObjectFile(data)
@@ -96,7 +100,7 @@ def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=N
                     lib_dir_path=lib_dir_path,
                     lib_dir_env=lib_dir_env
                 )
-                print(found)
+                #print(found)
                 seen.add(dep)
                 openlist.append(found)
 

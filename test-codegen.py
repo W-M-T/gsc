@@ -6,28 +6,56 @@ from semantic_analysis import *
 from lib.analysis.typechecker import *
 from lib.codegen.codegen import generate_object_file
 
+from lib.imports.imports import SOURCE_EXT
 def main():
-    from io import StringIO
+    from argparse import ArgumentParser
+    from lib.parser.lexer import tokenize
+    argparser = ArgumentParser(description="TESTCODEGEN")
+    argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default=None)
+    args = argparser.parse_args()
 
+<<<<<<< HEAD
     testprog = StringIO('''
         Int b  = 5;
     
         main() :: -> Int {
             Int value = read();
+=======
+    if not args.infile is None:
+        if not args.infile.endswith(SOURCE_EXT):
+            print("Input file needs to be {}".format(SOURCE_EXT))
+            exit()
+        else:
+            infile = open(args.infile, "r")
+            tokenstream = tokenize(infile)
+            ast = parseTokenStream(tokenstream, infile)
+
+            ERROR_HANDLER.setSourceMapping(infile, [])
+
+    else:
+        from io import StringIO
+
+        testprog = StringIO('''
+            Int b  = 5;
+>>>>>>> db4a18bab90fe27c74010d7bc9a6c49a0c4ead95
         
-            print(value);
+            main() :: -> Int {
+                Char value = read();
             
-            return 5;
-        }
-    ''')
+                print(value);
+                
+                return 5;
+            }
+        ''')
 
-    # Tokenize / parse
-    tokenstream = tokenize(testprog)
-    tokenlist = list(tokenstream)
-    ast = SPL.parse_strict(tokenlist, testprog)
+        # Tokenize / parse
+        tokenstream = tokenize(testprog)
 
-    # Build symbol table
-    ERROR_HANDLER.setSourceMapping(testprog, [])
+        tokenlist = list(tokenstream)
+        ast = SPL.parse_strict(tokenlist, testprog)
+
+        # Build symbol table
+        ERROR_HANDLER.setSourceMapping(testprog, [])
     symbol_table = buildSymbolTable(ast)
     ERROR_HANDLER.checkpoint()
 
