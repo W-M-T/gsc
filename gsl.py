@@ -1,26 +1,44 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from lib.imports.imports import getObjectFiles, IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT
+from lib.imports.imports import getObjectFiles, IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT, OBJECT_COMMENT_PREFIX, OBJECT_FORMAT
 from lib.analysis.error_handler import *
 
 import os
 
 from collections import OrderedDict
+from datetime import datetime
 
 def buildSection(mod_dicts, section_name):
-    return "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
+    res = ""
+    if section_name in SECTION_COMMENT_LOOKUP:
+        res += OBJECT_COMMENT_PREFIX + SECTION_COMMENT_LOOKUP[section_name] + "\n"
+    res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
+    return res
 
 '''
 Code should have the requirement that any cross-module reference is not order dependent.
 Semantic analysis step should guarantee this
 '''
+
+SECTION_COMMENT_LOOKUP = {
+    "global_inits": OBJECT_FORMAT['init'],
+    "global_mem": OBJECT_FORMAT['globals'],
+    "functions": OBJECT_FORMAT['funcs']
+}
 def linkObjectFiles(mod_dicts, main_mod_name):
+    head = ("// SSM ASSEMBLY GENERATED ON {}".format(datetime.now().strftime("%c"))).upper()
     result = ""
+    result += "="*len(head)+"\n"
+    result += head + "\n"
+    result += "// © Ward Theunisse & Ischa Stork 2020\n"
+    result += "="*len(head)+"\n"
     result += buildSection(mod_dicts, 'global_inits')
+    result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + "\n"
     result += "BRA main\n"
     result += buildSection(mod_dicts, 'global_mem')
     result += buildSection(mod_dicts, 'functions')
+    result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + "\n"
     result += "main: BSR {}_func_main_0\n".format(main_mod_name)
     result += "LDR RR\n"
     result += "TRAP 00\n"
