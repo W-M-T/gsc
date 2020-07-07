@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from lib.imports.imports import getObjectFiles, IMPORT_DIR_ENV_VAR_NAME
+from lib.imports.imports import getObjectFiles, IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT
 from lib.analysis.error_handler import *
 
 import os
@@ -9,7 +9,7 @@ import os
 from collections import OrderedDict
 
 def buildSection(mod_dicts, section_name):
-    return "\n".join(list(map(lambda x: x[section_name], mod_dicts)))
+    return "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
 
 '''
 Code should have the requirement that any cross-module reference is not order dependent.
@@ -20,10 +20,10 @@ def linkObjectFiles(mod_dicts, main_mod_name):
     result += buildSection(mod_dicts, 'global_inits')
     result += "BRA main\n"
     result += buildSection(mod_dicts, 'global_mem')
-    result ++ buildSection(mod_dicts, 'functions')
-    result += "main: nop\n"
+    result += buildSection(mod_dicts, 'functions')
+    result += "main: BSR {}_func_main_0\n".format(main_mod_name)
     result += "LDR RR\n"
-    result ++ "TRAP 00\n"
+    result += "TRAP 00\n"
     return result
 
 
@@ -59,6 +59,16 @@ def main():
         lib_dir_path=args.lp,
         lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
     )
+    main_mod_name = os.path.basename(args.infile)[:-len(OBJECT_EXT)] if os.path.basename(args.infile).endswith(OBJECT_EXT) else os.path.basename(args.infile)
+    end = linkObjectFiles(mod_dicts, main_mod_name)
+    print(end)
+    '''
+    for struct in mod_dicts:
+        for k,v in struct.items():
+            print("==",k)
+            print(v)
+    '''
+    #print(mod_dicts)
     '''
     objectfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,

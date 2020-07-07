@@ -279,7 +279,7 @@ def getSlice(text, start, end):
     end_ix = text.find(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT[end]) if end is not None else len(text)
     if start_ix == -1 or end_ix == -1:
         raise Exception("Malformed object file")
-    res = text[start_ix:end_ix].split("\n",1)[1]
+    res = text[start_ix:end_ix].split("\n",1)[1].strip()
     text = text[:start_ix] + text[end_ix:]
     return res, text
 
@@ -323,7 +323,7 @@ def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=N
     except Exception as e:
         print(e.__class__.__name__, str(e))
 
-
+    res = []
     seen = set([main_mod_name])
     closed = {}
     # openlist is list of open file handles that need to be read still
@@ -334,6 +334,7 @@ def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=N
         data = cur_handle.read()
         cur_handle.close()
         obj_struct = parseObjectFile(data)
+        res.append(obj_struct)
         for dep in obj_struct['dependencies']:
             if dep not in seen:
                 found = resolveFileName(
@@ -344,9 +345,9 @@ def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=N
                     lib_dir_path=lib_dir_path,
                     lib_dir_env=lib_dir_env
                 )
-                #print(found)
+                print(found)
                 seen.add(dep)
                 openlist.append(found)
 
     ERROR_HANDLER.checkpoint()
-    return None
+    return res
