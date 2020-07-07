@@ -4,6 +4,7 @@ from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import *
 from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS
+from lib.builtins.functions import BUILTIN_FUNCTIONS
 
 def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
     if type(expr) is Token:
@@ -56,6 +57,8 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
             module = expr.module if expr.module is not None else "test"
 
             res.append('BSR ' + module + '_func_' + expr.id.val + '_' + str(expr.oid))
+            if len(expr.args) > 0:
+                res.append('AJS -' + str(len(expr.args)))
             res.append('LDR RR')
 
             return res
@@ -80,12 +83,12 @@ def generate_func(func, symbol_table, module_name):
     var_mapping = {}
     
     arg_index = -2
-    for arg in func['arg_vars']:
+    for arg in reversed(func['arg_vars']):
         arg_mapping[arg] = str(arg_index)
         arg_index -= 1
-    var_index = 0
+    var_index = 1
     for vardecl in func['def'].vardecls:
-        var_mapping[vardecl.id.val] = '00' if var_index == 0 else str(var_index)
+        var_mapping[vardecl.id.val] = str(var_index)
         var_index += 1
         code.extend(generate_expr(vardecl.expr, var_mapping, arg_mapping))
 
@@ -95,8 +98,13 @@ def generate_func(func, symbol_table, module_name):
             if stmt.val.expr is not None:
                 code.extend(generate_expr(stmt.val.expr, var_mapping, arg_mapping))
             code.append('STR RR')
-            code.append('UNLINK')
-            code.append('RET')
+        elif type(stmt.val) == AST.ACTSTMT:
+            if type(stmt.val.val) == AST.TYPED_FUNCALL:
+                print(stmt.val.val)
+                code.extend(generate_expr(stmt.val.val, var_mapping, arg_mapping))
+
+    code.append('UNLINK')
+    code.append('RET')
 
     return code
 
@@ -158,6 +166,15 @@ def generate_object_file(symbol_table, module_name):
             key += str(o)
             function_code[key] = generate_func(of, symbol_table, module_name)
             o += 1
+
+    for b in BUILTIN_FUNCTIONS:
+        i = 0
+        for o in b[1]:
+            key = 'builtins_func_' + b[0] + '_' + str(i)
+            function_code[key] = o[1]
+            i += 1
+
+    print(function_code)
 
     gen_code = build_object_file(module_name, global_code, global_labels, function_code)
     print(gen_code)
