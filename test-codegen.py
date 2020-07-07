@@ -9,15 +9,15 @@ from lib.codegen.codegen import generate_object_file
 def main():
     from io import StringIO
 
-    testprog = StringIO('''    
+    testprog = StringIO('''
+        Int b  = 5;
+    
         main() :: -> Int {
-            Int value = prod(2, 3);
-            
-            return value;
-        }
+            Char value = read();
         
-        prod(a, b) :: Int Int -> Int {
-            return a * b;
+            print(value);
+            
+            return 5;
         }
     ''')
 
@@ -42,6 +42,7 @@ def main():
     # Build operator table
     op_table = buildOperatorTable()
     mergeCustomOps(op_table, symbol_table)
+    builtin_funcs = generateBuiltinFuncs()
 
     # Parse expressions
     fixExpression(ast, op_table)
@@ -49,8 +50,12 @@ def main():
 
     # Type check
     typecheck_globals(symbol_table, op_table)
-    typecheck_functions(symbol_table, op_table)
+    typecheck_functions(symbol_table, op_table, builtin_funcs)
     ERROR_HANDLER.checkpoint()
+
+    for f in symbol_table.functions:
+        for of in symbol_table.functions[f]:
+            print(of['def'].type)
 
     generate_object_file(symbol_table, "test")
 

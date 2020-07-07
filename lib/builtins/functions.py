@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
 
 BUILTIN_FUNCTIONS = [
-    ("print", "T -> Void"),
-    ("read", " -> Char"), # TODO Search the spec for what this should do
-    ("isEmpty", "[T] -> Bool")
+    ("print",
+        [
+            ("Int -> Void", ["LINK 00", "LDL -2", "TRAP 00", "UNLINK", "RET"]),
+            ("Char -> Void", ["LINK 00", "LDL -2", "TRAP 1", "UNLINK", "RET"]),
+            ("Bool -> Void", ["LINK 00", "LDL -2", "TRAP 00", "UNLINK", "RET"]),
+        ]
+     ),
+    ("read",
+        [
+            (" -> Int", ["LINK 00", "TRAP 10", "STR RR", "UNLINK", "RET"]),
+            (" -> Char", ["LINK 00", "TRAP 11", "STR RR", "UNLINK", "RET"]),
+        ]
+    ),
+    ("isEmpty",
+        [
+            ("[Int] -> Bool", ["nop"]),
+            ("[Bool] -> Bool", ["nop"]),
+            ("[Char] -> Bool", ["nop"])
+        ]
+    )
 ]
