@@ -13,7 +13,7 @@ def main():
         Int b  = 5;
     
         main() :: -> Int {
-            Char value = read();
+            Int value = read();
         
             print(value);
             

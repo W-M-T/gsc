@@ -215,9 +215,10 @@ def buildFuncEntry(val):
 
     return temp_entry
 
-'''
-TODO We don't check for redefinition attempts of builtin functions or ops
-'''
+
+#TODO: We don't check for redefinition attempts of builtin functions or ops
+#TODO: Check if a main with signature -> Int was defined.
+
 def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
     symbol_table = SymbolTable()
 
