@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from lib.imports.imports import getObjectFiles, IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT, OBJECT_COMMENT_PREFIX, OBJECT_FORMAT
+from lib.imports.imports import IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT
+from lib.imports.objectfile_imports import getObjectFiles, OBJECT_COMMENT_PREFIX, OBJECT_FORMAT
 from lib.analysis.error_handler import *
 
 import os
