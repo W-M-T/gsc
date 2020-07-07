@@ -18,6 +18,12 @@ TARGET_EXT = ".ssm"
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
+
+'''
+everything breaks if the object files linked with are generated from a different version of a source file than its headerfile
+solution: have headerfile and object file encode the md5sum of their source file + add this md5sum after the module name for each dependency in the object file
+'''
+
 '''
 TODO Validate filenames using REG_FIL from lexer
 '''
