@@ -540,13 +540,11 @@ def mergeCustomOps(op_table, symbol_table, module_name):
     for x in symbol_table.functions:
         f = symbol_table.functions[x]
         if x[0] is FunUniq.INFIX:
-            precedence = 'L' if f[0]['def'].kind == FunKind.INFIXL else 'R'
             if x[1] not in op_table['infix_ops']:
-                op_table['infix_ops'][x[1]] = (f[0]['def'].fixity.val, precedence,[] )
+                op_table['infix_ops'][x[1]] = (f[0]['def'].fixity.val, f[0]['def'].kind, [])
 
             for o in f:
-                precedence = 'L' if o['def'].kind == FunKind.INFIXL else 'R'
-                if op_table['infix_ops'][x[1]][0] == o['def'].fixity.val and op_table['infix_ops'][x[1]][1] == precedence:
+                if op_table['infix_ops'][x[1]][0] == o['def'].fixity.val and op_table['infix_ops'][x[1]][1] == o['def'].kind:
                     ft = AST.FUNTYPE(
                         from_types=[o['type'].from_types[0].val, o['type'].from_types[1].val],
                         to_type=o['type'].to_type.val
@@ -628,6 +626,8 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
         else:
             next_min_prec = op_table['infix_ops'][exp[exp_index].val][0]
         kind = op_table['infix_ops'][exp[exp_index].val][1]
+        print("Kind:")
+        print(kind)
         op = exp[exp_index]
         exp_index += 1
         rh_expr, exp_index = parseExpression(exp, op_table, next_min_prec, exp_index)

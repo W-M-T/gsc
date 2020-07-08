@@ -164,7 +164,9 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
             match = None
             arg1 = None
             arg2 = None
+            module = None
 
+            i = 0
             for o in op_table['infix_ops'][expr.id.val][2]:
                 if AST.equalVals(o[0].to_type, exp_type):
                     alternatives += 1
@@ -178,9 +180,12 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                     elif not type2:
                         incorrect = 2
                     else:
-                        match = o
+                        match = i
                         arg1 = a1
                         arg2 = a2
+                        module = o[1]
+
+                i += 1
 
             if alternatives == 0 and not noErrors:
                 # There is no alternative of this operator which has the expected output type
@@ -195,7 +200,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
                 return True, expr
 
-            return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunUniq.INFIX, args=[arg1, arg2], oid=match, module=None)
+            return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunUniq.INFIX, args=[arg1, arg2], oid=match, module=module)
         else:
             if func is None:
                 ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
