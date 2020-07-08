@@ -122,7 +122,7 @@ def main():
 
         assembly = generate_object_file(symbol_table, main_mod_name)
         '''
-        
+
 
 
 if __name__ == "__main__":
