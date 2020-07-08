@@ -60,7 +60,7 @@ def parseObjectFile(data):
     ])
     return temp
 
-def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+def getObjectFiles(main_filehandle, main_filename, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
     '''
     if not args.infile.endswith(OBJECT_EXT):
         print("Input file needs to be {}".format(OBJECT_EXT))
@@ -71,12 +71,8 @@ def getObjectFiles(main_filename, local_dir, file_mapping_arg={}, lib_dir_path=N
         exit()
     '''
 
-    main_mod_name = os.path.basename(main_filename)[:-len(OBJECT_EXT)] if os.path.basename(main_filename).endswith(OBJECT_EXT) else os.path.basename(main_filename)
+    main_mod_name = os.path.splitext(os.path.basename(main_filename))[0]
     #print(main_mod_name)
-    try:
-        main_filehandle = open(main_filename)
-    except Exception as e:
-        print(e.__class__.__name__, str(e))
 
     res = []
     seen = set([main_mod_name])

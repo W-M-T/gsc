@@ -22,6 +22,10 @@ Code should have the requirement that any cross-module reference is not order de
 Semantic analysis step should guarantee this
 '''
 
+'''
+TODO output all logging here to stderr
+'''
+
 SECTION_COMMENT_LOOKUP = {
     "global_inits": OBJECT_FORMAT['init'],
     "global_mem": OBJECT_FORMAT['globals'],
@@ -77,13 +81,19 @@ def main():
         outfile_name = main_mod_path + TARGET_EXT
 
 
-    mod_dicts = getObjectFiles(
-        args.infile,
-        os.path.dirname(args.infile),
-        file_mapping_arg=import_mapping,
-        lib_dir_path=args.lp,
-        lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
-    )
+    try:
+        with open(args.infile) as infile:
+            mod_dicts = getObjectFiles(
+                infile,
+                args.infile,
+                os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
+            )
+    except Exception as e:
+        print(e.__class__.__name__, str(e))
+        exit()
 
     end = linkObjectFiles(mod_dicts, main_mod_name)
     #print(end)

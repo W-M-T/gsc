@@ -2,13 +2,16 @@
 
 from lib.imports.imports import getImportFiles, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
 from lib.imports.imports import export_headers, getExternalSymbols, HEADER_EXT
+from lib.imports.objectfile_imports import getObjectFiles
+
 from lib.analysis.error_handler import *
-from gsl import linkObjectFiles
 
 from lib.parser.lexer import tokenize
 from lib.parser.parser import parseTokenStream
 from semantic_analysis import analyse, buildSymbolTable
 from lib.codegen.codegen import generate_object_file
+
+from gsl import linkObjectFiles
 
 from argparse import ArgumentParser
 import os
@@ -92,7 +95,8 @@ def main():
             pass
 
         if compiler_target['object']: # Generate an object file
-            headerfiles = getImportFiles(ast, HEADER_EXT, os.path.dirname(args.infile),
+            headerfiles = getImportFiles(ast, HEADER_EXT,
+                os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
@@ -110,7 +114,21 @@ def main():
             print(a)
             exit()
             '''
-        else:
+        if compiler_target['binary']:
+            # insert zelfde code als bij begin van compiler_target['object']
+            # maak er gewoon een functie van
+
+            # dan
+            from io import StringIO
+            compiled_code = ''''''
+            pseudo_file_code = StringIO(compiled_code)
+            mod_dicts = getObjectFiles(
+                pseudo_file_code,
+                os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
+            )
             pass
             '''
             symbol_table = buildSymbolTable(x, compiler_target['header'])
