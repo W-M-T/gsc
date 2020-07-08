@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.parser.lexer import tokenize
+import os
 from lib.parser.parser import *
 from semantic_analysis import *
 from lib.analysis.typechecker import *
@@ -29,14 +30,20 @@ def main():
         from io import StringIO
 
         testprog = StringIO('''
-            Int b  = 5;
+            Int b = 5;
+        
+            
+        
+            f(a) :: Int -> Int {
+                a = b * a;
+                return a;
+            }
         
             main() :: -> Int {
-                Char value = read();
-            
+                Int value = f(5);
                 print(value);
                 
-                return 5;
+                return 1;
             }
         ''')
 
@@ -73,11 +80,10 @@ def main():
     typecheck_functions(symbol_table, op_table, builtin_funcs)
     ERROR_HANDLER.checkpoint()
 
-    for f in symbol_table.functions:
-        for of in symbol_table.functions[f]:
-            print(of['def'].type)
+    gen_code = generate_object_file(symbol_table, "test")
 
-    generate_object_file(symbol_table, "test")
+    with open('generated/test.splo', 'w+') as fh:
+        fh.write(gen_code)
 
 if __name__ == "__main__":
     main()

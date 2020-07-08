@@ -1,0 +1,9 @@
+Int b  = 5;
+
+main() :: -> Int {
+    Char value = read();
+
+    print(value);
+
+    return 5;
+}

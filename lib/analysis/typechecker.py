@@ -195,38 +195,39 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
 
             # Builtin functions
 
-            out_type_matches = []
-            i = 0
-            for o in builtin_funcs[expr.id.val]:
-                if AST.equalVals(o.to_type.val, exp_type) or exp_type is None:
-                    out_type_matches.append((i, o))
-                i += 1
+            if expr.id.val in builtin_funcs:
+                out_type_matches = []
+                i = 0
+                for o in builtin_funcs[expr.id.val]:
+                    if AST.equalVals(o.to_type.val, exp_type) or exp_type is None:
+                        out_type_matches.append((i, o))
+                    i += 1
 
-            func_matches = 0
-            match = None
-            match_args = []
-            for o in out_type_matches:
-                args = []
+                func_matches = 0
+                match = None
+                match_args = []
+                for o in out_type_matches:
+                    args = []
 
-                # TODO: You can make better errors for this
-                if len(o[1].from_types) == len(expr.args):
-                    input_matches = 0
+                    # TODO: You can make better errors for this
+                    if len(o[1].from_types) == len(expr.args):
+                        input_matches = 0
 
-                    for i in range(len(o[1].from_types)):
-                        typ, arg_res = typecheck(expr.args[i], o[1].from_types[i].val, symbol_table, op_table,
-                                                 builtin_funcs, func, r, noErrors=True)
-                        args.append(arg_res)
-                        if typ:
-                            input_matches += 1
+                        for i in range(len(o[1].from_types)):
+                            typ, arg_res = typecheck(expr.args[i], o[1].from_types[i].val, symbol_table, op_table,
+                                                     builtin_funcs, func, r, noErrors=True)
+                            args.append(arg_res)
+                            if typ:
+                                input_matches += 1
 
-                    if input_matches == len(expr.args):
-                        func_matches += 1
-                        match = o
-                        match_args = args
+                        if input_matches == len(expr.args):
+                            func_matches += 1
+                            match = o
+                            match_args = args
 
-            if match is not None:
-                return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=match_args, oid=match[0],
-                                               module="builtins")
+                if match is not None:
+                    return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=match_args, oid=match[0],
+                                                   module="builtins")
 
             # Other functions
             out_type_matches = []
