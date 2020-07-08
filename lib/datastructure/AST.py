@@ -258,9 +258,6 @@ class AST:
     # scope = local or argument.
     RES_NONGLOBAL = syntaxnode("RES_NONGLOBAL", "scope", "id", "fields")
 
-    # module :: string of module name or None for Built in, id :: TOKEN
-    RES_TYPE = syntaxnode("RES_TYPE", "module", "type_id")
-
     # module :: string of module name or None for Built in, orig_id :: string
     EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id")
 
@@ -296,16 +293,15 @@ class AST:
         ASSIGNMENT,
         FUNCALL,
         DEFERREDEXPR,
-        TYPEDEXPR,
         TUPLE,
         PARSEDEXPR,
         VARREF,
-        TYPED_FUNCALL,
         RES_VARREF,
         RES_GLOBAL,
         RES_NONGLOBAL,
-        RES_TYPE,
-        EXTERNAL
+        EXTERNAL,
+        TYPEDEXPR,
+        TYPED_FUNCALL
     ]
 
     def equalVals(node1, node2): # Same structure and values (not necessarily same tokens)

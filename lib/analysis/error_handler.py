@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import IntEnum
-from sys import stderr
+import sys
 from lib.datastructure.token import Token
 from lib.datastructure.AST import AST
 from lib.util.util import pointToPosition
