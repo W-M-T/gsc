@@ -42,6 +42,10 @@ def main():
         print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
 
+    if not os.path.isfile(args.infile):
+        print("Input file does not exist: {}".format(args.infile))
+        exit()
+
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
 
@@ -105,6 +109,11 @@ def main():
             print("EXTERNAL SYMBOLS:",a)
             exit()
             symbol_table = buildSymbolTable(ast, just_for_headerfile=False)
+            '''
+            symbol_table = analyse(ast, main_mod_name)
+
+            assembly = generate_object_file(symbol_table, main_mod_name)
+            '''
             '''
             headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
@@ -173,26 +182,6 @@ TRAP 00'''
                     print("Succesfully written binary file",outfile_name)
             else:
                 print(result)
-            '''
-            symbol_table = buildSymbolTable(x, compiler_target['header'])
-
-            header_json = export_headers(symbol_table)
-
-            outfile_name = os.path.splitext(args.infile)[0] + HEADER_EXT
-
-            try:
-                with open(outfile_name,"w") as outfile:
-                    outfile.write(header_json)
-                    print("Succesfully written headerfile",outfile_name)
-            except Exception as e:
-                print("{}: {}".format(e.__class__.__name__,str(e)))
-            exit()
-            '''
-        '''
-        symbol_table = analyse(ast, main_mod_name)
-
-        assembly = generate_object_file(symbol_table, main_mod_name)
-        '''
 
 
 

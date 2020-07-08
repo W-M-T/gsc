@@ -61,16 +61,6 @@ def parseObjectFile(data):
     return temp
 
 def getObjectFiles(main_filehandle, main_filename, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
-    '''
-    if not args.infile.endswith(OBJECT_EXT):
-        print("Input file needs to be {}".format(OBJECT_EXT))
-        exit()
-
-    if not os.path.isfile(args.infile):
-        print("Input file does not exist: {}".format(args.infile))
-        exit()
-    '''
-
     main_mod_name = os.path.splitext(os.path.basename(main_filename))[0]
     #print(main_mod_name)
 
