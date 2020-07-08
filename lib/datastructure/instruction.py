@@ -11,4 +11,4 @@ class INSTR():
         self.annot = annot
 
     def __repr__(self):
-        return "INSTR: {}{}".format(self.line, self.annot.name if not self.annot is None else "")
+        return "INSTR: {}{}".format(self.line, " <{}>".format(self.annot.name) if not self.annot is None else "")
