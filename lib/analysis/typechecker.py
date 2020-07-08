@@ -33,10 +33,6 @@ def tokenToNode(token):
     else:
         raise Exception('Unexpected token type encountered')
 
-# TODO: Void functions
-# TODO: Check if Strings ===== [Char]??
-# TODO: What about print and get input functions
-
 ''' Type check the given expression '''
 def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=None, r=0, noErrors=False):
 
@@ -55,50 +51,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
 
         return True, expr
     elif type(expr) is AST.PARSEDEXPR:
-        incorrect = 0
-        alternatives = 0
-        match = None
-        arg1 = None
-        arg2 = None
-
-        for o in op_table['infix_ops'][expr.fun.val][2]:
-            print(expr.fun.val)
-            if AST.equalVals(o[0].to_type, exp_type):
-                alternatives += 1
-                type1, a1 = typecheck(expr.arg1, o[0].from_types[0], symbol_table, op_table, builtin_funcs, func, r+1, False)
-                type2, a2 = typecheck(expr.arg2, o[0].from_types[1], symbol_table, op_table, builtin_funcs, func, r+1, False)
-
-                if not type1:
-                    incorrect = 1
-                elif not type2:
-                    incorrect = 2
-                else:
-                    match = o
-                    arg1 = a1
-                    arg2 = a2
-
-        if alternatives == 0 and not noErrors:
-            # There is no alternative of this operator which has the expected output type
-            ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
-            return True, expr
-        if match is None and not noErrors:
-            # There is no alternative of this operator which has the expected input types.
-            ERROR_HANDLER.addError(ERR.UnsupportedOperandType, [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
-            return True, expr
-        elif match is not None and func is None and match[1] is False:
-            ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
-            return True, expr
-
-        print(expr.fun)
-
-        return True, AST.TYPEDEXPR(fun=expr.fun, arg1=arg1, arg2=arg2, typ=match[0], builtin=match[1])
-
-        # TODO: fix this
-        #module = "builtins"
-        #if match[1]:
-        #    module = "builtins"
-
-        #return True, AST.TYPED_FUNCALL(id=expr.fun, uniq=FunUniq.INFIX, args=[arg1, arg2], module=module)
+        return typecheck(expr.val, exp_type, symbol_table, op_table, builtin_funcs, func, r, False)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
             typ = symbol_table.global_vars[expr.val.id.val].type.val
@@ -131,10 +84,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
             typ = None
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 typ = func['local_vars'][expr.val.id.val].type.val
-            elif expr.val.scope == NONGLOBALSCOPE.ArgVar:
-                typ = func['arg_vars'][expr.val.id.val]['type'].val
             else:
-                raise Exception("I want to hear this...")
+                typ = func['arg_vars'][expr.val.id.val]['type'].val
 
             fields = list(reversed(expr.val.fields))
             while len(fields) > 0:
@@ -164,9 +115,13 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
     elif type(expr) is AST.FUNCALL:
         if expr.kind == FunKind.PREFIX:
             out_type_matches = []
+            indices = []
+            i = 0
             for op in op_table['prefix_ops'][expr.id.val]:
                 if AST.equalVals(op[0].to_type, exp_type):
                     out_type_matches.append(op)
+                    indices.append(i)
+                i += 1
 
             if len(out_type_matches) == 0:
                 if r == 0 and not noErrors:
@@ -174,25 +129,73 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 return False, expr
 
             matches = 0
+            i = 0
             match = None
-            # TODO: Set return args
+            arg = None
+            module = None
+            # TODO: What about nested prefixes
             for m in out_type_matches:
-                res, _ = typecheck(expr.args, m[0].from_types[0], symbol_table, op_table, builtin_funcs, func, r, noErrors=True)
+                res, a = typecheck(expr.args, m[0].from_types[0], symbol_table, op_table, builtin_funcs, func, r, noErrors=True)
 
                 if res:
                     matches += 1
-                    match = m
+                    match = indices[i]
+                    arg = a
+                    module = m[1]
+                i += 1
 
             if matches == 0:
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.NoPrefixWithInputType, [expr.id.val, expr.id])
                 return False, expr
+            elif matches > 1:
+                ERROR_HANDLER.addError(ERR.AmbiguousPrefixOp, [expr.id.val, expr.id])
             else:
-                if match is not None and func is None and match[1] is False:
+                if func is None and match is False:
                     ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
 
-            return True, expr
+            res = AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=[arg], oid=match, module=module)
 
+            return True, res
+
+        elif expr.kind == FunKind.INFIXL or expr.kind == FunKind.INFIXR:
+            incorrect = 0
+            alternatives = 0
+            match = None
+            arg1 = None
+            arg2 = None
+
+            for o in op_table['infix_ops'][expr.id.val][2]:
+                if AST.equalVals(o[0].to_type, exp_type):
+                    alternatives += 1
+                    type1, a1 = typecheck(expr.args[0], o[0].from_types[0], symbol_table, op_table, builtin_funcs,
+                                          func, r + 1, False)
+                    type2, a2 = typecheck(expr.args[1], o[0].from_types[1], symbol_table, op_table, builtin_funcs,
+                                          func, r + 1, False)
+
+                    if not type1:
+                        incorrect = 1
+                    elif not type2:
+                        incorrect = 2
+                    else:
+                        match = o
+                        arg1 = a1
+                        arg2 = a2
+
+            if alternatives == 0 and not noErrors:
+                # There is no alternative of this operator which has the expected output type
+                ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
+                return True, expr
+            if match is None and not noErrors:
+                # There is no alternative of this operator which has the expected input types.
+                ERROR_HANDLER.addError(ERR.UnsupportedOperandType,
+                                       [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
+                return True, expr
+            elif match is not None and func is None and match[1] is False:
+                ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
+                return True, expr
+
+            return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunUniq.INFIX, args=[arg1, arg2], oid=match, module=None)
         else:
             if func is None:
                 ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])

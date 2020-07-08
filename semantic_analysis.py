@@ -503,7 +503,7 @@ def buildOperatorTable():
                                                 from_types=[ft, st],
                                                 to_type=ot
                                             ),
-                                            True
+                                            "builtins"
                                         )
                                     )
                             else:
@@ -512,7 +512,7 @@ def buildOperatorTable():
                                             from_types=[ft, st],
                                             to_type=ot
                                         ),
-                                        True
+                                        "builtins"
                                     )
                                 )
 
@@ -530,13 +530,13 @@ def buildOperatorTable():
                             from_types=[in_t],
                             to_type=out_t
                         ),
-                        True
+                        "builtins"
                     )
                 )
 
     return op_table
 
-def mergeCustomOps(op_table, symbol_table):
+def mergeCustomOps(op_table, symbol_table, module_name):
     for x in symbol_table.functions:
         f = symbol_table.functions[x]
         if x[0] is FunUniq.INFIX:
@@ -557,7 +557,7 @@ def mergeCustomOps(op_table, symbol_table):
                             cnt += 1
 
                     if cnt == 0:
-                        op_table['infix_ops'][x[1]][2].append((ft, False))
+                        op_table['infix_ops'][x[1]][2].append((ft, module_name))
                     else:
                         ERROR_HANDLER.addError(ERR.DuplicateOpDef, [o['def'].id.val, o['def'].id])
                 else:
@@ -574,7 +574,7 @@ def mergeCustomOps(op_table, symbol_table):
                             from_types=[o['type'].from_types[0].val],
                             to_type=o['type'].to_type.val
                         ),
-                        False
+                        module_name
                     )
                 )
 
