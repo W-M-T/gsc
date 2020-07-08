@@ -15,6 +15,7 @@ from lib.builtins.functions import BUILTIN_FUNCTIONS
 from lib.util.util import treemap, selectiveApply
 
 from lib.parser.parser import parseTokenStream
+from lib.parser.lexer import tokenize
 from lib.debug.AST_prettyprinter import print_node, subprint_type
 
 import os
@@ -701,6 +702,7 @@ functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als 
 '''
 
 def analyse(ast, filename):
+    return ast
     #file_mappings = resolveImports(ast, filename)
     #exit()
     symbol_table = buildSymbolTable(ast)
@@ -713,7 +715,6 @@ def analyse(ast, filename):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    from lib.parser.lexer import tokenize
     argparser = ArgumentParser(description="SPL Semantic Analysis")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import libraries from", nargs="?", type=str)
@@ -799,12 +800,12 @@ g (x) {
             tokenstream = tokenize(testprog)
 
             x = parseTokenStream(tokenstream, testprog)
-            ERROR_HANDLER.setSourceMapping(testprog, None)
+            ERROR_HANDLER.setSourceMapping(testprog)
         else:
             tokenstream = tokenize(infile)
 
             x = parseTokenStream(tokenstream, infile)
-            ERROR_HANDLER.setSourceMapping(infile, None)
+            ERROR_HANDLER.setSourceMapping(infile)
 
         #ERROR_HANDLER.debug = True
         #ERROR_HANDLER.hidewarn = True

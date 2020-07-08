@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import IntEnum
+from sys import stderr
 from lib.datastructure.token import Token
 from lib.datastructure.AST import AST
 from lib.util.util import pointToPosition
@@ -154,7 +155,7 @@ class ErrorHandler():
         self.debug = False
         self.hidewarn = False
 
-    def setSourceMapping(self, sourcecode, import_map):
+    def setSourceMapping(self, sourcecode, import_map=[]):
         self.sourcecode = sourcecode
         self.import_map = import_map
 
@@ -193,7 +194,7 @@ class ErrorHandler():
                         info.append("\n".join(map(lambda x: pointToPosition(self.sourcecode, x._start_pos), t)))
                     else:
                         info.append(str(t))
-                print(ERRCOLOR.FAIL + "[ERROR] %s" % (ERRMSG[e['type']].format(*info)) + ERRCOLOR.ENDC)
+                print(ERRCOLOR.FAIL + "[ERROR] %s" % (ERRMSG[e['type']].format(*info)) + ERRCOLOR.ENDC, file=sys.stderr)
 
         if not self.hidewarn:
             for w in self.warnings:
@@ -209,7 +210,7 @@ class ErrorHandler():
                         info.append("\n".join(map(lambda x: pointToPosition(self.sourcecode, x._start_pos), t)))
                     else:
                         info.append(str(t))
-                print(ERRCOLOR.WARNING + "[WARNING] %s" % (WARNMSG[w['type']].format(*info)) + ERRCOLOR.ENDC)
+                print(ERRCOLOR.WARNING + "[WARNING] %s" % (WARNMSG[w['type']].format(*info)) + ERRCOLOR.ENDC, file=sys.stderr)
 
         if len(self.errors) > 0:
             exit(1)

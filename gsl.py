@@ -62,12 +62,13 @@ def main():
     if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
         print("Invalid import mapping")
         exit()
+    import_mapping = {a:b for (a,b) in import_mapping}
 
     if not args.infile.endswith(OBJECT_EXT):
         print("Input file needs to be {}".format(OBJECT_EXT))
         exit()
 
-    main_mod_path = args.infile[:-len(OBJECT_EXT)]
+    main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
 
     if args.o:

@@ -77,8 +77,17 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
     exception_list = []
     # Try to import from the compiler argument-specified path for this specific import
     if name in file_mapping_arg:
+        # Exact path
         try:
-            try_path = file_mapping_arg[name] + extension
+            try_path = file_mapping_arg[name]
+            infile = open(try_path)
+            #print("Found through mapping")
+            return infile, try_path
+        except Exception as e:
+            exception_list.append(e)
+        # Path with forced extension
+        try:
+            try_path = os.path.splitext(file_mapping_arg[name])[0] + extension
             infile = open(try_path)
             #print("Found through mapping")
             return infile, try_path
