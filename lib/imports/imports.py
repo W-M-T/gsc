@@ -61,8 +61,6 @@ def import_headers(json_string): # Can return exception, so put in try-except
             "kind":kind,
             "type":AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
         })
-        print(fix,kind,AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t)))
-
     return temp_packet
 
 '''

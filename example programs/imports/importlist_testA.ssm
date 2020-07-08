@@ -1,0 +1,53 @@
+//===================================================
+// SSM ASSEMBLY GENERATED ON WED JUL  8 14:29:09 2020
+// © Ward Theunisse & Ischa Stork 2020
+//===================================================
+// INIT SECTION:
+LDC 9
+LDC 4
+ADD
+LDC testlinkA_global_b
+STA 00
+LDC 5
+LDC testlinkA_global_a
+STA 00
+LDC 1
+LDC 2
+ADD
+LDC testlinkB_global_b
+STA 00
+LDC 4
+LDC testlinkB_global_a
+STA 00
+// ENTRYPOINT:
+BRA main
+// GLOBAL SECTION:
+testlinkA_global_b: NOP
+testlinkA_global_a: NOP
+testlinkB_global_b: NOP
+testlinkB_global_a: NOP
+// FUNCTION SECTION:
+testlinkA_func_main_0: LINK 00
+LDC testlinkA_global_a
+LDA 00
+LDL 1
+LDL 1
+LDL 2
+ADD
+STR RR
+UNLINK
+RET
+testlinkB_func_main_0: LINK 00
+LDC testlinkB_global_a
+LDA 00
+LDL 1
+LDL 1
+LDL 2
+ADD
+STR RR
+UNLINK
+RET
+// MAIN:
+main: BSR importlist_testA_func_main_0
+LDR RR
+TRAP 00

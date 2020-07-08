@@ -120,16 +120,59 @@ def main():
 
             # dan
             from io import StringIO
-            compiled_code = ''''''
+            compiled_code = '''// DEPENDENCIES:
+// DEPEND testlinkB
+// INIT SECTION:
+LDC 9
+LDC 4
+ADD
+LDC testlinkA_global_b
+STA 00
+LDC 5
+LDC testlinkA_global_a
+STA 00
+// ENTRYPOINT:
+BRA main
+// GLOBAL SECTION:
+testlinkA_global_b: NOP
+testlinkA_global_a: NOP
+// FUNCTION SECTION:
+testlinkA_func_main_0: LINK 00
+LDC testlinkA_global_a
+LDA 00
+LDL 1
+LDL 1
+LDL 2
+ADD
+STR RR
+UNLINK
+RET
+// MAIN:
+main: BSR testlinkA_func_main_0
+LDR RR
+BSR testlinkB_func_main_0
+LDR RR
+ADD
+TRAP 00'''
             pseudo_file_code = StringIO(compiled_code)
             mod_dicts = getObjectFiles(
                 pseudo_file_code,
+                args.infile,
                 os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
             )
-            pass
+
+            result = linkObjectFiles(mod_dicts, main_mod_name)
+
+            if not args.stdout:
+                outfile_name = outfile_base + TARGET_EXT
+                with open(outfile_name, "w") as outfile:
+                    outfile.write(result)
+                    print("Succesfully written binary file",outfile_name)
+            else:
+                print(result)
             '''
             symbol_table = buildSymbolTable(x, compiler_target['header'])
 
