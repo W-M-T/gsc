@@ -123,14 +123,17 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
         exception_list.append(e)
     raise FileNotFoundError("\n".join(list(map(lambda x: "{}: {}".format(x.__class__.__name__,str(x)),exception_list))))
 
+'''
+Get the files to import as found in the ast
+'''
 def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
     importlist = ast.imports
 
     unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
-    print(importlist)
-    print("CWD",local_dir)
-    print("--lp",lib_dir_path)
-    print("env",lib_dir_env)
+    #print(importlist)
+    #print("CWD",local_dir)
+    #print("--lp",lib_dir_path)
+    #print("env",lib_dir_env)
 
     temp = {}
     for impname in unique_names:

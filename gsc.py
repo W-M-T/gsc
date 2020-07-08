@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import resolveFileName, export_headers, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, HEADER_EXT, OBJECT_EXT, TARGET_EXT
+from lib.imports.imports import getImportFiles, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
+from lib.imports.imports import export_headers, getExternalSymbols, HEADER_EXT
 from lib.analysis.error_handler import *
 from gsl import linkObjectFiles
 
@@ -74,8 +75,8 @@ def main():
 
         #print(ast)
 
-        if compiler_target['header']:
-            symbol_table = buildSymbolTable(ast, compiler_target['header'])
+        if compiler_target['header']: # Generate a headerfile
+            symbol_table = buildSymbolTable(ast, just_for_headerfile=True)
 
             header_json = export_headers(symbol_table)
 
@@ -89,8 +90,17 @@ def main():
         else:
             # Check if 
             pass
-        if compiler_target['object']:
-            pass
+
+        if compiler_target['object']: # Generate an object file
+            headerfiles = getImportFiles(ast, HEADER_EXT, os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+
+            a = getExternalSymbols(ast, headerfiles)
+            print("EXTERNAL SYMBOLS:",a)
+            exit()
+            symbol_table = buildSymbolTable(ast, just_for_headerfile=False)
             '''
             headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
