@@ -1,7 +1,20 @@
 #!/usr/bin/env python3
 
+from lib.imports.imports import resolveFileName, export_headers, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, HEADER_EXT, OBJECT_EXT, TARGET_EXT
+from lib.analysis.error_handler import *
+from gsl import linkObjectFiles
+
+from lib.parser.lexer import tokenize
+from lib.parser.parser import parseTokenStream
+from semantic_analysis import analyse, buildSymbolTable
+from lib.codegen.codegen import generate_object_file
+
 from argparse import ArgumentParser
-from lib.imports.imports import resolveFileName
+import os
+
+'''
+TODO make sure to log errors / warnings to stderr, so it doesn't end up in the output when the --stdout flag is selected
+'''
 
 def main():
     argparser = ArgumentParser(description="SPL Compiler")
@@ -11,6 +24,7 @@ def main():
     argparser.add_argument("-o", metavar="OUTPUT", help="Output file")
     argparser.add_argument("-C", help="Produce an object file instead of an executable", action="store_true")
     argparser.add_argument("-H", help="Produce a header file instead of an executable", action="store_true")
+    argparser.add_argument("--stdout", help="Output to stdout", action="store_true")
     args = argparser.parse_args()
 
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
@@ -18,18 +32,96 @@ def main():
         print("Invalid import mapping")
         exit()
     import_mapping = {a:b for (a,b) in import_mapping}
-    print("Imports:",import_mapping)
+    print("Import map:",import_mapping)
 
-    if not args.infile.endswith(".spl"):
-        print("Input file needs to be .spl")
+    if not args.infile.endswith(SOURCE_EXT):
+        print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
+
+    main_mod_path = os.path.splitext(args.infile)[0]
+    main_mod_name = os.path.basename(main_mod_path)
+
+    if args.o:
+        outfile_base = args.o
+    else:
+        outfile_base = main_mod_path
 
     compiler_target = {
         'header' : args.H,
         'object' : args.C,
-    #    'binary' : not (args.H or args.C)
+        'binary' : not (args.H or args.C)
     }
 
+
+    if args.H and args.C and args.stdout:
+        print("Cannot output to stdout when creating both a headerfile and an object file!")
+        exit()
+
+    if args.o and args.stdout:
+        print("Conflicting arguments: -o and --stdout!")
+        exit()
+
+
+    with open(args.infile, "r") as infile:
+
+        ERROR_HANDLER.setSourceMapping(infile)
+
+        tokenstream = tokenize(infile)
+
+        ast = parseTokenStream(tokenstream, infile)
+
+        print("Are there imports?",bool(ast.imports))
+
+        #print(ast)
+
+        if compiler_target['header']:
+            symbol_table = buildSymbolTable(ast, compiler_target['header'])
+
+            header_json = export_headers(symbol_table)
+
+            if not args.stdout:
+                outfile_name = outfile_base + HEADER_EXT
+                with open(outfile_name, "w") as outfile:
+                    outfile.write(header_json)
+                    print("Succesfully written headerfile",outfile_name)
+            else:
+                print(header_json)
+        else:
+            # Check if 
+            pass
+        if compiler_target['object']:
+            pass
+            '''
+            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+            a = getExternalSymbols(x, headerfiles)
+            print(a)
+            exit()
+            '''
+        else:
+            pass
+            '''
+            symbol_table = buildSymbolTable(x, compiler_target['header'])
+
+            header_json = export_headers(symbol_table)
+
+            outfile_name = os.path.splitext(args.infile)[0] + HEADER_EXT
+
+            try:
+                with open(outfile_name,"w") as outfile:
+                    outfile.write(header_json)
+                    print("Succesfully written headerfile",outfile_name)
+            except Exception as e:
+                print("{}: {}".format(e.__class__.__name__,str(e)))
+            exit()
+            '''
+        '''
+        symbol_table = analyse(ast, main_mod_name)
+
+        assembly = generate_object_file(symbol_table, main_mod_name)
+        '''
 
 
 
