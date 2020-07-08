@@ -22,6 +22,10 @@ Code should have the requirement that any cross-module reference is not order de
 Semantic analysis step should guarantee this
 '''
 
+'''
+TODO output all logging here to stderr
+'''
+
 SECTION_COMMENT_LOOKUP = {
     "global_inits": OBJECT_FORMAT['init'],
     "global_mem": OBJECT_FORMAT['globals'],
@@ -49,8 +53,6 @@ def linkObjectFiles(mod_dicts, main_mod_name):
 
 def main():
     argparser = ArgumentParser(description="SPL Linker")
-    #argparser.add_argument("infiles", metavar="INPUT", help="Object files to link", nargs="+", default=[])
-    #argparser.add_argument("-m", "--main", metavar="NAME", help="Module to use as entrypoint", type=str)
     argparser.add_argument("infile", metavar="INPUT", help="Input file")
     argparser.add_argument("--lp", metavar="PATH", help="Directory to import object files from", nargs="?", type=str)
     argparser.add_argument("--im", metavar="LIBNAME:PATH,...", help="Comma-separated object_file:path mapping list, to explicitly specify object file paths", type=str)
@@ -68,6 +70,11 @@ def main():
         print("Input file needs to be {}".format(OBJECT_EXT))
         exit()
 
+    if not os.path.isfile(args.infile):
+        print("Input file does not exist: {}".format(args.infile))
+        exit()
+
+
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
 
@@ -76,14 +83,19 @@ def main():
     else:
         outfile_name = main_mod_path + TARGET_EXT
 
-
-    mod_dicts = getObjectFiles(
-        args.infile,
-        os.path.dirname(args.infile),
-        file_mapping_arg=import_mapping,
-        lib_dir_path=args.lp,
-        lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
-    )
+    try:
+        with open(args.infile) as infile:
+            mod_dicts = getObjectFiles(
+                infile,
+                args.infile,
+                os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
+            )
+    except Exception as e:
+        print(e.__class__.__name__, str(e))
+        exit()
 
     end = linkObjectFiles(mod_dicts, main_mod_name)
     #print(end)
@@ -98,8 +110,6 @@ def main():
     else:
         print(end)
 
-
-
     '''
     for struct in mod_dicts:
         for k,v in struct.items():
@@ -107,25 +117,8 @@ def main():
             print(v)
     '''
     #print(mod_dicts)
-    '''
-    objectfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
-                file_mapping_arg=import_mapping,
-                lib_dir_path=args.lp,
-                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-                '''
-    '''
-    # Initial check if the files exist (does not prevent race conditions)
-    if not all(map(os.path.isfile, args.infiles)):
-        print("Not all input files exist!")
-        exit()
 
 
-    # Check if the files have the correct extension
-    if not all(map(lambda x: os.path.basename(x).endswith(OBJECT_EXT), args.infiles)):
-        print("Not all input files have a '{}' extension!".format(OBJECT_EXT))
-        exit()
-    '''
-    exit()
 
 if __name__ == "__main__":
     main()

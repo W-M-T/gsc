@@ -61,8 +61,6 @@ def import_headers(json_string): # Can return exception, so put in try-except
             "kind":kind,
             "type":AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
         })
-        print(fix,kind,AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t)))
-
     return temp_packet
 
 '''
@@ -73,7 +71,6 @@ In order of priority:
 4: Local directory
 '''
 def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
-    fullname = "{}{}".format(name, extension)
     exception_list = []
     # Try to import from the compiler argument-specified path for this specific import
     if name in file_mapping_arg:
@@ -99,8 +96,8 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
     # Try to import from the compiler argument-specified directory
     if lib_dir_path is not None:
         try:
-            try_path = os.path.join(lib_dir_path, name)
-            print(try_path)
+            try_path = os.path.join(lib_dir_path, name) + extension
+            #print(try_path)
             infile = open(try_path)
             return infile, try_path
         except Exception as e:
@@ -108,7 +105,7 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
     # Try to import from the environment variable-specified directory
     if lib_dir_env is not None:
         try:
-            try_path = os.path.join(lib_dir_env, name)
+            try_path = os.path.join(lib_dir_env, name) + extension
             infile = open(try_path)
             return infile, try_path
         except Exception as e:

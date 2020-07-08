@@ -2,13 +2,16 @@
 
 from lib.imports.imports import getImportFiles, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
 from lib.imports.imports import export_headers, getExternalSymbols, HEADER_EXT
+from lib.imports.objectfile_imports import getObjectFiles
+
 from lib.analysis.error_handler import *
-from gsl import linkObjectFiles
 
 from lib.parser.lexer import tokenize
 from lib.parser.parser import parseTokenStream
 from semantic_analysis import analyse, buildSymbolTable
 from lib.codegen.codegen import generate_object_file
+
+from gsl import linkObjectFiles
 
 from argparse import ArgumentParser
 import os
@@ -37,6 +40,10 @@ def main():
 
     if not args.infile.endswith(SOURCE_EXT):
         print("Input file needs to be {}".format(SOURCE_EXT))
+        exit()
+
+    if not os.path.isfile(args.infile):
+        print("Input file does not exist: {}".format(args.infile))
         exit()
 
     main_mod_path = os.path.splitext(args.infile)[0]
@@ -92,7 +99,8 @@ def main():
             pass
 
         if compiler_target['object']: # Generate an object file
-            headerfiles = getImportFiles(ast, HEADER_EXT, os.path.dirname(args.infile),
+            headerfiles = getImportFiles(ast, HEADER_EXT,
+                os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
@@ -102,6 +110,11 @@ def main():
             exit()
             symbol_table = buildSymbolTable(ast, just_for_headerfile=False)
             '''
+            symbol_table = analyse(ast, main_mod_name)
+
+            assembly = generate_object_file(symbol_table, main_mod_name)
+            '''
+            '''
             headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
@@ -110,28 +123,65 @@ def main():
             print(a)
             exit()
             '''
-        else:
-            pass
-            '''
-            symbol_table = buildSymbolTable(x, compiler_target['header'])
+        if compiler_target['binary']:
+            # insert zelfde code als bij begin van compiler_target['object']
+            # maak er gewoon een functie van
 
-            header_json = export_headers(symbol_table)
+            # dan
+            from io import StringIO
+            compiled_code = '''// DEPENDENCIES:
+// DEPEND testlinkB
+// INIT SECTION:
+LDC 9
+LDC 4
+ADD
+LDC testlinkA_global_b
+STA 00
+LDC 5
+LDC testlinkA_global_a
+STA 00
+// ENTRYPOINT:
+BRA main
+// GLOBAL SECTION:
+testlinkA_global_b: NOP
+testlinkA_global_a: NOP
+// FUNCTION SECTION:
+testlinkA_func_main_0: LINK 00
+LDC testlinkA_global_a
+LDA 00
+LDL 1
+LDL 1
+LDL 2
+ADD
+STR RR
+UNLINK
+RET
+// MAIN:
+main: BSR testlinkA_func_main_0
+LDR RR
+BSR testlinkB_func_main_0
+LDR RR
+ADD
+TRAP 00'''
+            pseudo_file_code = StringIO(compiled_code)
+            mod_dicts = getObjectFiles(
+                pseudo_file_code,
+                args.infile,
+                os.path.dirname(args.infile),
+                file_mapping_arg=import_mapping,
+                lib_dir_path=args.lp,
+                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
+            )
 
-            outfile_name = os.path.splitext(args.infile)[0] + HEADER_EXT
+            result = linkObjectFiles(mod_dicts, main_mod_name)
 
-            try:
-                with open(outfile_name,"w") as outfile:
-                    outfile.write(header_json)
-                    print("Succesfully written headerfile",outfile_name)
-            except Exception as e:
-                print("{}: {}".format(e.__class__.__name__,str(e)))
-            exit()
-            '''
-        '''
-        symbol_table = analyse(ast, main_mod_name)
-
-        assembly = generate_object_file(symbol_table, main_mod_name)
-        '''
+            if not args.stdout:
+                outfile_name = outfile_base + TARGET_EXT
+                with open(outfile_name, "w") as outfile:
+                    outfile.write(result)
+                    print("Succesfully written binary file",outfile_name)
+            else:
+                print(result)
 
 
 

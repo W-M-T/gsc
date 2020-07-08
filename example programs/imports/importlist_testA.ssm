@@ -1,5 +1,5 @@
 //===================================================
-// SSM ASSEMBLY GENERATED ON WED JUL  8 14:22:43 2020
+// SSM ASSEMBLY GENERATED ON WED JUL  8 14:29:09 2020
 // © Ward Theunisse & Ischa Stork 2020
 //===================================================
 // INIT SECTION:
@@ -48,6 +48,6 @@ STR RR
 UNLINK
 RET
 // MAIN:
-main: BSR testlinkA_func_main_0
+main: BSR importlist_testA_func_main_0
 LDR RR
 TRAP 00
