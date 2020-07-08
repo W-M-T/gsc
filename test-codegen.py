@@ -31,7 +31,6 @@ def main():
 
         module_name = "test"
         testprog = StringIO('''
-    
             infixr 7 ++ (a, b) :: Int Int -> Int {
                 return a + b + 12;
             }
@@ -50,7 +49,7 @@ def main():
         ast = SPL.parse_strict(tokenlist, testprog)
 
         # Build symbol table
-        ERROR_HANDLER.setSourceMapping(testprog, [])
+        ERROR_HANDLER.setSourceMapping(testprog)
     symbol_table = buildSymbolTable(ast)
     ERROR_HANDLER.checkpoint()
 
