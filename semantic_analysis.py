@@ -477,8 +477,6 @@ def generateBuiltinFuncs():
                 )
             )
 
-    print(builtin_functions)
-
     return builtin_functions
 
 '''

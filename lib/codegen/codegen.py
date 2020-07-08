@@ -6,7 +6,7 @@ from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 
-def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
+def generate_expr(expr, module_name, var_mapping = {}, arg_mapping = {}):
     if type(expr) is Token:
         if expr.typ is TOKEN.INT:
             return ['LDC ' + str(expr.val)]
@@ -18,8 +18,8 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
             raise Exception("Unknown type")
     elif type(expr) is AST.TYPEDEXPR:
         if expr.fun.val in BUILTIN_INFIX_OPS and expr.builtin:
-            res = generate_expr(expr.arg1, var_mapping, arg_mapping)
-            res.extend(generate_expr(expr.arg2, var_mapping, arg_mapping))
+            res = generate_expr(expr.arg1, module_name, var_mapping, arg_mapping)
+            res.extend(generate_expr(expr.arg2, module_name, var_mapping, arg_mapping))
             res.append(BUILTIN_INFIX_OPS[expr.fun.val][3])
 
             return res
@@ -29,15 +29,16 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
         if type(expr.val) == AST.RES_GLOBAL:
             res = []
             module = expr.val.module
+            # TODO: This is only debug code
             if expr.val.module is None:
-                module = "main"
+                module = module_name
 
             res.append('LDC ' + module + '_global_' + expr.val.id.val)
             res.append('LDA 00')
 
             return res
         else:
-            #print(expr)
+            print(arg_mapping)
             res = []
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 res.append('LDL ' + var_mapping[expr.val.id.val])
@@ -48,13 +49,12 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
 
     elif type(expr) is AST.TYPED_FUNCALL:
         if expr.uniq == FunUniq.FUNC:
-            #print(expr)
             res = []
 
             for a in expr.args:
-                res.extend(generate_expr(a, var_mapping, arg_mapping))
+                res.extend(generate_expr(a, module_name, var_mapping, arg_mapping))
 
-            module = expr.module if expr.module is not None else "test"
+            module = expr.module if expr.module is not None else module_name
 
             res.append('BSR ' + module + '_func_' + expr.id.val + '_' + str(expr.oid))
             if len(expr.args) > 0:
@@ -71,7 +71,34 @@ def generate_expr(expr, var_mapping = {}, arg_mapping = {}):
         print(type(expr))
         raise Exception("Unknown expression type encountered")
 
-def generate_func(func, symbol_table, module_name):
+def generate_stmts(stmts, label, module_name, var_mapping, arg_mapping, index = 1):
+
+    code = []
+    for stmt in stmts:
+        if type(stmt.val) == AST.RETURN:
+            if stmt.val.expr is not None:
+                code.extend(generate_expr(stmt.val.expr, module_name, var_mapping, arg_mapping))
+                code.append('STR RR')
+            break
+        elif type(stmt.val) == AST.ACTSTMT:
+            if type(stmt.val.val) == AST.TYPED_FUNCALL:
+                code.extend(generate_expr(stmt.val.val, module_name, var_mapping, arg_mapping))
+            else:
+                if type(stmt.val.val.varref.val) is AST.RES_NONGLOBAL:
+                    if stmt.val.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                        code.extend(generate_expr(stmt.val.val.expr, module_name, var_mapping, arg_mapping))
+                        code.append('STL ' + var_mapping[stmt.val.val.varref.val.id.val])
+                    else:
+                        code.extend(generate_expr(stmt.val.val.expr, module_name, var_mapping, arg_mapping))
+                        code.append('STL ' + arg_mapping[stmt.val.val.varref.val.id.val])
+                else:
+                    code.extend(generate_expr(stmt.val.val.expr, module_name))
+                    key = module_name + '_global_' + stmt.val.val.varref.val.id.val
+                    code.extend(['LDC ' + key, 'STA 00'])
+
+    return [code]
+
+def generate_func(func, symbol_table, module_name, label):
     print("generating func:",func['def'].id.val)
     code = []
 
@@ -83,6 +110,7 @@ def generate_func(func, symbol_table, module_name):
     var_mapping = {}
     
     arg_index = -2
+
     for arg in reversed(func['arg_vars']):
         arg_mapping[arg] = str(arg_index)
         arg_index -= 1
@@ -90,18 +118,17 @@ def generate_func(func, symbol_table, module_name):
     for vardecl in func['def'].vardecls:
         var_mapping[vardecl.id.val] = str(var_index)
         var_index += 1
-        code.extend(generate_expr(vardecl.expr, var_mapping, arg_mapping))
+        code.extend(generate_expr(vardecl.expr, module_name, var_mapping, arg_mapping))
 
-
-    for stmt in func['def'].stmts:
-        if type(stmt.val) == AST.RETURN:
-            if stmt.val.expr is not None:
-                code.extend(generate_expr(stmt.val.expr, var_mapping, arg_mapping))
-            code.append('STR RR')
-        elif type(stmt.val) == AST.ACTSTMT:
-            if type(stmt.val.val) == AST.TYPED_FUNCALL:
-                print(stmt.val.val)
-                code.extend(generate_expr(stmt.val.val, var_mapping, arg_mapping))
+    stmts_code = generate_stmts(func['def'].stmts, label, module_name, var_mapping, arg_mapping)
+    i = 0
+    branching_labels = []
+    for c in stmts_code:
+        if i == 0:
+            code.extend(c)
+        else:
+            pass
+        i += 1
 
     code.append('UNLINK')
     code.append('RET')
@@ -142,6 +169,8 @@ def build_object_file(module_name, global_code, global_labels, function_code):
     return object_file
 
 def generate_object_file(symbol_table, module_name):
+    print(module_name)
+
     global_code = []
     global_labels = []
     function_code = {}
@@ -149,7 +178,7 @@ def generate_object_file(symbol_table, module_name):
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g
         global_labels.append(key)
-        global_code.extend(generate_expr(symbol_table.global_vars[g].expr))
+        global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name))
         global_code.extend(['LDC ' + key, 'STA 00'])
 
     for f in symbol_table.functions:
@@ -164,7 +193,7 @@ def generate_object_file(symbol_table, module_name):
                 key += '_func_'
             key += f[1] + '_'
             key += str(o)
-            function_code[key] = generate_func(of, symbol_table, module_name)
+            function_code[key] = generate_func(of, symbol_table, module_name, key)
             o += 1
 
     for b in BUILTIN_FUNCTIONS:
@@ -174,10 +203,6 @@ def generate_object_file(symbol_table, module_name):
             function_code[key] = o[1]
             i += 1
 
-    print(function_code)
-
     gen_code = build_object_file(module_name, global_code, global_labels, function_code)
-    print(gen_code)
 
-    with open('generated/' + module_name + '.ssm', 'w+') as fh:
-        fh.write(gen_code)
+    return gen_code
