@@ -8,10 +8,7 @@ def main():
     from io import StringIO
 
     testprog = StringIO('''
-        [Char] a = 'a' : 'b' : 'c': [];
-        [Char] b = [] : 'b' : [] : 'c';
-        [Char] c = 'a' : 'b';
-        [Char] x = 'a' : ('b' : ('c': []));
+        Int a = 5 + -2;
     ''')
 
     tokenstream = tokenize(testprog)

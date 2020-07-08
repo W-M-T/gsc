@@ -2,7 +2,7 @@
 
 from lib.datastructure.position import Position
 from lib.datastructure.token import Token, TOKEN
-from lib.datastructure.AST import AST, FunKind, FunKindToUniq, Accessor
+from lib.datastructure.AST import AST, FunKind, FunKindToUniq, FunUniq, Accessor
 from lib.datastructure.scope import NONGLOBALSCOPE
 
 from lib.debug.AST_prettyprinter import subprint_type, print_node
@@ -62,6 +62,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
         arg2 = None
 
         for o in op_table['infix_ops'][expr.fun.val][2]:
+            print(expr.fun.val)
             if AST.equalVals(o[0].to_type, exp_type):
                 alternatives += 1
                 type1, a1 = typecheck(expr.arg1, o[0].from_types[0], symbol_table, op_table, builtin_funcs, func, r+1, False)
@@ -88,7 +89,16 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
             ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
             return True, expr
 
+        print(expr.fun)
+
         return True, AST.TYPEDEXPR(fun=expr.fun, arg1=arg1, arg2=arg2, typ=match[0], builtin=match[1])
+
+        # TODO: fix this
+        #module = "builtins"
+        #if match[1]:
+        #    module = "builtins"
+
+        #return True, AST.TYPED_FUNCALL(id=expr.fun, uniq=FunUniq.INFIX, args=[arg1, arg2], module=module)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
             typ = symbol_table.global_vars[expr.val.id.val].type.val

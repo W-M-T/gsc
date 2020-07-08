@@ -589,7 +589,7 @@ def parseAtom(exp, op_table, exp_index):
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        return recurse(exp[exp_index].contents, op_table), exp_index + 1
+        return AST.PARSEDEXPR(val=recurse(exp[exp_index].contents, op_table)), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
         if exp[exp_index].id.val not in op_table['prefix_ops']:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
@@ -623,20 +623,26 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
         elif exp_index >= len(exp) or op_table['infix_ops'][exp[exp_index].val][0] < min_precedence:
             break
 
-        if op_table['infix_ops'][exp[exp_index].val][1] == 'L':
+        if op_table['infix_ops'][exp[exp_index].val][1] == FunKind.INFIXL:
             next_min_prec = op_table['infix_ops'][exp[exp_index].val][0] + 1
         else:
             next_min_prec = op_table['infix_ops'][exp[exp_index].val][0]
+        kind = op_table['infix_ops'][exp[exp_index].val][1]
         op = exp[exp_index]
         exp_index += 1
         rh_expr, exp_index = parseExpression(exp, op_table, next_min_prec, exp_index)
-        result = AST.PARSEDEXPR(fun=op, arg1=result, arg2=rh_expr)
+        result = AST.FUNCALL(id=op, kind=kind, args=[result, rh_expr])
 
     return result, exp_index
 
 ''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, op_table):
-    decorated_ast = treemap(ast, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: parseExpression(y.contents, op_table)[0]))
+    decorated_ast = treemap(ast,
+                        lambda node:
+                            selectiveApply(AST.DEFERREDEXPR, node,
+                                lambda y:  AST.PARSEDEXPR(val=parseExpression(y.contents, op_table)[0])
+                            )
+                        )
 
     return decorated_ast
 
