@@ -101,10 +101,9 @@ def main():
 
     # Open input file, get all object files
     try:
-        infile = open(args.infile)
+        infile = open(args.infile, "r")
     except Exception as e:
-        print(e.__class__.__name__, str(e))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileException, [args.infile, "{} {}".format(e.__class__.__name__, str(e))], fatal=True)
     mod_dicts = getObjectFiles(
         infile,
         args.infile,
@@ -114,7 +113,6 @@ def main():
         lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
     )
     infile.close()
-
 
     end = linkObjectFiles(mod_dicts, main_mod_name)
     #print(end)

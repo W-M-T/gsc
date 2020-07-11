@@ -73,9 +73,10 @@ class ERR(IntEnum):
     CompInputFileNonExist = 53
     CompInvalidImportMapping = 54
     CompMalformedObjectFile = 55
-    CompOutputFileException = 56
-    CompInvalidArguments = 57
-    CompModuleFileNameRegex = 58
+    CompInputFileException = 56
+    CompOutputFileException = 57
+    CompInvalidArguments = 58
+    CompModuleFileNameRegex = 59
 
 
 
@@ -135,7 +136,8 @@ ERRMSG = {
     ERR.CompInputFileNonExist: 'Input file does not exist: {}',
     ERR.CompInvalidImportMapping: 'Invalid import mapping\nExpecting format:\nLIBNAME:PATH(,LIBNAME:PATH)*\nLIBNAME={}\nPATH=file path not containing ","'.format(REG_FIL.pattern),
     ERR.CompMalformedObjectFile: 'Malformed object file: {}\n{}',
-    ERR.CompOutputFileException: 'Could not write to output file "{}":\n{}',
+    ERR.CompInputFileException: 'Could not read input file "{}":\n\t{}',
+    ERR.CompOutputFileException: 'Could not write to output file "{}":\n\t{}',
     ERR.CompInvalidArguments: 'Invalid arguments:\n{}',
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
 }
