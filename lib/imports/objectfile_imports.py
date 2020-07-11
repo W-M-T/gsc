@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.analysis.error_handler import *
-from lib.imports.imports import resolveFileName, OBJECT_EXT
+from lib.imports.imports import resolveFileName, validate_modname, OBJECT_EXT
 
 from lib.parser.lexer import REG_FIL
 
@@ -9,9 +9,6 @@ from collections import OrderedDict
 
 import os
 
-'''
-TODO Validate filenames using REG_FIL from lexer
-'''
 
 OBJECT_COMMENT_PREFIX = "// "
 
@@ -29,7 +26,7 @@ def getSlice(text, start, end):
     start_ix = text.find(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT[start]) if start is not None else 0
     end_ix = text.find(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT[end]) if end is not None else len(text)
     if start_ix == -1 or end_ix == -1:
-        raise Exception("Malformed object file")
+        raise Exception('Could not locate section: "{}"-"{}"'.format(OBJECT_FORMAT[start], OBJECT_FORMAT[end]))
     res = text[start_ix:end_ix].split("\n",1)[1].strip()
     text = text[:start_ix] + text[end_ix:]
     return res, text
@@ -46,10 +43,10 @@ def parseObjectFile(data):
         if line.startswith(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['dependitem']):
             found = line[len(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['dependitem']):]
             modnames.add(found)
-        elif line.startswith(OBJECT_COMMENT_PREFIX):
+        elif line.startswith(OBJECT_COMMENT_PREFIX.rstrip()):
             pass
         else:
-            raise Exception("Malformed "+line)
+            raise Exception("Non-comment in dependencies: " + line)
     modnames = list(modnames)
     #print(modnames)
     temp = OrderedDict([
@@ -74,21 +71,28 @@ def getObjectFiles(main_filehandle, main_filename, local_dir, file_mapping_arg={
         #print("Reading", cur_name)
         data = cur_handle.read()
         cur_handle.close()
-        obj_struct = parseObjectFile(data)
-        res.append(obj_struct)
-        for dep in obj_struct['dependencies']:
-            if dep not in seen:
-                found = resolveFileName(
-                    dep,
-                    OBJECT_EXT,
-                    local_dir,
-                    file_mapping_arg=file_mapping_arg,
-                    lib_dir_path=lib_dir_path,
-                    lib_dir_env=lib_dir_env
-                )
-                #print(found)
-                seen.add(dep)
-                openlist.append(found)
+        try:
+            obj_struct = parseObjectFile(data)
+            res.append(obj_struct)
+            for dep in obj_struct['dependencies']:
+                validate_modname(dep)
+                if dep not in seen:
+                    try:
+                        found = resolveFileName(
+                            dep,
+                            OBJECT_EXT,
+                            local_dir,
+                            file_mapping_arg=file_mapping_arg,
+                            lib_dir_path=lib_dir_path,
+                            lib_dir_env=lib_dir_env
+                        )
+                        #print(found)
+                        seen.add(dep)
+                        openlist.append(found)
+                    except Exception as e:
+                        ERROR_HANDLER.addError(ERR.ImportNotFound, [dep, "\t" + "\n\t".join(str(e).split("\n"))])
+        except Exception as e:
+            ERROR_HANDLER.addError(ERR.CompMalformedObjectFile, [cur_name, e])
 
     ERROR_HANDLER.checkpoint()
     return res

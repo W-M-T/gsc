@@ -5,6 +5,7 @@ import sys
 from lib.datastructure.token import Token
 from lib.datastructure.AST import AST
 from lib.util.util import pointToPosition
+from lib.parser.lexer import REG_FIL
 
 class ERRCOLOR:
     WARNING = '\033[33m'
@@ -24,7 +25,7 @@ class ERR(IntEnum):
     UndefinedOp = 9
     BreakOutsideLoop = 10
     NotAllPathsReturn = 11
-    # forbid_illegal_types
+    # Forbid_illegal_types
     TypeSynVoid = 12
     GlobalVarTypeNone = 13
     GlobalVarVoid = 14
@@ -34,38 +35,50 @@ class ERR(IntEnum):
     LocalVarTypeNone = 18
     LocalVarVoid = 19
     # Typing
-    UnsupportedOperandType = 20,
-    IncompatibleTypes = 21,
-    UnexpectedType = 22,
-    UnexpectedTuple = 23,
-    UndefinedGlobalVar = 24,
-    UndefinedVar = 25,
-    NoOverloadedFunDef = 26,
-    NoOverloadedFunWithArgs = 27,
-    AmbiguousFunCall = 28,
-    AmbiguousNestedFunCall = 29,
-    UndefinedFun = 30,
-    IllegalTupleAccessorUsage = 31,
-    UndefinedPrefixOp = 32,
-    NoPrefixDefWithType = 33,
-    NoPrefixWithInputType = 34,
-    AmbiguousPrefixOp = 35,
-    InconsistentOpDecl = 36,
-    DuplicateOpDef = 37,
-    UnexpectedEmptyList = 38,
-    IllegalListAccessorUsage = 39,
-    GlobalDefMustBeConstant = 40,
+    UnsupportedOperandType = 20
+    IncompatibleTypes = 21
+    UnexpectedType = 22
+    UnexpectedTuple = 23
+    UndefinedGlobalVar = 24
+    UndefinedVar = 25
+    NoOverloadedFunDef = 26
+    NoOverloadedFunWithArgs = 27
+    AmbiguousFunCall = 28
+    AmbiguousNestedFunCall = 29
+    UndefinedFun = 30
+    IllegalTupleAccessorUsage = 31
+    UndefinedPrefixOp = 32
+    NoPrefixDefWithType = 33
+    NoPrefixWithInputType = 34
+    AmbiguousPrefixOp = 35
+    InconsistentOpDecl = 36
+    DuplicateOpDef = 37
+    UnexpectedEmptyList = 38
+    IllegalListAccessorUsage = 39
+    GlobalDefMustBeConstant = 40
     # Import
-    ImportNotFound = 41,
-    HeaderFormatIncorrect = 42,
-    DuplicateImportGlobal = 43,
-    DuplicateImportType = 44,
-    DuplicateImportFun = 45,
-    ImportIdentifierNotFound = 46,
-    ImportOpIdentifierNotFound = 47,
-    ImportTypeSynNotFound = 48,
-    ClashImportGlobal = 49,
-    ClashImportType = 50
+    ImportNotFound = 41
+    ReservedModuleName = 42
+    HeaderFormatIncorrect = 43
+    DuplicateImportGlobal = 44
+    DuplicateImportType = 45
+    DuplicateImportFun = 46
+    ImportIdentifierNotFound = 47
+    ImportOpIdentifierNotFound = 48
+    ImportTypeSynNotFound = 49
+    ClashImportGlobal = 50
+    ClashImportType = 51
+    # Compiler / Linker scripts
+    CompInputFileExtension = 52
+    CompInputFileNonExist = 53
+    CompInvalidImportMapping = 54
+    CompMalformedObjectFile = 55
+    CompInputFileException = 56
+    CompOutputFileException = 57
+    CompInvalidArguments = 58
+    CompModuleFileNameRegex = 59
+
+
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -109,6 +122,7 @@ ERRMSG = {
     ERR.IllegalListAccessorUsage: 'Trying to use list accessor on variable that is not a list\n{}',
     ERR.GlobalDefMustBeConstant: 'Global variable definition must be constant\n{}',
     ERR.ImportNotFound: 'Failed to import module: {}\n{}',
+    ERR.ReservedModuleName: 'Module name "{}" is a reserved name',
     ERR.HeaderFormatIncorrect: 'Failed to parse headerfile "{}":\n{}',
     ERR.DuplicateImportGlobal: 'Global variable "{}" is imported from multiple modules:{}',
     ERR.DuplicateImportType: 'Type synonym "{}" is imported from multiple modules:{}',
@@ -118,6 +132,14 @@ ERRMSG = {
     ERR.ImportTypeSynNotFound: 'Tried to import a type identifier "{}" from module {} that was not found in the headerfile {}',
     ERR.ClashImportGlobal: 'Multiple clashing definitions for global variable identifier "{}" in imports:\n{}',
     ERR.ClashImportType: 'Multiple clashing definitions for type identifier "{}" in imports:\n{}',
+    ERR.CompInputFileExtension: 'Input file needs to have extension "{}"',
+    ERR.CompInputFileNonExist: 'Input file does not exist: {}',
+    ERR.CompInvalidImportMapping: 'Invalid import mapping\nExpecting format:\nLIBNAME:PATH(,LIBNAME:PATH)*\nLIBNAME={}\nPATH=file path not containing ","'.format(REG_FIL.pattern),
+    ERR.CompMalformedObjectFile: 'Malformed object file: {}\n{}',
+    ERR.CompInputFileException: 'Could not read input file "{}":\n\t{}',
+    ERR.CompOutputFileException: 'Could not write to output file "{}":\n\t{}',
+    ERR.CompInvalidArguments: 'Invalid arguments:\n{}',
+    ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
 }
 
 class WARN(IntEnum):
@@ -158,14 +180,14 @@ class ErrorHandler():
     def setSourceMapping(self, sourcecode):
         self.sourcecode = sourcecode
 
-    def addError(self, error_type, tokens, source=None):
+    def addError(self, error_type, tokens, source=None, fatal=False):
         error = {
             'type': error_type,
             'tokens': tokens,
             'source': source
         }
         self.errors.append(error)
-        if self.debug:
+        if self.debug or fatal:
             self.checkpoint()
 
     def addWarning(self, warning_type, tokens, source=None):

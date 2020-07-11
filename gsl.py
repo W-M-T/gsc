@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from lib.imports.imports import IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT, TARGET_EXT
+from lib.imports.imports import validate_modname, IMPORT_DIR_ENV_VAR_NAME, OBJECT_EXT, TARGET_EXT
 from lib.imports.objectfile_imports import getObjectFiles, OBJECT_COMMENT_PREFIX, OBJECT_FORMAT
 from lib.analysis.error_handler import *
 
@@ -22,9 +22,6 @@ Code should have the requirement that any cross-module reference is not order de
 Semantic analysis step should guarantee this
 '''
 
-'''
-TODO output all logging here to stderr
-'''
 
 SECTION_COMMENT_LOOKUP = {
     "global_inits": OBJECT_FORMAT['init'],
@@ -50,6 +47,23 @@ def linkObjectFiles(mod_dicts, main_mod_name):
     result += "TRAP 00\n"
     return result
 
+def write_out(data, outfile_name, type_name):
+    try:
+        with open(outfile_name, "w") as outfile:
+            outfile.write(data)
+            print('Succesfully written {} "{}"'.format(type_name, outfile_name))
+    except Exception as e:
+        ERROR_HANDLER.addError(ERR.CompOutputFileException, [outfile_name, "{} {}".format(e.__class__.__name__, str(e))], fatal=True)
+
+def make_import_mapping(im):
+    temp = list(map(lambda x: x.split(":", 1), im.split(","))) if im is not None else []
+    if not (all(map(lambda x: len(x)==2, temp)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), temp))):
+        ERROR_HANDLER.addError(ERR.CompInvalidImportMapping, [], fatal=True)
+    for a,b in temp:
+        validate_modname(a)
+    temp = {a:b for (a,b) in temp}
+    return temp
+
 
 def main():
     argparser = ArgumentParser(description="SPL Linker")
@@ -60,53 +74,51 @@ def main():
     argparser.add_argument("--stdout", help="Output to stdout", action="store_true")
     args = argparser.parse_args()
 
-    import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
-    if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
-        print("Invalid import mapping")
-        exit()
-    import_mapping = {a:b for (a,b) in import_mapping}
+    import_mapping = make_import_mapping(args.im)
 
     if not args.infile.endswith(OBJECT_EXT):
-        print("Input file needs to be {}".format(OBJECT_EXT))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileExtension, [OBJECT_EXT])
 
     if not os.path.isfile(args.infile):
-        print("Input file does not exist: {}".format(args.infile))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileNonExist, [args.infile])
 
 
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
 
+    validate_modname(main_mod_name)
+
     if args.o:
         outfile_name = args.o
+        validate_modname(os.path.basename(outfile_base))
     else:
         outfile_name = main_mod_path + TARGET_EXT
 
+    if args.o and args.stdout:
+        ERROR_HANDLER.addError(ERR.CompInvalidArguments, ["Cannot write to specified path when outputting to stdout!\n(-o and --stdout)"])
+
+    ERROR_HANDLER.checkpoint()
+
+    # Open input file, get all object files
     try:
-        with open(args.infile) as infile:
-            mod_dicts = getObjectFiles(
-                infile,
-                args.infile,
-                os.path.dirname(args.infile),
-                file_mapping_arg=import_mapping,
-                lib_dir_path=args.lp,
-                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
-            )
+        infile = open(args.infile, "r")
     except Exception as e:
-        print(e.__class__.__name__, str(e))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileException, [args.infile, "{} {}".format(e.__class__.__name__, str(e))], fatal=True)
+    mod_dicts = getObjectFiles(
+        infile,
+        args.infile,
+        os.path.dirname(args.infile),
+        file_mapping_arg=import_mapping,
+        lib_dir_path=args.lp,
+        lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
+    )
+    infile.close()
 
     end = linkObjectFiles(mod_dicts, main_mod_name)
     #print(end)
 
     if not args.stdout:
-        try:
-            with open(outfile_name, "w") as outfile:
-                outfile.write(end)
-                print('Succesfully written excecutable "{}"'.format(outfile_name))
-        except Exception as e:
-            print(e.__class__.__name__, str(e))
+        write_out(end, outfile_name, "executable")
     else:
         print(end)
 

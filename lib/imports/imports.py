@@ -18,20 +18,22 @@ TARGET_EXT = ".ssm"
 
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
+RESERVED_MODNAMES = [
+    "builtins"
+]
 
 '''
 everything breaks if the object files linked with are generated from a different version of a source file than its headerfile
 solution: have headerfile and object file encode the md5sum of their source file + add this md5sum after the module name for each dependency in the object file
 '''
 
-'''
-TODO Validate filenames using REG_FIL from lexer
-'''
 
-'''
-TODO?
-add module dependency info somewhere. Either in header file or in object file
-'''
+def validate_modname(mod_name): # Errors need to be collected outside
+    if not REG_FIL.fullmatch(mod_name):
+        ERROR_HANDLER.addError(ERR.CompModuleFileNameRegex, [mod_name])
+    if mod_name in RESERVED_MODNAMES:
+        ERROR_HANDLER.addError(ERR.ReservedModuleName, [mod_name])
+
 def export_headers(symbol_table):
     temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), symbol_table.global_vars.values()))
     temp_typesyns = [(k, v.__serial__()) for (k, v) in symbol_table.type_syns.items()]
@@ -118,7 +120,7 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
         return infile, try_path
     except Exception as e:
         exception_list.append(e)
-    raise FileNotFoundError("\n".join(list(map(lambda x: "{}: {}".format(x.__class__.__name__,str(x)),exception_list))))
+    raise FileNotFoundError("\n".join(list(map(lambda x: "{}: {}".format(x.__class__.__name__,str(x)), exception_list))))
 
 '''
 Get the files to import as found in the ast
@@ -134,6 +136,7 @@ def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=
 
     temp = {}
     for impname in unique_names:
+        validate_modname(impname)
         try:
             handle, path = resolveFileName(impname, extension, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
             temp[impname] = {"name":impname,"filehandle":handle,"path":path}

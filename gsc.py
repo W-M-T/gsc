@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import getImportFiles, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
+from lib.imports.imports import getImportFiles, validate_modname, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
 from lib.imports.imports import export_headers, getExternalSymbols, HEADER_EXT
 from lib.imports.objectfile_imports import getObjectFiles
 
 from lib.analysis.error_handler import *
 
-from lib.parser.lexer import tokenize
+from lib.parser.lexer import tokenize, REG_FIL
 from lib.parser.parser import parseTokenStream
 from semantic_analysis import analyse, buildSymbolTable
 from lib.codegen.codegen import generate_object_file
 
-from gsl import linkObjectFiles
+from gsl import linkObjectFiles, write_out, make_import_mapping
 
 from argparse import ArgumentParser
 import os
 
-'''
-TODO make sure to log errors / warnings to stderr, so it doesn't end up in the output when the --stdout flag is selected
-'''
 
 def main():
     argparser = ArgumentParser(description="SPL Compiler")
@@ -31,28 +28,25 @@ def main():
     argparser.add_argument("--stdout", help="Output to stdout", action="store_true")
     args = argparser.parse_args()
 
-    import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
-    if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
-        print("Invalid import mapping")
-        exit()
-    import_mapping = {a:b for (a,b) in import_mapping}
-    print("Import map:",import_mapping)
+    import_mapping = make_import_mapping(args.im)
 
     if not args.infile.endswith(SOURCE_EXT):
-        print("Input file needs to be {}".format(SOURCE_EXT))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileExtension, [SOURCE_EXT])
 
     if not os.path.isfile(args.infile):
-        print("Input file does not exist: {}".format(args.infile))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileNonExist, [args.infile])
 
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
 
+    validate_modname(main_mod_name)
+
     if args.o:
         outfile_base = args.o
+        validate_modname(os.path.basename(outfile_base))
     else:
         outfile_base = main_mod_path
+
 
     compiler_target = {
         'header' : args.H,
@@ -62,74 +56,74 @@ def main():
 
 
     if args.H and args.C and args.stdout:
-        print("Cannot output to stdout when creating both a headerfile and an object file!")
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInvalidArguments, ["Cannot output to stdout when creating both a headerfile and an object file!\n(-H and -C and --stdout)"])
 
     if args.o and args.stdout:
-        print("Conflicting arguments: -o and --stdout!")
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInvalidArguments, ["Cannot write to specified path when outputting to stdout!\n(-o and --stdout)"])
 
+    ERROR_HANDLER.checkpoint()
 
-    with open(args.infile, "r") as infile:
+    try:
+        infile = open(args.infile, "r")
+    except Exception as e:
+        ERROR_HANDLER.addError(ERR.CompInputFileException, [args.infile, "{} {}".format(e.__class__.__name__, str(e))], fatal=True)
 
-        ERROR_HANDLER.setSourceMapping(infile)
+    ERROR_HANDLER.setSourceMapping(infile)
 
-        tokenstream = tokenize(infile)
+    tokenstream = tokenize(infile)
 
-        ast = parseTokenStream(tokenstream, infile)
+    ast = parseTokenStream(tokenstream, infile)
 
-        print("Are there imports?",bool(ast.imports))
+    print("Are there imports?",bool(ast.imports))
 
-        #print(ast)
+    #print(ast)
 
-        if compiler_target['header']: # Generate a headerfile
-            symbol_table = buildSymbolTable(ast, just_for_headerfile=True)
+    if compiler_target['header']: # Generate a headerfile
+        symbol_table = buildSymbolTable(ast, just_for_headerfile=True)
 
-            header_json = export_headers(symbol_table)
+        header_json = export_headers(symbol_table)
 
-            if not args.stdout:
-                outfile_name = outfile_base + HEADER_EXT
-                with open(outfile_name, "w") as outfile:
-                    outfile.write(header_json)
-                    print("Succesfully written headerfile",outfile_name)
-            else:
-                print(header_json)
+        if not args.stdout:
+            outfile_name = outfile_base + HEADER_EXT
+            write_out(header_json, outfile_name, "headerfile")
         else:
-            # Check if 
-            pass
+            print(header_json)
+    else:
+        # Check if 
+        pass
 
-        if compiler_target['object']: # Generate an object file
-            headerfiles = getImportFiles(ast, HEADER_EXT,
-                os.path.dirname(args.infile),
-                file_mapping_arg=import_mapping,
-                lib_dir_path=args.lp,
-                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+    if compiler_target['object']: # Generate an object file
+        headerfiles = getImportFiles(ast, HEADER_EXT,
+            os.path.dirname(args.infile),
+            file_mapping_arg=import_mapping,
+            lib_dir_path=args.lp,
+            lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
 
-            a = getExternalSymbols(ast, headerfiles)
-            print("EXTERNAL SYMBOLS:",a)
-            exit()
-            symbol_table = buildSymbolTable(ast, just_for_headerfile=False)
-            '''
-            symbol_table = analyse(ast, main_mod_name)
+        a = getExternalSymbols(ast, headerfiles)
+        print("EXTERNAL SYMBOLS:",a)
+        exit()
+        symbol_table = buildSymbolTable(ast, just_for_headerfile=False)
+        '''
+        symbol_table = analyse(ast, main_mod_name)
 
-            assembly = generate_object_file(symbol_table, main_mod_name)
-            '''
-            '''
-            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
-                file_mapping_arg=import_mapping,
-                lib_dir_path=args.lp,
-                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-            a = getExternalSymbols(x, headerfiles)
-            print(a)
-            exit()
-            '''
-        if compiler_target['binary']:
-            # insert zelfde code als bij begin van compiler_target['object']
-            # maak er gewoon een functie van
+        assembly = generate_object_file(symbol_table, main_mod_name)
+        '''
+        '''
+        headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
+            file_mapping_arg=import_mapping,
+            lib_dir_path=args.lp,
+            lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+        a = getExternalSymbols(x, headerfiles)
+        print(a)
+        exit()
+        '''
+    if compiler_target['binary']: # Generate a binary
+        # insert zelfde code als bij begin van compiler_target['object']
+        # maak er gewoon een functie van
 
-            # dan
-            from io import StringIO
-            compiled_code = '''// DEPENDENCIES:
+        # dan
+        from io import StringIO
+        compiled_code = '''// DEPENDENCIES:
 // DEPEND testlinkB
 // INIT SECTION:
 LDC 9
@@ -163,26 +157,26 @@ BSR testlinkB_func_main_0
 LDR RR
 ADD
 TRAP 00'''
-            pseudo_file_code = StringIO(compiled_code)
-            mod_dicts = getObjectFiles(
-                pseudo_file_code,
-                args.infile,
-                os.path.dirname(args.infile),
-                file_mapping_arg=import_mapping,
-                lib_dir_path=args.lp,
-                lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
-            )
+        pseudo_file_code = StringIO(compiled_code)
+        mod_dicts = getObjectFiles(
+            pseudo_file_code,
+            args.infile,
+            os.path.dirname(args.infile),
+            file_mapping_arg=import_mapping,
+            lib_dir_path=args.lp,
+            lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None
+        )
 
-            result = linkObjectFiles(mod_dicts, main_mod_name)
+        result = linkObjectFiles(mod_dicts, main_mod_name)
 
-            if not args.stdout:
-                outfile_name = outfile_base + TARGET_EXT
-                with open(outfile_name, "w") as outfile:
-                    outfile.write(result)
-                    print("Succesfully written binary file",outfile_name)
-            else:
-                print(result)
+        if not args.stdout:
+            outfile_name = outfile_base + TARGET_EXT
+            write_out(end, outfile_name, "executable")
+        else:
+            print(result)
 
+    # Final cleanup
+    infile.close()
 
 
 if __name__ == "__main__":
