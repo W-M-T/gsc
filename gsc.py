@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import getImportFiles, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
+from lib.imports.imports import getImportFiles, validate_modname, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
 from lib.imports.imports import export_headers, getExternalSymbols, HEADER_EXT
 from lib.imports.objectfile_imports import getObjectFiles
 
 from lib.analysis.error_handler import *
 
-from lib.parser.lexer import tokenize
+from lib.parser.lexer import tokenize, REG_FIL
 from lib.parser.parser import parseTokenStream
 from semantic_analysis import analyse, buildSymbolTable
 from lib.codegen.codegen import generate_object_file
 
-from gsl import linkObjectFiles, write_out
+from gsl import linkObjectFiles, write_out, make_import_mapping
 
 from argparse import ArgumentParser
 import os
-
-'''
-TODO make sure to log errors / warnings to stderr, so it doesn't end up in the output when the --stdout flag is selected
-'''
 
 
 def main():
@@ -32,24 +28,25 @@ def main():
     argparser.add_argument("--stdout", help="Output to stdout", action="store_true")
     args = argparser.parse_args()
 
-    import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
-    if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
-        ERROR_HANDLER.addError(ERR.CompInvalidImportMapping, [], fatal=True)
-    import_mapping = {a:b for (a,b) in import_mapping}
+    import_mapping = make_import_mapping(args.im)
 
     if not args.infile.endswith(SOURCE_EXT):
-        ERROR_HANDLER.addError(ERR.CompInputFileExtension, [SOURCE_EXT], fatal=True)
+        ERROR_HANDLER.addError(ERR.CompInputFileExtension, [SOURCE_EXT])
 
     if not os.path.isfile(args.infile):
-        ERROR_HANDLER.addError(ERR.CompInputFileNonExist, [args.infile], fatal=True)
+        ERROR_HANDLER.addError(ERR.CompInputFileNonExist, [args.infile])
 
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
 
+    validate_modname(main_mod_name)
+
     if args.o:
         outfile_base = args.o
+        validate_modname(os.path.basename(outfile_base))
     else:
         outfile_base = main_mod_path
+
 
     compiler_target = {
         'header' : args.H,
@@ -59,12 +56,12 @@ def main():
 
 
     if args.H and args.C and args.stdout:
-        print("Cannot output to stdout when creating both a headerfile and an object file!")
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInvalidArguments, ["Cannot output to stdout when creating both a headerfile and an object file!\n(-H and -C and --stdout)"])
 
     if args.o and args.stdout:
-        print("Conflicting arguments: -o and --stdout!")
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInvalidArguments, ["Cannot write to specified path when outputting to stdout!\n(-o and --stdout)"])
+
+    ERROR_HANDLER.checkpoint()
 
 
     with open(args.infile, "r") as infile:

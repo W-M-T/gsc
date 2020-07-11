@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.analysis.error_handler import *
-from lib.imports.imports import resolveFileName, OBJECT_EXT
+from lib.imports.imports import resolveFileName, validate_modname, OBJECT_EXT
 
 from lib.parser.lexer import REG_FIL
 
@@ -78,6 +78,7 @@ def getObjectFiles(main_filehandle, main_filename, local_dir, file_mapping_arg={
             obj_struct = parseObjectFile(data)
             res.append(obj_struct)
             for dep in obj_struct['dependencies']:
+                validate_modname(dep)
                 if dep not in seen:
                     try:
                         found = resolveFileName(
