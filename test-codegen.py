@@ -29,21 +29,17 @@ def main():
     else:
         from io import StringIO
 
+        module_name = "test"
         testprog = StringIO('''
-            Int b = 5;
-        
-            
-        
-            f(a) :: Int -> Int {
-                a = b * a;
-                return a;
+    
+            infixr 7 ++ (a, b) :: Int Int -> Int {
+                return a + b + 12;
             }
-        
+       
             main() :: -> Int {
-                Int value = f(5);
-                print(value);
+                Int value = 5 ++ 3;
                 
-                return 1;
+                return value;
             }
         ''')
 
@@ -68,7 +64,7 @@ def main():
 
     # Build operator table
     op_table = buildOperatorTable()
-    mergeCustomOps(op_table, symbol_table)
+    mergeCustomOps(op_table, symbol_table, module_name)
     builtin_funcs = generateBuiltinFuncs()
 
     # Parse expressions
@@ -80,9 +76,10 @@ def main():
     typecheck_functions(symbol_table, op_table, builtin_funcs)
     ERROR_HANDLER.checkpoint()
 
-    gen_code = generate_object_file(symbol_table, "test")
+    gen_code = generate_object_file(symbol_table, module_name)
+    print(gen_code)
 
-    with open('generated/test.splo', 'w+') as fh:
+    with open('generated/test1.splo', 'w+') as fh:
         fh.write(gen_code)
 
 if __name__ == "__main__":

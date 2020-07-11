@@ -6,7 +6,7 @@ from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 
-def generate_expr(expr, module_name, var_mapping = {}, arg_mapping = {}):
+def generate_expr(expr, module_name, mappings):
     if type(expr) is Token:
         if expr.typ is TOKEN.INT:
             return ['LDC ' + str(expr.val)]
@@ -16,15 +16,6 @@ def generate_expr(expr, module_name, var_mapping = {}, arg_mapping = {}):
             return ['LDC 0xFFFFFFFF'] if expr.val == 'True' else ['LDC 00']
         else:
             raise Exception("Unknown type")
-    elif type(expr) is AST.TYPEDEXPR:
-        if expr.fun.val in BUILTIN_INFIX_OPS and expr.builtin:
-            res = generate_expr(expr.arg1, module_name, var_mapping, arg_mapping)
-            res.extend(generate_expr(expr.arg2, module_name, var_mapping, arg_mapping))
-            res.append(BUILTIN_INFIX_OPS[expr.fun.val][3])
-
-            return res
-        else:
-            raise Exception('Custom operators not yet supported in code generation.')
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) == AST.RES_GLOBAL:
             res = []
@@ -38,32 +29,39 @@ def generate_expr(expr, module_name, var_mapping = {}, arg_mapping = {}):
 
             return res
         else:
-            print(arg_mapping)
             res = []
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
-                res.append('LDL ' + var_mapping[expr.val.id.val])
+                res.append('LDL ' + mappings['vars'][expr.val.id.val])
             else:
-                res.append('LDL ' + arg_mapping[expr.val.id.val])
+                res.append('LDL ' + mappings['args'][expr.val.id.val])
 
             return res
 
     elif type(expr) is AST.TYPED_FUNCALL:
-        if expr.uniq == FunUniq.FUNC:
-            res = []
+        res = []
 
-            for a in expr.args:
-                res.extend(generate_expr(a, module_name, var_mapping, arg_mapping))
+        for a in expr.args:
+            res.extend(generate_expr(a, module_name, mappings))
 
-            module = expr.module if expr.module is not None else module_name
+        module = expr.module if expr.module is not None else module_name
 
-            res.append('BSR ' + module + '_func_' + expr.id.val + '_' + str(expr.oid))
+        if expr.module == 'builtins':
+            res.append(BUILTIN_INFIX_OPS[expr.id.val][3])
+        else:
+            if expr.uniq == FunUniq.FUNC:
+                code_id = expr.id.val
+            else:
+                code_id = str(mappings['operators'].index((expr.uniq,expr.id.val)))
+                print(code_id)
+
+            print("OID")
+            print(expr.oid)
+            res.append('BSR ' + module + '_{}_'.format(expr.uniq.name.lower()) + code_id + '_' + str(expr.oid))
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
             res.append('LDR RR')
 
-            return res
-        else:
-            raise Exception("Not implemented")
+        return res
     elif type(expr) is AST.TUPLE:
         raise Exception("Not implemented")
     else:
@@ -71,26 +69,26 @@ def generate_expr(expr, module_name, var_mapping = {}, arg_mapping = {}):
         print(type(expr))
         raise Exception("Unknown expression type encountered")
 
-def generate_stmts(stmts, label, module_name, var_mapping, arg_mapping, index = 1):
+def generate_stmts(stmts, label, module_name, mappings, index = 1):
 
     code = []
     for stmt in stmts:
         if type(stmt.val) == AST.RETURN:
             if stmt.val.expr is not None:
-                code.extend(generate_expr(stmt.val.expr, module_name, var_mapping, arg_mapping))
+                code.extend(generate_expr(stmt.val.expr, module_name, mappings))
                 code.append('STR RR')
             break
         elif type(stmt.val) == AST.ACTSTMT:
             if type(stmt.val.val) == AST.TYPED_FUNCALL:
-                code.extend(generate_expr(stmt.val.val, module_name, var_mapping, arg_mapping))
+                code.extend(generate_expr(stmt.val.val, module_name, mappings))
             else:
                 if type(stmt.val.val.varref.val) is AST.RES_NONGLOBAL:
                     if stmt.val.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                        code.extend(generate_expr(stmt.val.val.expr, module_name, var_mapping, arg_mapping))
-                        code.append('STL ' + var_mapping[stmt.val.val.varref.val.id.val])
+                        code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
+                        code.append('STL ' + mappings['vars'][stmt.val.val.varref.val.id.val])
                     else:
-                        code.extend(generate_expr(stmt.val.val.expr, module_name, var_mapping, arg_mapping))
-                        code.append('STL ' + arg_mapping[stmt.val.val.varref.val.id.val])
+                        code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
+                        code.append('STL ' + mappings['vars'][stmt.val.val.varref.val.id.val])
                 else:
                     code.extend(generate_expr(stmt.val.val.expr, module_name))
                     key = module_name + '_global_' + stmt.val.val.varref.val.id.val
@@ -98,29 +96,25 @@ def generate_stmts(stmts, label, module_name, var_mapping, arg_mapping, index = 
 
     return [code]
 
-def generate_func(func, symbol_table, module_name, label):
+def generate_func(func, symbol_table, module_name, label, mappings):
     print("generating func:",func['def'].id.val)
     code = []
 
     link_count = '00' #if len(func['arg_vars']) == 0 else str(len(func['arg_vars']))
-
     code.append('LINK ' + link_count)
-
-    arg_mapping = {}
-    var_mapping = {}
     
     arg_index = -2
-
     for arg in reversed(func['arg_vars']):
-        arg_mapping[arg] = str(arg_index)
+        mappings['args'][arg] = str(arg_index)
         arg_index -= 1
     var_index = 1
     for vardecl in func['def'].vardecls:
-        var_mapping[vardecl.id.val] = str(var_index)
+        mappings['vars'][vardecl.id.val] = str(var_index)
         var_index += 1
-        code.extend(generate_expr(vardecl.expr, module_name, var_mapping, arg_mapping))
+        code.extend(generate_expr(vardecl.expr, module_name, mappings))
 
-    stmts_code = generate_stmts(func['def'].stmts, label, module_name, var_mapping, arg_mapping)
+
+    stmts_code = generate_stmts(func['def'].stmts, label, module_name, mappings)
     i = 0
     branching_labels = []
     for c in stmts_code:
@@ -174,26 +168,31 @@ def generate_object_file(symbol_table, module_name):
     global_code = []
     global_labels = []
     function_code = {}
+    mappings = {
+        'operators': list(filter(lambda x: x[0] in [FunUniq.INFIX, FunUniq.PREFIX], list(symbol_table.functions.keys()))),
+        'args': {},
+        'vars': {}
+    }
 
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g
         global_labels.append(key)
-        global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name))
+        global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name, mappings))
         global_code.extend(['LDC ' + key, 'STA 00'])
 
     for f in symbol_table.functions:
         o = 0
         for of in symbol_table.functions[f]:
             key = module_name
+            print(of)
             if of['def'].kind is FunKind.PREFIX:
-                key += '_prefix_'
+                key += '_prefix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind),of['def'].id.val))) + "_"
             elif of['def'].kind  is FunKind.INFIXL or of['def'].kind  is FunKind.INFIXR:
-                key += '_infix_'
+                key += '_infix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind),of['def'].id.val))) + "_"
             else:
-                key += '_func_'
-            key += f[1] + '_'
+                key += '_func_' + f[1] + "_"
             key += str(o)
-            function_code[key] = generate_func(of, symbol_table, module_name, key)
+            function_code[key] = generate_func(of, symbol_table, module_name, key, mappings)
             o += 1
 
     for b in BUILTIN_FUNCTIONS:

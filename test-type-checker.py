@@ -8,26 +8,29 @@ from lib.analysis.typechecker import *
 def main():
     from io import StringIO
 
+    module_name = "test"
     testprog = StringIO('''
     
-        (Int, Int) x = (5, 3);
-        Int y = x.fst;
+        Bool x = -5;
+    
+        prefix - (x) :: Int -> Bool {
+            return True;
+        }
+        
+        prefix ! (x) :: Int -> Bool {
+            return False;
+        }
+    
+        /*infixl 7 ++ (a, b) :: Int Int -> Int {
+            return a + b + 2;
+        }*/
     
         main() :: -> Int {
-            //(Int, (Int, Int)) a = (2, (3, 7));
-            [Int] b = 5 : 3 : [];
-            //[Int] a = 2 : 3 : [];
+            Bool x = !(-(5));
             
-            Int a = 3;
-            //a.fst.snd = 5;
-            Int c = 5;
-            
-            b.hd = a.tl;
-            
-            //Char a = 'a' ++ 5;
-        
-            return 0;
+            x = True;
         }
+
     ''')
 
     # Tokenize / parse
@@ -50,16 +53,16 @@ def main():
 
     # Build operator table
     op_table = buildOperatorTable()
-    mergeCustomOps(op_table, symbol_table)
+    mergeCustomOps(op_table, symbol_table, module_name)
+    builtin_funcs = generateBuiltinFuncs()
 
     # Parse expressions
     fixExpression(ast, op_table)
     ERROR_HANDLER.checkpoint()
 
-
     # Type check
     typecheck_globals(symbol_table, op_table)
-    typecheck_functions(symbol_table, op_table)
+    typecheck_functions(symbol_table, op_table, builtin_funcs)
     ERROR_HANDLER.checkpoint()
 
 if __name__ == "__main__":
