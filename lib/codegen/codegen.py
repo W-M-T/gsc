@@ -9,11 +9,11 @@ from lib.builtins.functions import BUILTIN_FUNCTIONS
 def generate_expr(expr, module_name, mappings):
     if type(expr) is Token:
         if expr.typ is TOKEN.INT:
-            return ['LDC ' + str(expr.val)]
+            return ['LDC ' + str(expr.val) if expr.val != 0 else "LDC 00"]
         elif expr.typ is TOKEN.CHAR:
             return ['LDC ' + str(ord(expr.val[1:-1]))]
         elif expr.typ is TOKEN.BOOL:
-            return ['LDC 0xFFFFFFFF'] if expr.val == 'True' else ['LDC 00']
+            return ['LDC -1'] if expr.val else ['LDC 00']
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.RES_VARREF:
@@ -69,14 +69,18 @@ def generate_expr(expr, module_name, mappings):
         print(type(expr))
         raise Exception("Unknown expression type encountered")
 
-def generate_stmts(stmts, label, module_name, mappings, index = 1):
+def generate_stmts(stmts, label, module_name, mappings, index = 0):
 
+    labels = []
     code = []
+    loop_ctr = 0
+
     for stmt in stmts:
         if type(stmt.val) == AST.RETURN:
             if stmt.val.expr is not None:
                 code.extend(generate_expr(stmt.val.expr, module_name, mappings))
                 code.append('STR RR')
+                code.append('BRA ' + label + '_exit')
             break
         elif type(stmt.val) == AST.ACTSTMT:
             if type(stmt.val.val) == AST.TYPED_FUNCALL:
@@ -90,11 +94,47 @@ def generate_stmts(stmts, label, module_name, mappings, index = 1):
                         code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
                         code.append('STL ' + mappings['vars'][stmt.val.val.varref.val.id.val])
                 else:
-                    code.extend(generate_expr(stmt.val.val.expr, module_name))
+                    code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
                     key = module_name + '_global_' + stmt.val.val.varref.val.id.val
                     code.extend(['LDC ' + key, 'STA 00'])
+        elif type(stmt.val) == AST.IFELSE:
+            stmts = []
+            indices = []
+            i = 1
+            start_index = index
+            for b in stmt.val.condbranches:
+                index += 1
 
-    return [code]
+                if b.expr is not None:
+                    code.extend(generate_expr(b.expr, module_name, mappings))
+                    code.append("BRT " + label + "_" + str(index))
+                else:
+                    code.append("BRA " + label + "_" + str(index))
+
+                branch_stmts, index = generate_stmts(b.stmts, label, module_name, mappings, index)
+
+                if i == len(stmt.val.condbranches) and b.expr is not None:
+                    code.append("BRA " + label + "_" + str(index))
+
+                indices.append(index - start_index + loop_ctr)
+                stmts.extend(branch_stmts)
+                i += 1
+
+            labels.append(code)
+            labels.extend(stmts)
+
+            index += 1
+            for i in indices:
+                labels[i].append("BRA " + label + "_" + str(index))
+
+            code = []
+            loop_ctr = index
+
+    labels.append(code)
+
+    print(labels)
+
+    return labels, index
 
 def generate_func(func, symbol_table, module_name, label, mappings):
     print("generating func:",func['def'].id.val)
@@ -107,25 +147,38 @@ def generate_func(func, symbol_table, module_name, label, mappings):
     for arg in reversed(func['arg_vars']):
         mappings['args'][arg] = str(arg_index)
         arg_index -= 1
+
     var_index = 1
     for vardecl in func['def'].vardecls:
         mappings['vars'][vardecl.id.val] = str(var_index)
         var_index += 1
         code.extend(generate_expr(vardecl.expr, module_name, mappings))
 
+    stmts_code, _ = generate_stmts(func['def'].stmts, label, module_name, mappings)
 
-    stmts_code = generate_stmts(func['def'].stmts, label, module_name, mappings)
+    print("Generated")
+    print(stmts_code)
     i = 0
-    branching_labels = []
     for c in stmts_code:
         if i == 0:
             code.extend(c)
         else:
-            pass
+            if len(c) > 0:
+                c[0] = label + '_' + str(i) + ': ' + c[0]
+                code.extend(c)
+            else:
+                code.append(label + '_' + str(i) + ': nop')
+
+
         i += 1
 
-    code.append('UNLINK')
+    print(label)
+    print(code)
+
+    code.append(label + '_exit: UNLINK')
     code.append('RET')
+
+    print(code)
 
     return code
 
