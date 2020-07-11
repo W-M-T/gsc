@@ -5,6 +5,7 @@ import sys
 from lib.datastructure.token import Token
 from lib.datastructure.AST import AST
 from lib.util.util import pointToPosition
+from lib.parser.lexer import REG_FIL
 
 class ERRCOLOR:
     WARNING = '\033[33m'
@@ -24,7 +25,7 @@ class ERR(IntEnum):
     UndefinedOp = 9
     BreakOutsideLoop = 10
     NotAllPathsReturn = 11
-    # forbid_illegal_types
+    # Forbid_illegal_types
     TypeSynVoid = 12
     GlobalVarTypeNone = 13
     GlobalVarVoid = 14
@@ -66,6 +67,12 @@ class ERR(IntEnum):
     ImportTypeSynNotFound = 48,
     ClashImportGlobal = 49,
     ClashImportType = 50
+    # Compiler / Linker scripts
+    CompInputFileExtension = 51
+    CompInputFileNonExist = 52
+    CompInvalidImportMapping = 53
+    CompMalformedObjectFile = 54
+    CompOutputFileException = 55
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -118,6 +125,11 @@ ERRMSG = {
     ERR.ImportTypeSynNotFound: 'Tried to import a type identifier "{}" from module {} that was not found in the headerfile {}',
     ERR.ClashImportGlobal: 'Multiple clashing definitions for global variable identifier "{}" in imports:\n{}',
     ERR.ClashImportType: 'Multiple clashing definitions for type identifier "{}" in imports:\n{}',
+    ERR.CompInputFileExtension: 'Input file needs to have extension "{}"',
+    ERR.CompInputFileNonExist: 'Input file does not exist: {}',
+    ERR.CompInvalidImportMapping: 'Invalid import mapping\nExpecting format:\nLIBNAME:PATH(,LIBNAME:PATH)*\nLIBNAME={}\nPATH=file path not containing ":" or ","'.format(REG_FIL.pattern),
+    ERR.CompMalformedObjectFile: 'Malformed object file: {}\n{}',
+    ERR.CompOutputFileException: 'Could not write to output file "{}":\n{}',
 }
 
 class WARN(IntEnum):
@@ -159,14 +171,14 @@ class ErrorHandler():
         self.sourcecode = sourcecode
         self.import_map = import_map
 
-    def addError(self, error_type, tokens, source=None):
+    def addError(self, error_type, tokens, source=None, fatal=False):
         error = {
             'type': error_type,
             'tokens': tokens,
             'source': source
         }
         self.errors.append(error)
-        if self.debug:
+        if self.debug or fatal:
             self.checkpoint()
 
     def addWarning(self, warning_type, tokens, source=None):

@@ -262,7 +262,7 @@ class AST:
     EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id")
 
 
-    # Typed nodes
+    # Typed nodes =====================================================================
     TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ", "builtin")
 
     # oid = Overloaded id

@@ -11,7 +11,7 @@ from lib.parser.parser import parseTokenStream
 from semantic_analysis import analyse, buildSymbolTable
 from lib.codegen.codegen import generate_object_file
 
-from gsl import linkObjectFiles
+from gsl import linkObjectFiles, write_out
 
 from argparse import ArgumentParser
 import os
@@ -19,6 +19,7 @@ import os
 '''
 TODO make sure to log errors / warnings to stderr, so it doesn't end up in the output when the --stdout flag is selected
 '''
+
 
 def main():
     argparser = ArgumentParser(description="SPL Compiler")
@@ -33,18 +34,14 @@ def main():
 
     import_mapping = list(map(lambda x: x.split(":"), args.im.split(","))) if args.im is not None else []
     if not (all(map(lambda x: len(x)==2, import_mapping)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), import_mapping))):
-        print("Invalid import mapping")
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInvalidImportMapping, [], fatal=True)
     import_mapping = {a:b for (a,b) in import_mapping}
-    print("Import map:",import_mapping)
 
     if not args.infile.endswith(SOURCE_EXT):
-        print("Input file needs to be {}".format(SOURCE_EXT))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileExtension, [SOURCE_EXT], fatal=True)
 
     if not os.path.isfile(args.infile):
-        print("Input file does not exist: {}".format(args.infile))
-        exit()
+        ERROR_HANDLER.addError(ERR.CompInputFileNonExist, [args.infile], fatal=True)
 
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
@@ -89,9 +86,7 @@ def main():
 
             if not args.stdout:
                 outfile_name = outfile_base + HEADER_EXT
-                with open(outfile_name, "w") as outfile:
-                    outfile.write(header_json)
-                    print("Succesfully written headerfile",outfile_name)
+                write_out(header_json, outfile_name, "headerfile")
             else:
                 print(header_json)
         else:
@@ -123,7 +118,7 @@ def main():
             print(a)
             exit()
             '''
-        if compiler_target['binary']:
+        if compiler_target['binary']: # Generate a binary
             # insert zelfde code als bij begin van compiler_target['object']
             # maak er gewoon een functie van
 
@@ -177,9 +172,7 @@ TRAP 00'''
 
             if not args.stdout:
                 outfile_name = outfile_base + TARGET_EXT
-                with open(outfile_name, "w") as outfile:
-                    outfile.write(result)
-                    print("Succesfully written binary file",outfile_name)
+                write_out(end, outfile_name, "executable")
             else:
                 print(result)
 
