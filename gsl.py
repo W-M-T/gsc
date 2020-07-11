@@ -17,6 +17,7 @@ def buildSection(mod_dicts, section_name):
     res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
     return res
 
+
 '''
 Code should have the requirement that any cross-module reference is not order dependent.
 Semantic analysis step should guarantee this

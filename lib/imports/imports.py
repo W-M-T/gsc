@@ -4,6 +4,7 @@ from lib.imports.header_parser import parse_type
 import json
 from lib.datastructure.AST import FunUniq, AST
 from lib.datastructure.token import TOKEN
+from lib.datastructure.symbol_table import SymbolTable
 from lib.analysis.error_handler import *
 
 from collections import OrderedDict
@@ -26,7 +27,6 @@ RESERVED_MODNAMES = [
 everything breaks if the object files linked with are generated from a different version of a source file than its headerfile
 solution: have headerfile and object file encode the md5sum of their source file + add this md5sum after the module name for each dependency in the object file
 '''
-
 
 def validate_modname(mod_name): # Errors need to be collected outside
     if not REG_FIL.fullmatch(mod_name):
@@ -158,6 +158,10 @@ def getExternalSymbols(ast, headerfiles):
         data = head['filehandle'].read()
         #try:
         symbols = import_headers(data)
+        '''
+        for key in sorted(list(symbols)):
+            print(symbols[key])
+        '''
         #print(symbols)
         #exit()
         head['symbols'] = symbols
@@ -170,7 +174,9 @@ def getExternalSymbols(ast, headerfiles):
     ERROR_HANDLER.checkpoint()
 
     # Add the desired imports to a datastructure
-    external_symbols = {
+    ext_symbol_table = SymbolTable()
+    '''
+    {
         # Effective identifier to dict with type, module and original identifier
         'globals': OrderedDict(),
         # Effective identifier to dict with type, module and original identifier
@@ -178,6 +184,7 @@ def getExternalSymbols(ast, headerfiles):
         # (FunUniq, Effective identifier) to list with (dict with type, module and original identifier)
         'functions': OrderedDict()
     }
+    '''
 
     # Collect all imports for the same module and give warnings
     unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
@@ -188,27 +195,36 @@ def getExternalSymbols(ast, headerfiles):
         # Test if there is both an importall and another import for the same module
         if any(map(lambda x: x.importlist is None, cur_imports)) and len(cur_imports) > 1:
             ERROR_HANDLER.addWarning(WARN.MultiKindImport, [modname, cur_imports])
-            ERROR_HANDLER.checkpoint()
 
         # Combine all other imports for this module
         all_cur_imports = [item for x in cur_imports if x.importlist is not None for item in x.importlist]
         #print("ALL CUR:",all_cur_imports)
 
+        # Check for cross-type aliasing (forbidden because missing fixities for operators, a.o.)
+        for imp_statement in all_cur_imports:
+            if imp_statement.alias is not None:
+                if imp_statement.name.typ != imp_statement.alias.typ: # Identifier aliased as different identifier type
+                    ERROR_HANDLER.addError(ERR.ImportIdChangeType, [imp_statement.name.val, imp_statement.name.typ.name, imp_statement.alias.typ.name, imp_statement.name])
+        ERROR_HANDLER.checkpoint()
+
+
         id_imports = list(filter(lambda x: x.name.typ == TOKEN.IDENTIFIER, all_cur_imports))
         op_imports = list(filter(lambda x: x.name.typ == TOKEN.OP_IDENTIFIER, all_cur_imports))
         type_imports = list(filter(lambda x: x.name.typ == TOKEN.TYPE_IDENTIFIER, all_cur_imports))
-        #print("ALL ID:",id_imports)
-        #print("ALL OP:",op_imports)
-        #print("ALL TYPE:",type_imports)
+        print("ALL ID:",id_imports)
+        print("ALL OP:",op_imports)
+        print("ALL TYPE:",type_imports)
 
         # Test for identifiers that are imported multiple times
         # Also, select the desired symbols and give error if they don't exist
         cur_symbols = headerfiles[modname]['symbols']
+
         #print("SYMBOLS",cur_symbols)
         unique_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, id_imports)))
         unique_op_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, op_imports)))
         unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
 
+        '''
         for uq_id in unique_ids:
             matching = list(filter(lambda x: x.name.val == uq_id, id_imports))
             if len(matching) > 1:
@@ -220,6 +236,7 @@ def getExternalSymbols(ast, headerfiles):
 
                 if match_orig in cur_symbols['globals'] or (FunUniq.FUNC, match_orig) in cur_symbols['functions']: # Try to import id that exists in the header
                     if match_orig in cur_symbols['globals']:
+                        print("Found global",match_orig)
                         found_global = cur_symbols['globals'][match_orig]
 
                         if effective_id not in external_symbols['globals']: # New name for global
@@ -232,24 +249,27 @@ def getExternalSymbols(ast, headerfiles):
                             ERROR_HANDLER.addError(ERR.ClashImportGlobal, [effective_id, match.name if match.alias is None else match.alias])
                     if (FunUniq.FUNC, match_orig) in cur_symbols['functions']:
                         found_funcs = cur_symbols['functions'][(FunUniq.FUNC, match_orig)]
-                        #print("found_funcs",found_funcs)
+                        print("Found_funcs",match_orig,found_funcs)
                 else:
                     ERROR_HANDLER.addError(ERR.ImportIdentifierNotFound, [uq_id, modname, headerfiles[modname]['path']])
+        '''
 
-
+        '''
         for uq_op_id in unique_op_ids:
             matching = list(filter(lambda x: x.name.val == uq_op_id, op_imports))
             if len(matching) > 1:
                 ERROR_HANDLER.addWarning(WARN.DuplicateOpSameModuleImport, [uq_op_id, modname, list(map(lambda x: x.name,matching))])
 
             if (FunUniq.PREFIX, uq_op_id) in cur_symbols['functions']:
+                print("Found prefix",uq_op_id)
                 pass
             elif (FunUniq.INFIX, uq_op_id) in cur_symbols['functions']:
+                print("Found infix",uq_op_id)
                 pass
             else:
                 ERROR_HANDLER.addError(ERR.ImportOpIdentifierNotFound, [uq_op_id, modname, headerfiles[modname]['path']])
-
-
+        '''
+        '''
         for uq_type_id in unique_type_ids:
             matching = list(filter(lambda x: x.name.val == uq_type_id, type_imports))
             if len(matching) > 1:
@@ -263,8 +283,8 @@ def getExternalSymbols(ast, headerfiles):
                 if match_orig in cur_symbols['typesyns']:
                     found = cur_symbols['typesyns'][match_orig]
 
-                    if effective_id not in external_symbols['typesyns']: # New name
-                        external_symbols['typesyns'][effective_id] = {
+                    if effective_id not in ext_symbol_table.type_syns: # New name
+                        ext_symbol_table.type_syns[effective_id] = {
                             'type': found,
                             'module': modname,
                             'orig_id': match_orig
@@ -273,5 +293,6 @@ def getExternalSymbols(ast, headerfiles):
                         ERROR_HANDLER.addError(ERR.ClashImportType, [effective_id, match.name if match.alias is None else match.alias])
                 else:
                     ERROR_HANDLER.addError(ERR.ImportTypeSynNotFound, [uq_type_id, modname, headerfiles[modname]['path']])
+        #'''
 
         ERROR_HANDLER.checkpoint()

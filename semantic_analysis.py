@@ -733,7 +733,7 @@ if __name__ == "__main__":
         exit()
     #print(import_mapping)
     import_mapping = {a:os.path.splitext(b)[0] for (a,b) in import_mapping}
-    print("Imports:",import_mapping)
+    print("Import map:",import_mapping)
 
     if not args.infile.endswith(SOURCE_EXT):
         print("Input file needs to be {}".format(SOURCE_EXT))
@@ -827,7 +827,7 @@ g (x) {
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             a = getExternalSymbols(x, headerfiles)
-            print(a)
+            print("External symbols:",a)
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])

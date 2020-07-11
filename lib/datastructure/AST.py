@@ -251,19 +251,18 @@ class AST:
     # val :: AST.RES_GLOBAL or AST.RES_NONGLOBAL
     RES_VARREF = syntaxnode("RES_VARREF", "val")
 
-    # module :: string of module name or None for Built in, id :: TOKEN, fields :: [Accessor]
+    # module :: string of module name, id :: TOKEN, fields :: [Accessor]
     RES_GLOBAL = syntaxnode("RES_GLOBAL", "module", "id", "fields")
 
     # scope :: NonGlobalScope, id :: TOKEN, fields :: [Accessor]
     # scope = local or argument.
     RES_NONGLOBAL = syntaxnode("RES_NONGLOBAL", "scope", "id", "fields")
 
-    # module :: string of module name or None for Built in, orig_id :: string
-    EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id")
+    # module :: string of module name ("builtins" reserved), orig_id :: string
+    EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id", "effective_id")
 
 
     # Typed nodes =====================================================================
-    TYPEDEXPR = syntaxnode("TYPEDEXPR", "fun", "arg1", "arg2", "typ", "builtin")
 
     # oid = Overloaded id
     TYPED_FUNCALL = syntaxnode("TYPED_FUNCALL", "id", "uniq", "args", "oid", "module")
@@ -300,7 +299,6 @@ class AST:
         RES_GLOBAL,
         RES_NONGLOBAL,
         EXTERNAL,
-        TYPEDEXPR,
         TYPED_FUNCALL
     ]
 
