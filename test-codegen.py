@@ -32,13 +32,9 @@ def main():
         module_name = "control-stmt"
         testprog = StringIO('''
             main() :: -> Int {
-               Int a = 5;
-               if (a >= 2) {
-                return 3;
-               }
-               else {
-                return 4;
-               }
+                print(5);
+                
+                return 5;
             }
         ''')
 

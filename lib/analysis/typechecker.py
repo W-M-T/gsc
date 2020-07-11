@@ -51,7 +51,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
 
         return True, expr
     elif type(expr) is AST.PARSEDEXPR:
-        return typecheck(expr.val, exp_type, symbol_table, op_table, builtin_funcs, func, r, False)
+        return typecheck(expr.val, exp_type, symbol_table, op_table, builtin_funcs, func, r, noErrors)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
             typ = symbol_table.global_vars[expr.val.id.val].type.val
@@ -81,6 +81,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 return False, expr
 
         elif type(expr.val) is AST.RES_NONGLOBAL:
+            print(noErrors)
             typ = None
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 typ = func['local_vars'][expr.val.id.val].type.val
@@ -107,6 +108,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                     raise Exception("Unknown accessor encountered: %s " % str(field))
 
             if not AST.equalVals(typ, exp_type):
+                print("HERE")
+                print(noErrors)
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False, expr
@@ -171,9 +174,9 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 if AST.equalVals(o[0].to_type, exp_type):
                     alternatives += 1
                     type1, a1 = typecheck(expr.args[0], o[0].from_types[0], symbol_table, op_table, builtin_funcs,
-                                          func, r + 1, False)
+                                          func, r + 1, True)
                     type2, a2 = typecheck(expr.args[1], o[0].from_types[1], symbol_table, op_table, builtin_funcs,
-                                          func, r + 1, False)
+                                          func, r + 1, True)
 
                     if not type1:
                         incorrect = 1
@@ -213,6 +216,8 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
 
             # Builtin functions
 
+            print("Builtin check")
+
             if expr.id.val in builtin_funcs:
                 out_type_matches = []
                 i = 0
@@ -231,14 +236,17 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                     if len(o[1].from_types) == len(expr.args):
                         input_matches = 0
 
+                        print(o[1].from_types)
                         for i in range(len(o[1].from_types)):
-                            typ, arg_res = typecheck(expr.args[i], o[1].from_types[i].val, symbol_table, op_table,
-                                                     builtin_funcs, func, r, noErrors=True)
+                            print("TEST")
+                            typ, arg_res = typecheck(expr.args[i], o[1].from_types[i].val, symbol_table, op_table, builtin_funcs, func, r, True)
                             args.append(arg_res)
                             if typ:
                                 input_matches += 1
 
                         if input_matches == len(expr.args):
+                            print("MATCH")
+                            print(o)
                             func_matches += 1
                             match = o
                             match_args = args

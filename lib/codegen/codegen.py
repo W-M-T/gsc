@@ -3,7 +3,7 @@
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import *
 from lib.datastructure.scope import NONGLOBALSCOPE
-from lib.builtins.operators import BUILTIN_INFIX_OPS
+from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 
 def generate_expr(expr, module_name, mappings):
@@ -46,7 +46,12 @@ def generate_expr(expr, module_name, mappings):
         module = expr.module if expr.module is not None else module_name
 
         if expr.module == 'builtins':
-            res.append(BUILTIN_INFIX_OPS[expr.id.val][3])
+            if expr.uniq == FunUniq.FUNC:
+                res.append("TRAP 00")
+            elif expr.uniq == FunUniq.INFIX:
+                res.append(BUILTIN_INFIX_OPS[expr.id.val][3])
+            else:
+                res.append(BUILTIN_PREFIX_OPS[expr.id.val][2])
         else:
             if expr.uniq == FunUniq.FUNC:
                 code_id = expr.id.val
@@ -156,8 +161,6 @@ def generate_func(func, symbol_table, module_name, label, mappings):
 
     stmts_code, _ = generate_stmts(func['def'].stmts, label, module_name, mappings)
 
-    print("Generated")
-    print(stmts_code)
     i = 0
     for c in stmts_code:
         if i == 0:
@@ -167,13 +170,10 @@ def generate_func(func, symbol_table, module_name, label, mappings):
                 c[0] = label + '_' + str(i) + ': ' + c[0]
                 code.extend(c)
             else:
+                # TODO: This is kinda dangerous, just replaces every empty label with a nop
                 code.append(label + '_' + str(i) + ': nop')
 
-
         i += 1
-
-    print(label)
-    print(code)
 
     code.append(label + '_exit: UNLINK')
     code.append('RET')
