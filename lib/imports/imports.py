@@ -120,7 +120,7 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
         return infile, try_path
     except Exception as e:
         exception_list.append(e)
-    raise FileNotFoundError("\n".join(list(map(lambda x: "{}: {}".format(x.__class__.__name__,str(x)),exception_list))))
+    raise FileNotFoundError("\n".join(list(map(lambda x: "{}: {}".format(x.__class__.__name__,str(x)), exception_list))))
 
 '''
 Get the files to import as found in the ast

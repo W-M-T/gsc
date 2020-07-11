@@ -9,9 +9,6 @@ from collections import OrderedDict
 
 import os
 
-'''
-TODO Validate filenames using REG_FIL from lexer
-'''
 
 OBJECT_COMMENT_PREFIX = "// "
 

@@ -59,6 +59,8 @@ def make_import_mapping(im):
     temp = list(map(lambda x: x.split(":", 1), im.split(","))) if im is not None else []
     if not (all(map(lambda x: len(x)==2, temp)) and all(map(lambda x: all(map(lambda y: len(y)>0, x)), temp))):
         ERROR_HANDLER.addError(ERR.CompInvalidImportMapping, [], fatal=True)
+    for a,b in temp:
+        validate_modname(a)
     temp = {a:b for (a,b) in temp}
     return temp
 
@@ -79,7 +81,7 @@ def main():
 
     if not os.path.isfile(args.infile):
         ERROR_HANDLER.addError(ERR.CompInputFileNonExist, [args.infile])
-    
+
 
     main_mod_path = os.path.splitext(args.infile)[0]
     main_mod_name = os.path.basename(main_mod_path)
