@@ -24,7 +24,7 @@ def main():
     parse_res = SPL.parse_strict(tokenlist, testprog)
 
     # Build symbol table
-    ERROR_HANDLER.setSourceMapping(testprog, [])
+    ERROR_HANDLER.setSourceMapping(testprog)
     symbol_table = buildSymbolTable(parse_res)
     ERROR_HANDLER.checkpoint()
 

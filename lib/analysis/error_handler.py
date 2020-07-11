@@ -179,9 +179,8 @@ class ErrorHandler():
         self.debug = False
         self.hidewarn = False
 
-    def setSourceMapping(self, sourcecode, import_map=[]):
+    def setSourceMapping(self, sourcecode):
         self.sourcecode = sourcecode
-        self.import_map = import_map
 
     def addError(self, error_type, tokens, source=None, fatal=False):
         error = {

@@ -29,17 +29,12 @@ def main():
     else:
         from io import StringIO
 
-        module_name = "test"
+        module_name = "control-stmt"
         testprog = StringIO('''
-    
-            infixr 7 ++ (a, b) :: Int Int -> Int {
-                return a + b + 12;
-            }
-       
             main() :: -> Int {
-                Int value = 5 ++ 3;
+                print(5);
                 
-                return value;
+                return 5;
             }
         ''')
 
@@ -50,7 +45,8 @@ def main():
         ast = SPL.parse_strict(tokenlist, testprog)
 
         # Build symbol table
-        ERROR_HANDLER.setSourceMapping(testprog, [])
+        ERROR_HANDLER.setSourceMapping(testprog)
+
     symbol_table = buildSymbolTable(ast)
     ERROR_HANDLER.checkpoint()
 
@@ -79,7 +75,7 @@ def main():
     gen_code = generate_object_file(symbol_table, module_name)
     print(gen_code)
 
-    with open('generated/test1.splo', 'w+') as fh:
+    with open('generated/' + module_name + '.splo', 'w+') as fh:
         fh.write(gen_code)
 
 if __name__ == "__main__":
