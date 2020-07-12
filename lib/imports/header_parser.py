@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import lib.imports.parsec_original as ps
+from lib.datastructure.token import *
 # There has to be a better way to do this...
 import sys
 sys.path.insert(0, '../../')
@@ -19,7 +20,8 @@ This file is only used to parse types, since other symbols can be (de)serialised
 @ps.generate
 def BASENAME():
     found_name = yield ps.regex(RE_BASE)
-    return found_name[1:-1]
+    return Token(None, TOKEN.TYPE_IDENTIFIER, found_name[1:-1])
+# None pos may lead to problems with error printing? Check if this is really necessary
 
 @ps.generate
 def KEY_VAL():

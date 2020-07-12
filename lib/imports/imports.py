@@ -4,7 +4,7 @@ from lib.imports.header_parser import parse_type
 import json
 from lib.datastructure.AST import FunUniq, AST
 from lib.datastructure.token import TOKEN
-from lib.datastructure.symbol_table import SymbolTable
+from lib.datastructure.symbol_table import ExternalTable
 from lib.analysis.error_handler import *
 
 from collections import OrderedDict
@@ -174,17 +174,7 @@ def getExternalSymbols(ast, headerfiles):
     ERROR_HANDLER.checkpoint()
 
     # Add the desired imports to a datastructure
-    ext_symbol_table = SymbolTable()
-    '''
-    {
-        # Effective identifier to dict with type, module and original identifier
-        'globals': OrderedDict(),
-        # Effective identifier to dict with type, module and original identifier
-        'typesyns': OrderedDict(),
-        # (FunUniq, Effective identifier) to list with (dict with type, module and original identifier)
-        'functions': OrderedDict()
-    }
-    '''
+    ext_symbol_table = ExternalTable()
 
     # Collect all imports for the same module and give warnings
     unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
@@ -211,9 +201,9 @@ def getExternalSymbols(ast, headerfiles):
         id_imports = list(filter(lambda x: x.name.typ == TOKEN.IDENTIFIER, all_cur_imports))
         op_imports = list(filter(lambda x: x.name.typ == TOKEN.OP_IDENTIFIER, all_cur_imports))
         type_imports = list(filter(lambda x: x.name.typ == TOKEN.TYPE_IDENTIFIER, all_cur_imports))
-        print("ALL ID:",id_imports)
-        print("ALL OP:",op_imports)
-        print("ALL TYPE:",type_imports)
+        #print("ALL ID:",id_imports)
+        #print("ALL OP:",op_imports)
+        #print("ALL TYPE:",type_imports)
 
         # Test for identifiers that are imported multiple times
         # Also, select the desired symbols and give error if they don't exist
@@ -224,8 +214,9 @@ def getExternalSymbols(ast, headerfiles):
         unique_op_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, op_imports)))
         unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
 
-        '''
-        for uq_id in unique_ids:
+        
+        for uq_id in unique_ids: # Globals and functions
+
             matching = list(filter(lambda x: x.name.val == uq_id, id_imports))
             if len(matching) > 1:
                 ERROR_HANDLER.addWarning(WARN.DuplicateIdSameModuleImport, [uq_id, modname, list(map(lambda x: x.name,matching))])
@@ -236,41 +227,83 @@ def getExternalSymbols(ast, headerfiles):
 
                 if match_orig in cur_symbols['globals'] or (FunUniq.FUNC, match_orig) in cur_symbols['functions']: # Try to import id that exists in the header
                     if match_orig in cur_symbols['globals']:
-                        print("Found global",match_orig)
+                        #print("Found global",match_orig)
                         found_global = cur_symbols['globals'][match_orig]
 
-                        if effective_id not in external_symbols['globals']: # New name for global
-                            external_symbols['globals'][effective_id] = {
+                        if effective_id not in ext_symbol_table.global_vars: # New name for global
+                            ext_symbol_table.global_vars[effective_id] = {
                                 'type': found_global,
                                 'module': modname,
                                 'orig_id': match_orig
                             }
                         else:
                             ERROR_HANDLER.addError(ERR.ClashImportGlobal, [effective_id, match.name if match.alias is None else match.alias])
+
                     if (FunUniq.FUNC, match_orig) in cur_symbols['functions']:
                         found_funcs = cur_symbols['functions'][(FunUniq.FUNC, match_orig)]
-                        print("Found_funcs",match_orig,found_funcs)
-                else:
-                    ERROR_HANDLER.addError(ERR.ImportIdentifierNotFound, [uq_id, modname, headerfiles[modname]['path']])
-        '''
+                        #print("Found_funcs",match_orig,found_funcs)
 
-        '''
-        for uq_op_id in unique_op_ids:
+                        add_entries = list(map(lambda x: {
+                                'type': x['type'],
+                                'module': modname,
+                                'orig_id': match_orig,
+                                'fixity': x['fixity']
+                            }, found_funcs))
+
+                        if (FunUniq.FUNC, effective_id) not in ext_symbol_table.functions: # New name for function (note that we can only forbid duplicates after type normalisation)
+                            ext_symbol_table.functions[(FunUniq.FUNC, effective_id)] = []
+
+                        ext_symbol_table.functions[(FunUniq.FUNC, effective_id)].extend(add_entries)
+
+                else:
+                    ERROR_HANDLER.addError(ERR.ImportIdentifierNotFound, [match_orig, modname, headerfiles[modname]['path']])
+
+
+        for uq_op_id in unique_op_ids: # Operators
+
             matching = list(filter(lambda x: x.name.val == uq_op_id, op_imports))
             if len(matching) > 1:
                 ERROR_HANDLER.addWarning(WARN.DuplicateOpSameModuleImport, [uq_op_id, modname, list(map(lambda x: x.name,matching))])
 
-            if (FunUniq.PREFIX, uq_op_id) in cur_symbols['functions']:
-                print("Found prefix",uq_op_id)
-                pass
-            elif (FunUniq.INFIX, uq_op_id) in cur_symbols['functions']:
-                print("Found infix",uq_op_id)
-                pass
-            else:
-                ERROR_HANDLER.addError(ERR.ImportOpIdentifierNotFound, [uq_op_id, modname, headerfiles[modname]['path']])
-        '''
-        '''
-        for uq_type_id in unique_type_ids:
+            for match in matching:
+                match_orig = match.name.val
+                effective_id = match.alias.val if match.alias is not None else match_orig
+
+                if (FunUniq.PREFIX, match_orig) in cur_symbols['functions']:
+                    found_prefix_ops = cur_symbols['functions'][(FunUniq.PREFIX, match_orig)]
+
+                    add_entries = list(map(lambda x: {
+                            'type': x['type'],
+                            'module': modname,
+                            'orig_id': match_orig,
+                            'fixity': x['fixity']
+                        }, found_prefix_ops))
+
+                    if (FunUniq.PREFIX, effective_id) not in ext_symbol_table.functions: # New name for prefix op (note that we can only forbid duplicates after type normalisation)
+                        ext_symbol_table.functions[(FunUniq.PREFIX, effective_id)] = []
+
+                    ext_symbol_table.functions[(FunUniq.PREFIX, effective_id)].extend(add_entries)
+
+                elif (FunUniq.INFIX, match_orig) in cur_symbols['functions']:
+                    found_infix_ops = cur_symbols['functions'][(FunUniq.INFIX, match_orig)]
+
+                    add_entries = list(map(lambda x: {
+                            'type': x['type'],
+                            'module': modname,
+                            'orig_id': match_orig,
+                            'fixity': x['fixity']
+                        }, found_infix_ops))
+
+                    if (FunUniq.INFIX, effective_id) not in ext_symbol_table.functions: # New name for infix op (note that we can only forbid duplicates after type normalisation)
+                        ext_symbol_table.functions[(FunUniq.INFIX, effective_id)] = []
+
+                    ext_symbol_table.functions[(FunUniq.INFIX, effective_id)].extend(add_entries)
+
+                else:
+                    ERROR_HANDLER.addError(ERR.ImportOpIdentifierNotFound, [match_orig, modname, headerfiles[modname]['path']])
+        
+        for uq_type_id in unique_type_ids: # Type synonyms
+
             matching = list(filter(lambda x: x.name.val == uq_type_id, type_imports))
             if len(matching) > 1:
                 ERROR_HANDLER.addWarning(WARN.DuplicateTypeSameModuleImport, [uq_type_id, modname, list(map(lambda x: x.name,matching))])
@@ -285,14 +318,15 @@ def getExternalSymbols(ast, headerfiles):
 
                     if effective_id not in ext_symbol_table.type_syns: # New name
                         ext_symbol_table.type_syns[effective_id] = {
-                            'type': found,
+                            'def_type': found,
                             'module': modname,
                             'orig_id': match_orig
                         }
                     else:
                         ERROR_HANDLER.addError(ERR.ClashImportType, [effective_id, match.name if match.alias is None else match.alias])
                 else:
-                    ERROR_HANDLER.addError(ERR.ImportTypeSynNotFound, [uq_type_id, modname, headerfiles[modname]['path']])
-        #'''
+                    ERROR_HANDLER.addError(ERR.ImportTypeSynNotFound, [match_orig, modname, headerfiles[modname]['path']])
 
         ERROR_HANDLER.checkpoint()
+
+    return ext_symbol_table

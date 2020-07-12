@@ -258,10 +258,6 @@ class AST:
     # scope = local or argument.
     RES_NONGLOBAL = syntaxnode("RES_NONGLOBAL", "scope", "id", "fields")
 
-    # module :: string of module name ("builtins" reserved), orig_id :: string
-    EXTERNAL = syntaxnode("EXTERNAL", "module", "orig_id", "effective_id")
-
-
     # Typed nodes =====================================================================
 
     # oid = Overloaded id
@@ -298,7 +294,6 @@ class AST:
         RES_VARREF,
         RES_GLOBAL,
         RES_NONGLOBAL,
-        EXTERNAL,
         TYPED_FUNCALL
     ]
 

@@ -220,7 +220,7 @@ def buildFuncEntry(val):
 #TODO: We don't check for redefinition attempts of builtin functions or ops
 #TODO: Check if a main with signature -> Int was defined.
 
-def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
+def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
     symbol_table = SymbolTable()
 
     # Add builtin functions to symbol table:
@@ -828,6 +828,13 @@ g (x) {
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             a = getExternalSymbols(x, headerfiles)
             print("External symbols:",a)
+            print()
+            builtin_funcs = generateBuiltinFuncs()
+            for k,vs in builtin_funcs.items():
+                print(k)
+                for v in vs:
+                    print(v)
+            print()
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])

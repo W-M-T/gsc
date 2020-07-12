@@ -48,6 +48,18 @@
         "TYPE(val=BASICTYPE(type_id=\"Int\"))"
       ],
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "double_id"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ],
   "globals": [
@@ -58,6 +70,10 @@
     [
       "nothere",
       "TYPE(val=\"Coord\")"
+    ],
+    [
+      "double_id",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ],
   "typesyns": [

@@ -19,3 +19,10 @@ prefix ++ (x) :: Int -> Int {
 infixl 4 -- (a,b) :: Int Int -> Int {
     return b;
 }
+
+
+Int double_id = 2;
+
+double_id(x) :: Int -> Int {
+	return double_id;
+} 
