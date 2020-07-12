@@ -191,7 +191,7 @@ def forbid_illegal_types(symbol_table):
             temp_to_type = match['type'].to_type
             if not (temp_from_types == [] and temp_to_type is not None and type(temp_to_type.val) == AST.BASICTYPE and temp_to_type.val.type_id.val == "Int"):
                 ERROR_HANDLER.addError(ERR.WrongMainType, [match['type']])
-                
+
     ERROR_HANDLER.checkpoint()
 
 '''
@@ -577,6 +577,14 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 '''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
 def analyseFunc(ast):
     treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
+    ERROR_HANDLER.checkpoint()
+
+'''
+def analyseFunc(symbol_table):
+    for (uniq, fun_id), decl_list in symbol_table.functions.items():
+        for fundecl in decl_list:
+            analyseFuncStmts(fundecl['def'], fundecl['def'].stmts)
+'''
 
 '''
 symbol table bevat:
@@ -716,6 +724,8 @@ g (x) {
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])
             forbid_illegal_types(symbol_table)
+            #analyseFunc(x)
+            #normalizeAllTypes(symbol_table)
 
             header_json = export_headers(symbol_table)
 
