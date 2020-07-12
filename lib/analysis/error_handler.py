@@ -83,7 +83,7 @@ class ERR(IntEnum):
     ImportTypeClashBuiltin = 61
     MultipleMain = 62
     WrongMainType = 63
-
+    UndefinedTypeId = 64
 
 
 ERRMSG = {
@@ -149,7 +149,8 @@ ERRMSG = {
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
     ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
     ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
-    ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}'
+    ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}',
+    ERR.UndefinedTypeId: 'Type identifier "{}" is not defined',
 }
 
 class WARN(IntEnum):
@@ -170,8 +171,8 @@ WARNMSG = {
     WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed',
     WARN.ShadowTypeOtherModule: 'Shadowing type synonym "{}" from module "{}"',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
-    WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
-    WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',
+    WARN.UnreachableStmtBranches: 'Statement(s) can never be reached because all preceding branches return.\n{}',
+    WARN.UnreachableStmtContBreak: 'Statement(s) can never be reached because of a continue or break statement\n{}',
     WARN.UnreachableStmtReturn: 'Statement(s) can never be reached because of a return\n{}',
     WARN.MultiKindImport: 'Both importall and other imports defined for module "{}":\n{}',
     WARN.DuplicateIdSameModuleImport: 'Multiple imports for the same identifier "{}" from module "{}":\n{}',
