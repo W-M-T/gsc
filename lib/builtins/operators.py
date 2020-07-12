@@ -19,10 +19,10 @@ BUILTIN_INFIX_OPS = {
     "||": (["Bool Bool -> Bool"], 2, FunKind.INFIXL, "OR")
 }
 
-BUILTIN_PREFIX_OPS = [
-    ("!", "Bool -> Bool", "NOT"),
-    ("-", "Int -> Int", "NEG"),
-]
+BUILTIN_PREFIX_OPS = {
+    "!": ("Bool -> Bool", "NOT"),
+    "-": ("Int -> Int", "NEG"),
+}
 
 ILLEGAL_OP_IDENTIFIERS = [
     "->",

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.datastructure.token import Token, TOKEN
+from lib.datastructure.token import TOKEN
 from lib.datastructure.AST import *
 from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
@@ -11,11 +11,13 @@ def generate_expr(expr, module_name, mappings):
         if expr.typ is TOKEN.INT:
             return ['LDC ' + str(expr.val) if expr.val != 0 else "LDC 00"]
         elif expr.typ is TOKEN.CHAR:
-            return ['LDC ' + str(ord(expr.val[1:-1]))]
+            return ['LDC ' + str(ord(expr.val))]
         elif expr.typ is TOKEN.BOOL:
             return ['LDC -1'] if expr.val else ['LDC 00']
         else:
             raise Exception("Unknown type")
+    elif type(expr) is AST.PARSEDEXPR:
+        return generate_expr(expr.val, module_name, mappings)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) == AST.RES_GLOBAL:
             res = []
@@ -41,17 +43,20 @@ def generate_expr(expr, module_name, mappings):
         res = []
 
         for a in expr.args:
+            print(a)
             res.extend(generate_expr(a, module_name, mappings))
 
         module = expr.module if expr.module is not None else module_name
 
         if expr.module == 'builtins':
             if expr.uniq == FunUniq.FUNC:
-                res.append("TRAP 00")
+                print(expr.id.val)
+                print(expr.oid)
+                res.extend(BUILTIN_FUNCTIONS[expr.id.val][expr.oid][1])
             elif expr.uniq == FunUniq.INFIX:
                 res.append(BUILTIN_INFIX_OPS[expr.id.val][3])
             else:
-                res.append(BUILTIN_PREFIX_OPS[expr.id.val][2])
+                res.append(BUILTIN_PREFIX_OPS[expr.id.val][1])
         else:
             if expr.uniq == FunUniq.FUNC:
                 code_id = expr.id.val
@@ -74,41 +79,53 @@ def generate_expr(expr, module_name, mappings):
         print(type(expr))
         raise Exception("Unknown expression type encountered")
 
-def generate_stmts(stmts, label, module_name, mappings, index = 0):
+def generate_ret(stmt, code, module_name, mappings, label):
+    if stmt.val.expr is not None:
+        code.extend(generate_expr(stmt.val.expr, module_name, mappings))
+        code.append('STR RR')
+    code.append('BRA ' + label + '_exit')
 
-    labels = []
+    return code
+
+def generate_actstmt(stmt, code, module_name, mappings, label):
+    if type(stmt.val) == AST.TYPED_FUNCALL:
+        print(stmt.val)
+        code.extend(generate_expr(stmt.val, module_name, mappings))
+    else:
+        code.extend(generate_expr(stmt.val.expr, module_name, mappings))
+        if type(stmt.val.varref.val) is AST.RES_NONGLOBAL:
+            if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val])
+            else:
+                code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val])
+        else:
+            key = module_name + '_global_' + stmt.val.varref.val.id.val
+            code.extend(['LDC ' + key, 'STA 00'])
+
+    return code
+
+def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = None):
     code = []
-    loop_ctr = 0
 
     for stmt in stmts:
         if type(stmt.val) == AST.RETURN:
-            if stmt.val.expr is not None:
-                code.extend(generate_expr(stmt.val.expr, module_name, mappings))
-                code.append('STR RR')
-                code.append('BRA ' + label + '_exit')
+            code = generate_ret(stmt, code, module_name, mappings, label)
             break
+        elif type(stmt.val) == AST.BREAK:
+            code.append("BRA " + loop_label + "_exit")
+        elif type(stmt.val) == AST.CONTINUE:
+            code.append("BRA " + loop_label + "_update")
         elif type(stmt.val) == AST.ACTSTMT:
-            if type(stmt.val.val) == AST.TYPED_FUNCALL:
-                code.extend(generate_expr(stmt.val.val, module_name, mappings))
-            else:
-                if type(stmt.val.val.varref.val) is AST.RES_NONGLOBAL:
-                    if stmt.val.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                        code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
-                        code.append('STL ' + mappings['vars'][stmt.val.val.varref.val.id.val])
-                    else:
-                        code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
-                        code.append('STL ' + mappings['vars'][stmt.val.val.varref.val.id.val])
-                else:
-                    code.extend(generate_expr(stmt.val.val.expr, module_name, mappings))
-                    key = module_name + '_global_' + stmt.val.val.varref.val.id.val
-                    code.extend(['LDC ' + key, 'STA 00'])
+            print(stmt.val)
+            code = generate_actstmt(stmt.val, code, module_name, mappings, label)
         elif type(stmt.val) == AST.IFELSE:
-            stmts = []
+            branch_stmts = []
             indices = []
             i = 1
-            start_index = index
+
             for b in stmt.val.condbranches:
                 index += 1
+                indices.append(index)
 
                 if b.expr is not None:
                     code.extend(generate_expr(b.expr, module_name, mappings))
@@ -116,30 +133,48 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0):
                 else:
                     code.append("BRA " + label + "_" + str(index))
 
-                branch_stmts, index = generate_stmts(b.stmts, label, module_name, mappings, index)
+                branch_stmt, index = generate_stmts(b.stmts, label, module_name, mappings, index, loop_label)
 
                 if i == len(stmt.val.condbranches) and b.expr is not None:
-                    code.append("BRA " + label + "_" + str(index))
+                    code.append("BRA " + label + "_" + str(index + 1))
 
-                indices.append(index - start_index + loop_ctr)
-                stmts.extend(branch_stmts)
+                branch_stmts.append(branch_stmt)
                 i += 1
 
-            labels.append(code)
-            labels.extend(stmts)
-
             index += 1
-            for i in indices:
-                labels[i].append("BRA " + label + "_" + str(index))
+            i = 0
+            for b in branch_stmts:
+                print(b[-1])
+                if not b[-1].endswith("_exit"):
+                    b.append("BRA " + label + "_" + str(index))
+                b[0] = label + '_' + str(indices[i]) + ': ' + b[0]
+                code.extend(b)
+                i += 1
+            # TODO: This is also generated if all branches return, which is kinda ugly.
+            code.append(label + "_" + str(index) + ": nop")
 
-            code = []
-            loop_ctr = index
+        elif type(stmt.val) == AST.LOOP:
+            if stmt.val.init is not None:
+                generate_actstmt(stmt.val.init, code, module_name, mappings, label)
+            index += 1
+            start_index = index
+            loop_label = label + "_" + str(index)
+            code.append(loop_label + ": nop")
+            if stmt.val.cond is not None:
+                cond = generate_expr(stmt.val.cond, module_name, mappings)
+                code.extend(cond)
+                code.append("BRF " + label + "_" + str(start_index) + "_exit")
+            print("Statements")
+            print(stmt.val.stmts)
+            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, mappings, index, loop_label)
+            code.extend(branch_stmt)
+            code.append(label + "_" + str(start_index) + "_update: nop")
+            if stmt.val.update is not None:
+                generate_actstmt(stmt.val.update, code, module_name, mappings, label)
+            code.append('BRA ' + label + '_' + str(start_index))
+            code.append(label + '_' + str(start_index) + '_exit: nop')
 
-    labels.append(code)
-
-    print(labels)
-
-    return labels, index
+    return code, index
 
 def generate_func(func, symbol_table, module_name, label, mappings):
     print("generating func:",func['def'].id.val)
@@ -160,20 +195,7 @@ def generate_func(func, symbol_table, module_name, label, mappings):
         code.extend(generate_expr(vardecl.expr, module_name, mappings))
 
     stmts_code, _ = generate_stmts(func['def'].stmts, label, module_name, mappings)
-
-    i = 0
-    for c in stmts_code:
-        if i == 0:
-            code.extend(c)
-        else:
-            if len(c) > 0:
-                c[0] = label + '_' + str(i) + ': ' + c[0]
-                code.extend(c)
-            else:
-                # TODO: This is kinda dangerous, just replaces every empty label with a nop
-                code.append(label + '_' + str(i) + ': nop')
-
-        i += 1
+    code.extend(stmts_code)
 
     code.append(label + '_exit: UNLINK')
     code.append('RET')
@@ -248,10 +270,10 @@ def generate_object_file(symbol_table, module_name):
             function_code[key] = generate_func(of, symbol_table, module_name, key, mappings)
             o += 1
 
-    for b in BUILTIN_FUNCTIONS:
+    for f, b in BUILTIN_FUNCTIONS.items():
         i = 0
-        for o in b[1]:
-            key = 'builtins_func_' + b[0] + '_' + str(i)
+        for o in b:
+            key = 'builtins_func_' + f + '_' + str(i)
             function_code[key] = o[1]
             i += 1
 

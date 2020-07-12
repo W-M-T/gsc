@@ -29,12 +29,21 @@ def main():
     else:
         from io import StringIO
 
-        module_name = "control-stmt"
+        module_name = "return-test"
         testprog = StringIO('''
+            f(x) :: Int -> Void {
+                print(x);
+                return;
+            }
+        
+            f(x) :: Char -> Void {
+                print(x);
+                return;
+            }
+        
             main() :: -> Int {
-                print(5);
-                
-                return 5;
+                f(5);
+                f('😀');
             }
         ''')
 

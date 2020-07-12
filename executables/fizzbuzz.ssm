@@ -1,0 +1,109 @@
+// DEPENDENCIES:
+// INIT SECTION
+
+// ENTRYPOINT
+BRA main
+// GLOBAL SECTION
+// FUNCTION SECTION
+builtins_func_isEmpty_0: nop
+builtins_func_print_2: TRAP 00
+builtins_func_read_1: TRAP 11
+builtins_func_isEmpty_2: nop
+builtins_func_print_0: TRAP 00
+control-stmt_func_main_0: LINK 00
+LDC 1
+control-stmt_func_main_0_1: nop
+LDL 1
+LDC 20
+LT
+BRF control-stmt_func_main_0_1_exit
+LDL 1
+LDC 5
+MOD
+LDC 00
+EQ
+LDL 1
+LDC 3
+MOD
+LDC 00
+EQ
+AND
+BRT control-stmt_func_main_0_2
+LDL 1
+LDC 3
+MOD
+LDC 00
+EQ
+BRT control-stmt_func_main_0_3
+LDL 1
+LDC 5
+MOD
+LDC 00
+EQ
+BRT control-stmt_func_main_0_4
+BRA control-stmt_func_main_0_5
+control-stmt_func_main_0_2: LDC 102
+TRAP 1
+LDC 105
+TRAP 1
+LDC 122
+TRAP 1
+LDC 122
+TRAP 1
+LDC 98
+TRAP 1
+LDC 117
+TRAP 1
+LDC 122
+TRAP 1
+LDC 122
+TRAP 1
+LDC 10
+TRAP 1
+BRA control-stmt_func_main_0_6
+control-stmt_func_main_0_3: LDC 102
+TRAP 1
+LDC 105
+TRAP 1
+LDC 122
+TRAP 1
+LDC 122
+TRAP 1
+LDC 10
+TRAP 1
+BRA control-stmt_func_main_0_6
+control-stmt_func_main_0_4: LDC 98
+TRAP 1
+LDC 117
+TRAP 1
+LDC 122
+TRAP 1
+LDC 122
+TRAP 1
+LDC 10
+TRAP 1
+BRA control-stmt_func_main_0_6
+control-stmt_func_main_0_5: LDL 1
+TRAP 00
+LDC 10
+TRAP 1
+BRA control-stmt_func_main_0_6
+control-stmt_func_main_0_6: nop
+LDL 1
+LDC 1
+ADD
+STL 1
+BRA control-stmt_func_main_0_1
+control-stmt_func_main_0_1_exit: nop
+LDC 00
+STR RR
+BRA control-stmt_func_main_0_exit
+control-stmt_func_main_0_exit: UNLINK
+RET
+builtins_func_print_1: TRAP 1
+builtins_func_isEmpty_1: nop
+builtins_func_read_0: TRAP 10
+// MAIN
+main: BSR control-stmt_func_main_0
+LDR RR
+TRAP 00

@@ -458,10 +458,10 @@ def abstractToConcreteType(abstract_type):
 def generateBuiltinFuncs():
 
     builtin_functions = {}
-    for f in BUILTIN_FUNCTIONS:
-        builtin_functions[f[0]] = []
+    for f, v in BUILTIN_FUNCTIONS.items():
+        builtin_functions[f] = []
 
-        for o in f[1]:
+        for o in v:
             vals = o[0].split()
             if vals[0] == '->':
                 from_types = []
@@ -470,7 +470,7 @@ def generateBuiltinFuncs():
                 from_types = abstractToConcreteType(vals[0])
                 to_type = abstractToConcreteType(vals[2])
 
-            builtin_functions[f[0]].append(
+            builtin_functions[f].append(
                 AST.FUNTYPE(
                     from_types=[] if len(from_types) == 0 else [AST.TYPE(val=from_types[0])],
                     to_type=AST.TYPE(val=to_type[0])
@@ -516,15 +516,15 @@ def buildOperatorTable():
                                     )
                                 )
 
-    for o in BUILTIN_PREFIX_OPS:
-        op_table['prefix_ops'][o[0]] = []
-        in_type, _, out_type = o[1].split()
+    for o, v in BUILTIN_PREFIX_OPS.items():
+        op_table['prefix_ops'][o] = []
+        in_type, _, out_type = v[0].split()
         in_type_node = abstractToConcreteType(in_type)
         out_type_node = abstractToConcreteType(out_type)
 
         for in_t in in_type_node:
             for out_t in out_type_node:
-                op_table['prefix_ops'][o[0]].append(
+                op_table['prefix_ops'][o].append(
                     (
                         AST.FUNTYPE(
                             from_types=[in_t],

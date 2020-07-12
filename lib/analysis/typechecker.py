@@ -108,8 +108,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                     raise Exception("Unknown accessor encountered: %s " % str(field))
 
             if not AST.equalVals(typ, exp_type):
-                print("HERE")
-                print(noErrors)
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False, expr
@@ -190,18 +188,27 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
 
                 i += 1
 
-            if alternatives == 0 and not noErrors:
-                # There is no alternative of this operator which has the expected output type
-                ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
-                return True, expr
-            if match is None and not noErrors:
-                # There is no alternative of this operator which has the expected input types.
-                ERROR_HANDLER.addError(ERR.UnsupportedOperandType,
-                                       [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
-                return True, expr
+            if alternatives == 0:
+                if not noErrors:
+                    # There is no alternative of this operator which has the expected output type
+                    ERROR_HANDLER.addError(ERR.IncompatibleTypes, [subprint_type(exp_type), expr.fun])
+                    return True, expr
+                else:
+                    return False, expr
+            if match is None:
+                if not noErrors:
+                    # There is no alternative of this operator which has the expected input types.
+                    ERROR_HANDLER.addError(ERR.UnsupportedOperandType,
+                                           [expr.fun.val, incorrect, subprint_type(exp_type), expr.fun])
+                    return True, expr
+                else:
+                    return False, expr
             elif match is not None and func is None and match[1] is False:
-                ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
-                return True, expr
+                if not noErrors:
+                    ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.fun])
+                    return True, expr
+                else:
+                    return False, expr
 
             return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunUniq.INFIX, args=[arg1, arg2], oid=match, module=module)
         else:
@@ -215,8 +222,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 return True, expr
 
             # Builtin functions
-
-            print("Builtin check")
 
             if expr.id.val in builtin_funcs:
                 out_type_matches = []
@@ -236,19 +241,19 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                     if len(o[1].from_types) == len(expr.args):
                         input_matches = 0
 
-                        print(o[1].from_types)
                         for i in range(len(o[1].from_types)):
-                            print("TEST")
                             typ, arg_res = typecheck(expr.args[i], o[1].from_types[i].val, symbol_table, op_table, builtin_funcs, func, r, True)
+                            print("ARGRES")
+                            print(arg_res)
                             args.append(arg_res)
                             if typ:
                                 input_matches += 1
 
                         if input_matches == len(expr.args):
-                            print("MATCH")
-                            print(o)
                             func_matches += 1
                             match = o
+                            print("MATCH, settings args")
+                            print(args)
                             match_args = args
 
                 if match is not None:
@@ -272,7 +277,6 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
             match = None
             match_args = []
             for o in out_type_matches:
-                identifier = (FunKindToUniq(o[1]['def'].kind), o[1]['def'].id.val)
                 args = []
 
                 # TODO: You can make better errors for this
@@ -297,7 +301,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                     ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
                 return False, expr
             elif func_matches > 1 and exp_type is None:
-                ERROR_HANDLER.addError(ERR.AmbiguousFunCall , [expr.id.val, expr.id])
+                ERROR_HANDLER.addError(ERR.AmbiguousFunCall, [expr.id.val, expr.id])
                 return False
             elif func_matches > 1:
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
@@ -317,6 +321,46 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
     else:
         raise Exception('Unknown type of expression encountered in typechecking')
 
+def getSubType(typ, fields, varref):
+    while len(fields) > 0:
+        field = fields.pop()
+        if field == Accessor.FST or field == Accessor.SND:
+            if type(typ) is AST.TUPLETYPE:
+                if field == Accessor.FST:
+                    typ = typ.a.val
+                else:
+                    typ = typ.b.val
+            else:
+                ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [varref])
+        elif field == Accessor.HD or field == Accessor.SND:
+            if type(typ) is AST.LISTTYPE:
+                typ = typ.type.val
+            else:
+                ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [varref])
+        else:
+            raise Exception("Unknown accessor encountered: %s " + field)
+
+    return typ
+
+def typecheck_actstmt(stmt, symbol_table, op_table, builtin_funcs, func):
+    typ = None
+    if hasattr(stmt.val, 'varref'):
+        if type(stmt.val.varref.val) == AST.RES_NONGLOBAL:
+            if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                typ = func['local_vars'][stmt.val.varref.val.id.val].type.val
+            else:
+                typ = func['arg_vars'][stmt.val.varref.val.id.val]['type'].val
+        else:
+            typ = symbol_table.global_vars[stmt.val.varref.val.id.val].type.val
+
+    if type(stmt.val) == AST.ASSIGNMENT:
+        fields = list(reversed(stmt.val.varref.val.fields))
+        typ = getSubType(typ, fields, stmt.val.varref)
+
+        _, stmt.val.expr = typecheck(stmt.val.expr, typ, symbol_table, op_table, builtin_funcs, func)
+    else:
+        _, stmt.val = typecheck(stmt.val, typ, symbol_table, op_table, builtin_funcs, func)
+
 def typecheck_stmts(func, symbol_table, op_table, builtin_funcs):
     for vardecl in func['def'].vardecls:
         _, vardecl.expr = typecheck(vardecl.expr, vardecl.type.val, symbol_table, op_table, builtin_funcs, func)
@@ -326,51 +370,23 @@ def typecheck_stmts(func, symbol_table, op_table, builtin_funcs):
     while len(stmts) > 0:
         stmt = stmts.pop()
         if type(stmt.val) == AST.ACTSTMT:
-            typ = None
-            if hasattr(stmt.val.val, 'varref'):
-                if type(stmt.val.val.varref.val) == AST.RES_NONGLOBAL:
-                    if stmt.val.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                        typ = func['local_vars'][stmt.val.val.varref.val.id.val].type.val
-                    else:
-                        typ = func['arg_vars'][stmt.val.val.varref.val.id.val]['type'].val
-                else:
-                    typ = symbol_table.global_vars[stmt.val.val.varref.val.id.val].type.val
-
-            if type(stmt.val.val) == AST.ASSIGNMENT:
-                fields = list(reversed(stmt.val.val.varref.val.fields))
-                while len(fields) > 0:
-                    field = fields.pop()
-                    if field == Accessor.FST or field == Accessor.SND:
-                        if type(typ) is AST.TUPLETYPE:
-                            if field == Accessor.FST:
-                                typ = typ.a.val
-                            else:
-                                typ = typ.b.val
-                        else:
-                            ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [stmt.val.val.varref])
-                    elif field == Accessor.HD or field == Accessor.SND:
-                        if type(typ) is AST.LISTTYPE:
-                            typ = typ.type.val
-                        else:
-                            ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [stmt.val.val.varref])
-                    else:
-                        raise Exception("Unknown accessor encountered: %s " + field)
-
-                _, stmt.val.val.expr = typecheck(stmt.val.val.expr, typ, symbol_table, op_table, builtin_funcs, func)
-            else:
-                _, stmt.val.val = typecheck(stmt.val.val, typ, symbol_table, op_table, builtin_funcs, func)
-
+            typecheck_actstmt(stmt.val, symbol_table, op_table, builtin_funcs, func)
         elif type(stmt.val) == AST.IFELSE:
             for b in stmt.val.condbranches:
                 if b.expr is not None:
                     _, b.expr = typecheck(b.expr, ast_boolnode, symbol_table, op_table, builtin_funcs, func)
                 stmts.extend(list(reversed(b.stmts)))
         elif type(stmt.val) == AST.LOOP:
-            _, stmt.val.cond = typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, builtin_funcs, func)
+            if stmt.val.cond is not None:
+                _, stmt.val.cond = typecheck(stmt.val.cond, ast_boolnode, symbol_table, op_table, builtin_funcs, func)
+            if stmt.val.init is not None:
+                typecheck_actstmt(stmt.val.init, symbol_table, op_table, builtin_funcs, func)
+            if stmt.val.update is not None:
+                typecheck_actstmt(stmt.val.update, symbol_table, op_table, builtin_funcs, func)
             stmts.extend(list(reversed(stmt.val.stmts)))
         elif type(stmt.val) == AST.RETURN:
-            _, stmt.val.expr = typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, builtin_funcs, func)
-            pass
+            if stmt.val.expr is not None:
+                _, stmt.val.expr = typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, op_table, builtin_funcs, func)
 
 def typecheck_functions(symbol_table, op_table, builtin_funcs):
     for f in symbol_table.functions:
