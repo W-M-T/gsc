@@ -10,6 +10,8 @@ sys.path.insert(0, os.path.join(sys.path[0],'../../'))
 from lib.datastructure.token import TOKEN, Token
 from lib.datastructure.position import Position
 from lib.util.util import pointToLine
+
+import codecs
 '''
 TODO
 Refactor tokenize along repeating pattern to improve readability
@@ -156,8 +158,9 @@ def prefix_val_literal(string): # TODO improve this code
     tempmatch = REG_CHR.match(string)
     if tempmatch:
         found_id = tempmatch.group(0)
+        conv_char = codecs.getdecoder("unicode_escape")(found_id)[0][1:-1]
         rest = string[len(found_id):]
-        return (True, rest, TOKEN.CHAR, found_id)
+        return (True, rest, TOKEN.CHAR, conv_char)
     return (False, None, None, None)
 
 def prefix_accessor(string):
