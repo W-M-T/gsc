@@ -379,7 +379,6 @@ def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_lo
     return assignment
 
 # TODO: Really check if all expression types are handled correctly here.
-
 '''
 Resolve an expression with the following globals in scope
 Functions are always in scope
@@ -440,7 +439,7 @@ def parseAtom(exp, ext_table, exp_index):
 
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
-        return res, exp_index + 1
+        return AST.PARSEDEXPR(val=res), exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         sub_expr, _ = parseExpression(exp[exp_index].contents, ext_table)
         return AST.PARSEDEXPR(val=sub_expr), exp_index + 1
@@ -449,8 +448,8 @@ def parseAtom(exp, ext_table, exp_index):
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
         sub_expr, _ = parseExpression(prefix.args, ext_table)
-        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
+        return AST.FUNCALL(id=prefix.id, kind=2, args=[sub_expr]), exp_index + 1
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.FUNC: # Function call
         func_args = []
         funcall = exp[exp_index]
         if funcall.args is not None:
@@ -461,6 +460,7 @@ def parseAtom(exp, ext_table, exp_index):
     else:
         raise Exception("Unexpected token encountered while parsing atomic value in expression.")
 
+# TODO: Add custom operators
 ''' Parse expressions by performing precedence climbing algorithm. '''
 def parseExpression(exp, ext_table, min_precedence = 1, exp_index = 0):
     result, exp_index = parseAtom(exp, ext_table, exp_index)
@@ -484,8 +484,6 @@ def parseExpression(exp, ext_table, min_precedence = 1, exp_index = 0):
 
     return result, exp_index
 
-
-# TODO this depends on the old implementation of op table that didn't have external symbols
 ''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, op_table):
     decorated_ast = treemap(ast,
