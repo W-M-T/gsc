@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+ENTRYPOINT_FUNCNAME = "main"
+
 BUILTIN_FUNCTIONS = {
     "print":
         [

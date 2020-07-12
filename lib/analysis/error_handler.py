@@ -6,6 +6,7 @@ from lib.datastructure.token import Token
 from lib.datastructure.AST import AST
 from lib.util.util import pointToPosition
 from lib.parser.lexer import REG_FIL
+from lib.builtins.functions import ENTRYPOINT_FUNCNAME
 
 class ERRCOLOR:
     WARNING = '\033[33m'
@@ -80,6 +81,8 @@ class ERR(IntEnum):
     CompModuleFileNameRegex = 60
     # Builtin clashes
     ImportTypeClashBuiltin = 61
+    MultipleMain = 62
+    WrongMainType = 63
 
 
 
@@ -145,6 +148,8 @@ ERRMSG = {
     ERR.CompInvalidArguments: 'Invalid arguments:\n{}',
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
     ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
+    ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
+    ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}'
 }
 
 class WARN(IntEnum):

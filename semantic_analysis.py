@@ -8,6 +8,7 @@ from lib.datastructure.symbol_table import SymbolTable, ExternalTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
 from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE
+from lib.builtins.functions import ENTRYPOINT_FUNCNAME
 from lib.builtins.builtin_mod import enrichExternalTable, BUILTINS_NAME
 
 from lib.util.util import treemap, selectiveApply
@@ -19,8 +20,6 @@ from lib.debug.AST_prettyprinter import print_node, subprint_type
 import os
 from enum import IntEnum
 from collections import OrderedDict
-
-ENTRYPOINT_FUNCNAME = "main"
 
 
 '''
@@ -115,7 +114,8 @@ def normalizeAllTypes(symbol_table): # TODO clean this up and add proper error h
 '''
 Give an error for types containing Void in their input, or Void as a non-base type in the output
 Also produce an error for undefined types (should probably be a separate function)
-Not necessary for types to have been normalised yet, since type syns are checked for void before anything else
+It is not necessary for types to be normalised yet, since type syns are checked for void before anything else
+Also forbid multiple instances of main and require it to be of type "-> Int" (maybe should be a function called on the symbol table after normalisation?)
 '''
 def forbid_illegal_types(symbol_table):
     # Require type syns to not contain Void
@@ -181,6 +181,17 @@ def forbid_illegal_types(symbol_table):
                             ERROR_HANDLER.addError(ERR.LocalVarVoid, [local_var.id.val, fun['def'].id.val, node.val])
                         return node
                     treemap(local_var, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
+
+    # Check if main exists at most once, and with type "-> Int"
+    if (FunUniq.FUNC, ENTRYPOINT_FUNCNAME) in symbol_table.functions:
+        if len(symbol_table.functions[(FunUniq.FUNC, ENTRYPOINT_FUNCNAME)]) > 1:
+            ERROR_HANDLER.addError(ERR.MultipleMain, [])
+        for match in symbol_table.functions[(FunUniq.FUNC, ENTRYPOINT_FUNCNAME)]:
+            temp_from_types = match['type'].from_types
+            temp_to_type = match['type'].to_type
+            if not (temp_from_types == [] and temp_to_type is not None and type(temp_to_type.val) == AST.BASICTYPE and temp_to_type.val.type_id.val == "Int"):
+                ERROR_HANDLER.addError(ERR.WrongMainType, [match['type']])
+                
     ERROR_HANDLER.checkpoint()
 
 '''
@@ -718,6 +729,8 @@ g (x) {
                 print("{}: {}".format(e.__class__.__name__,str(e)))
             exit()
 
+
+        '''
         import_headers(export_headers(symbol_table))
         exit()
         forbid_illegal_types(symbol_table)
@@ -729,5 +742,6 @@ g (x) {
         resolveNames(symbol_table)
         exit()
         analyse(x, args.infile)
+        '''
 
         print("DONE")
