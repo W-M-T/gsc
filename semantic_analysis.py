@@ -291,7 +291,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
 
             if type_id in ext_symbol_table.type_syns:
                 if ext_symbol_table.type_syns[type_id]['module'] == BUILTINS_NAME:
-                    # Type identifier is reserved (built in typesyn)
+                    # Type identifier is reserved (builtin typesyn)
                     ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
             elif type_id in BUILTIN_TYPES:
                 # Type identifier is reserved (basic type)

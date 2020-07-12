@@ -9,6 +9,7 @@ from lib.datastructure.token import TOKEN, Token
 import parsec as ps
 from lib.datastructure.AST import AST, FunKind, Accessor
 from lib.debug.AST_prettyprinter import flatten, printAST
+from lib.parser.parse_error_handler import ParseError
 
 
 @ps.generate
@@ -404,7 +405,12 @@ def ActStmt():
 
 
 def parseTokenStream(instream, infile):
-    return SPL.parse_strict(list(instream), infile)
+    try:
+        ast = SPL.parse_strict(list(instream), infile)
+    except ParseError as e:
+        print(e, file=sys.stderr)
+        exit()
+    return ast
 
 prefixtest = '''
 
