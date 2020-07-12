@@ -5,7 +5,7 @@ from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import AST, FunKind, FunKindToUniq, FunUniq, Accessor
 from lib.datastructure.scope import NONGLOBALSCOPE
 
-from lib.debug.AST_prettyprinter import subprint_type, print_node
+from lib.debug.AST_prettyprinter import subprint_type
 
 from lib.analysis.error_handler import ERR, ERROR_HANDLER
 
@@ -57,23 +57,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
             typ = symbol_table.global_vars[expr.val.id.val].type.val
 
             fields = list(reversed(expr.val.fields))
-            while len(fields) > 0:
-                field = fields.pop()
-                if field == Accessor.FST or field == Accessor.SND:
-                    if type(typ) is AST.TUPLETYPE:
-                        if field == Accessor.FST:
-                            typ = typ.a.val
-                        else:
-                            typ = typ.b.val
-                    else:
-                        ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [expr])
-                elif field == Accessor.HD or field == Accessor.TL:
-                    if type(typ) is AST.LISTTYPE:
-                        typ = typ.type.val
-                    else:
-                        ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [expr])
-                else:
-                    raise Exception("Unknown accessor encountered: %s " % str(field))
+            typ = getSubType(typ, fields, expr)
 
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
@@ -89,23 +73,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 typ = func['arg_vars'][expr.val.id.val]['type'].val
 
             fields = list(reversed(expr.val.fields))
-            while len(fields) > 0:
-                field = fields.pop()
-                if field == Accessor.FST or field == Accessor.SND:
-                    if type(typ) is AST.TUPLETYPE:
-                        if field == Accessor.FST:
-                            typ = typ.a.val
-                        else:
-                            typ = typ.b.val
-                    else:
-                        ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [expr])
-                elif field == Accessor.HD or field == Accessor.TL:
-                    if type(typ) is AST.LISTTYPE:
-                        typ = typ.type.val
-                    else:
-                        ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [expr])
-                else:
-                    raise Exception("Unknown accessor encountered: %s " % str(field))
+            typ = getSubType(typ, fields, expr)
 
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
