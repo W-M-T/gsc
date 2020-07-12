@@ -16,7 +16,7 @@ globals:
 
 functions:
     gewone: (uniq, id) naar lijst. lijst van dicts ("type", "def", "arg_vars", "local_vars")
-    extern: (uniq, id) naar lijst. lijst van dicts ("type", "module", "orig_id", "fixity")
+    extern: (uniq, id) naar lijst. lijst van dicts ("type", "module", "orig_id", "fixity", "kind")
 
 '''
 

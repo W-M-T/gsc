@@ -3,9 +3,11 @@
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS, ILLEGAL_OP_IDENTIFIERS
 from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES
-from lib.datastructure.AST import AST
+from lib.datastructure.AST import AST, FunUniq, FunKind
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.position import Position
+
+from lib.datastructure.symbol_table import ExternalTable
 
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
@@ -25,13 +27,12 @@ def abstractToConcreteType(abstract_type):
         raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
 def generateBuiltinFuncs():
-
     builtin_functions = {}
-    for f in BUILTIN_FUNCTIONS:
-        builtin_functions[f[0]] = []
+    for f_id, f_list in BUILTIN_FUNCTIONS.items():
+        builtin_functions[(FunUniq.FUNC, f_id)] = []
 
-        for o in f[1]:
-            vals = o[0].split()
+        for typesig_str, _ in f_list:
+            vals = typesig_str.split()
             if vals[0] == '->':
                 from_types = []
                 to_type = abstractToConcreteType((vals[1]))
@@ -39,25 +40,30 @@ def generateBuiltinFuncs():
                 from_types = abstractToConcreteType(vals[0])
                 to_type = abstractToConcreteType(vals[2])
 
-            builtin_functions[f[0]].append(
-                AST.FUNTYPE(
+            builtin_functions[(FunUniq.FUNC, f_id)].append({
+                'type': AST.FUNTYPE(
                     from_types=[] if len(from_types) == 0 else [AST.TYPE(val=from_types[0])],
                     to_type=AST.TYPE(val=to_type[0])
-                )
-            )
-
+                    ),
+                'module': "builtins",
+                'orig_id': f_id,
+                'fixity': None,
+                'kind': FunKind.FUNC
+                })
     return builtin_functions
 
 '''
-Given the symbol table, produce the operator table for of all the builtin operators.
+generate the ExternalTable entries for of all the builtin operators.
+# TODO refactor this to not use integer indices in lib.builtins.operators and make infixes and prefixes use the same code here and datastructure there
 '''
-def buildOperatorTable():
-    op_table = {'infix_ops': {}, 'prefix_ops': {}}
+def generateBuiltinOps():
+    op_table = {}
 
-    for o in BUILTIN_INFIX_OPS:
-        op_table['infix_ops'][o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
-        for x in BUILTIN_INFIX_OPS[o][0]:
-            first_type, second_type, _, output_type = x.split()
+    for op_id in BUILTIN_INFIX_OPS:
+        op_table[(FunUniq.INFIX, op_id)] = []
+
+        for typesig_str in BUILTIN_INFIX_OPS[op_id][0]:
+            first_type, second_type, _, output_type = typesig_str.split()
             first_types = abstractToConcreteType(first_type)
             second_types = abstractToConcreteType(second_type)
             output_types = abstractToConcreteType(output_type)
@@ -67,40 +73,101 @@ def buildOperatorTable():
                         for ot in output_types:
                             if len(first_types) == len(second_types) == len(BASIC_TYPES):
                                 if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type.val) and AST.equalVals(ft, ot.type.val)):
-                                    op_table['infix_ops'][o][2].append((
-                                            AST.FUNTYPE(
+                                    op_table[(FunUniq.INFIX, op_id)].append({
+                                        'type': AST.FUNTYPE(
                                                 from_types=[ft, st],
                                                 to_type=ot
                                             ),
-                                            "builtins"
-                                        )
-                                    )
+                                        'module': "builtins",
+                                        'orig_id': op_id,
+                                        'fixity': BUILTIN_INFIX_OPS[op_id][1],
+                                        'kind': BUILTIN_INFIX_OPS[op_id][2]
+                                        })
                             else:
-                                op_table['infix_ops'][o][2].append((
-                                        AST.FUNTYPE(
-                                            from_types=[ft, st],
-                                            to_type=ot
-                                        ),
-                                        "builtins"
-                                    )
-                                )
+                                op_table[(FunUniq.INFIX, op_id)].append({
+                                        'type': AST.FUNTYPE(
+                                                from_types=[ft, st],
+                                                to_type=ot
+                                            ),
+                                        'module': "builtins",
+                                        'orig_id': op_id,
+                                        'fixity': BUILTIN_INFIX_OPS[op_id][1],
+                                        'kind': BUILTIN_INFIX_OPS[op_id][2]
+                                        })
 
-    for o in BUILTIN_PREFIX_OPS:
-        op_table['prefix_ops'][o[0]] = []
-        in_type, _, out_type = o[1].split()
+    for op_id, typesig_str, _ in BUILTIN_PREFIX_OPS:
+        op_table[(FunUniq.PREFIX, op_id)] = []
+        in_type, _, out_type = typesig_str.split()
         in_type_node = abstractToConcreteType(in_type)
         out_type_node = abstractToConcreteType(out_type)
 
         for in_t in in_type_node:
             for out_t in out_type_node:
-                op_table['prefix_ops'][o[0]].append(
-                    (
-                        AST.FUNTYPE(
+                op_table[(FunUniq.PREFIX, op_id)].append({
+                    'type': AST.FUNTYPE(
                             from_types=[in_t],
                             to_type=out_t
                         ),
-                        "builtins"
+                    'module': "builtins",
+                    'orig_id': op_id[0],
+                    'fixity': None,
+                    'kind': FunKind.PREFIX
+                    })
+
+    return op_table
+
+# TODO this is broken now
+def mergeCustomOps(op_table, symbol_table, module_name):
+    for x in symbol_table.functions:
+        f = symbol_table.functions[x]
+        if x[0] is FunUniq.INFIX:
+            if x[1] not in op_table['infix_ops']:
+                op_table['infix_ops'][x[1]] = (f[0]['def'].fixity.val, f[0]['def'].kind, [])
+
+            for o in f:
+                if op_table['infix_ops'][x[1]][0] == o['def'].fixity.val and op_table['infix_ops'][x[1]][1] == o['def'].kind:
+                    ft = AST.FUNTYPE(
+                        from_types=[o['type'].from_types[0].val, o['type'].from_types[1].val],
+                        to_type=o['type'].to_type.val
+                    )
+                    cnt = 0
+                    for ot in op_table['infix_ops'][x[1]][2]:
+                        if AST.equalVals(ft, ot):
+                            cnt += 1
+
+                    if cnt == 0:
+                        op_table['infix_ops'][x[1]][2].append((ft, module_name))
+                    else:
+                        ERROR_HANDLER.addError(ERR.DuplicateOpDef, [o['def'].id.val, o['def'].id])
+                else:
+                    ERROR_HANDLER.addError(ERR.InconsistentOpDecl, [o['def'].id.val, o['def'].id])
+
+        elif x[0] is FunUniq.PREFIX:
+            if x[1] not in op_table['prefix_ops']:
+                op_table['prefix_ops'][x[1]] = []
+
+            for o in f:
+                op_table['prefix_ops'][x[1]].append(
+                    (
+                        AST.FUNTYPE(
+                            from_types=[o['type'].from_types[0].val],
+                            to_type=o['type'].to_type.val
+                        ),
+                        module_name
                     )
                 )
 
-    return op_table
+
+def enrichExternalTable(external_table):
+    builtin_funcs = generateBuiltinFuncs()
+
+    builtin_ops = generateBuiltinOps()
+
+    print(builtin_funcs)
+
+    '''
+    temp = ExternalTable()
+    temp.functions = builtin_ops
+
+    print(temp)
+'''

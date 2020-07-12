@@ -241,13 +241,14 @@ def getExternalSymbols(ast, headerfiles):
 
                     if (FunUniq.FUNC, match_orig) in cur_symbols['functions']:
                         found_funcs = cur_symbols['functions'][(FunUniq.FUNC, match_orig)]
-                        #print("Found_funcs",match_orig,found_funcs)
+                        print("Found_funcs",match_orig,found_funcs)
 
                         add_entries = list(map(lambda x: {
                                 'type': x['type'],
                                 'module': modname,
                                 'orig_id': match_orig,
-                                'fixity': x['fixity']
+                                'fixity': x['fixity'],
+                                'kind': x['kind']
                             }, found_funcs))
 
                         if (FunUniq.FUNC, effective_id) not in ext_symbol_table.functions: # New name for function (note that we can only forbid duplicates after type normalisation)
@@ -276,7 +277,8 @@ def getExternalSymbols(ast, headerfiles):
                             'type': x['type'],
                             'module': modname,
                             'orig_id': match_orig,
-                            'fixity': x['fixity']
+                            'fixity': x['fixity'],
+                            'kind': x['kind']
                         }, found_prefix_ops))
 
                     if (FunUniq.PREFIX, effective_id) not in ext_symbol_table.functions: # New name for prefix op (note that we can only forbid duplicates after type normalisation)
@@ -291,7 +293,8 @@ def getExternalSymbols(ast, headerfiles):
                             'type': x['type'],
                             'module': modname,
                             'orig_id': match_orig,
-                            'fixity': x['fixity']
+                            'fixity': x['fixity'],
+                            'kind': x['kind']
                         }, found_infix_ops))
 
                     if (FunUniq.INFIX, effective_id) not in ext_symbol_table.functions: # New name for infix op (note that we can only forbid duplicates after type normalisation)

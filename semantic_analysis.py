@@ -8,7 +8,7 @@ from lib.datastructure.symbol_table import SymbolTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
 from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES
-from lib.builtins.builtin_mod import generateBuiltinFuncs, buildOperatorTable
+from lib.builtins.builtin_mod import enrichExternalTable
 
 from lib.util.util import treemap, selectiveApply
 
@@ -435,47 +435,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
 
     return expr
 
-
-def mergeCustomOps(op_table, symbol_table, module_name):
-    for x in symbol_table.functions:
-        f = symbol_table.functions[x]
-        if x[0] is FunUniq.INFIX:
-            if x[1] not in op_table['infix_ops']:
-                op_table['infix_ops'][x[1]] = (f[0]['def'].fixity.val, f[0]['def'].kind, [])
-
-            for o in f:
-                if op_table['infix_ops'][x[1]][0] == o['def'].fixity.val and op_table['infix_ops'][x[1]][1] == o['def'].kind:
-                    ft = AST.FUNTYPE(
-                        from_types=[o['type'].from_types[0].val, o['type'].from_types[1].val],
-                        to_type=o['type'].to_type.val
-                    )
-                    cnt = 0
-                    for ot in op_table['infix_ops'][x[1]][2]:
-                        if AST.equalVals(ft, ot):
-                            cnt += 1
-
-                    if cnt == 0:
-                        op_table['infix_ops'][x[1]][2].append((ft, module_name))
-                    else:
-                        ERROR_HANDLER.addError(ERR.DuplicateOpDef, [o['def'].id.val, o['def'].id])
-                else:
-                    ERROR_HANDLER.addError(ERR.InconsistentOpDecl, [o['def'].id.val, o['def'].id])
-
-        elif x[0] is FunUniq.PREFIX:
-            if x[1] not in op_table['prefix_ops']:
-                op_table['prefix_ops'][x[1]] = []
-
-            for o in f:
-                op_table['prefix_ops'][x[1]].append(
-                    (
-                        AST.FUNTYPE(
-                            from_types=[o['type'].from_types[0].val],
-                            to_type=o['type'].to_type.val
-                        ),
-                        module_name
-                    )
-                )
-
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
 def parseAtom(exp, op_table, exp_index):
 
@@ -489,7 +448,7 @@ def parseAtom(exp, op_table, exp_index):
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         return AST.PARSEDEXPR(val=recurse(exp[exp_index].contents, op_table)), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
-        if exp[exp_index].id.val not in op_table['prefix_ops']:
+        if (FunUniq,PREFIX, exp[exp_index].id.val) not in op_table:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
         sub_expr = recurse(prefix.args, op_table)
@@ -515,17 +474,17 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
     result, exp_index = parseAtom(exp, op_table, exp_index)
 
     while True:
-        if exp_index < len(exp) and exp[exp_index].val not in op_table['infix_ops']:
+        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in op_table:
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or op_table['infix_ops'][exp[exp_index].val][0] < min_precedence:
+        elif exp_index >= len(exp) or op_table[(FunUniq.INFIX, exp[exp_index].val)][0] < min_precedence:
             break
 
-        if op_table['infix_ops'][exp[exp_index].val][1] == FunKind.INFIXL:
-            next_min_prec = op_table['infix_ops'][exp[exp_index].val][0] + 1
+        if op_table[(FunUniq.INFIX, exp[exp_index].val)][1] == FunKind.INFIXL:
+            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0] + 1
         else:
-            next_min_prec = op_table['infix_ops'][exp[exp_index].val][0]
-        kind = op_table['infix_ops'][exp[exp_index].val][1]
+            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0]
+        kind = op_table[(FunUniq.INFIX, exp[exp_index].val)][1]
         print("Kind:")
         print(kind)
         op = exp[exp_index]
@@ -535,6 +494,8 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
 
     return result, exp_index
 
+
+# TODO this depends on the old implementation of op table that didn't have external symbols
 ''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, op_table):
     decorated_ast = treemap(ast,
@@ -729,12 +690,7 @@ g (x) {
             a = getExternalSymbols(x, headerfiles)
             print("External symbols:",a)
             print()
-            builtin_funcs = generateBuiltinFuncs()
-            for k,vs in builtin_funcs.items():
-                print(k)
-                for v in vs:
-                    print(v)
-            print()
+            a = enrichExternalTable(a)
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])
