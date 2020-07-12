@@ -32,13 +32,13 @@ def main():
 
         module_name = "return-test"
         testprog = StringIO('''
-            f(x) :: Int -> Int {
-                return x;
-            }
+            type Coord = (Int, Int)
         
             main() :: -> Int {
-                Int a = 2 + 3;
-                f(3);
+                Coord x = (2, 2);
+                Int i = 5;
+                
+                i = 3;
             }
         ''')
 
@@ -70,9 +70,12 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Type check
-    typecheck_globals(symbol_table, external_table)
-    typecheck_functions(symbol_table, external_table)
+    analyseFunc(ast)
     ERROR_HANDLER.checkpoint()
+
+    #typecheck_globals(symbol_table, external_table)
+    #typecheck_functions(symbol_table, external_table)
+    #ERROR_HANDLER.checkpoint()
 
     #gen_code = generate_object_file(symbol_table, module_name)
     #print(gen_code)

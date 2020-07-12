@@ -4,6 +4,7 @@ from lib.imports.imports import export_headers, import_headers, getImportFiles, 
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.token import Token, TOKEN
+from lib.datastructure.position import Position
 from lib.datastructure.symbol_table import SymbolTable, ExternalTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
@@ -520,52 +521,53 @@ Goal of this function is:
 '''
 def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
     returns = False
-    return_exp = False
+    return_exp = not AST.equalVals(func.type.to_type, AST.TYPE(val=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Void")))
     for k in range(0, len(statements)):
         stmt = statements[k].val
         if type(stmt) is AST.IFELSE:
-            return_ctr = 0
+            returning_branches = 0
+            # Check for each branch if it returns, count those branches
             for branch in stmt.condbranches:
-                does_return, rexp = analyseFuncStmts(func, branch.stmts, loop_depth, cond_depth + 1)
-                return_exp = return_exp or rexp
-                return_ctr += does_return
+                branch_return = analyseFuncStmts(func, branch.stmts, loop_depth, cond_depth + 1)
+                returning_branches += branch_return
 
-            if return_ctr == len(stmt.condbranches):
+            # All of the branches return
+            if returning_branches == len(stmt.condbranches):
+                # Check if last branch is else (not elif)
+                if stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
+                    returns = True
+                else: # Its an elif, since we do not know if the entire domain is covered we still expect a return
+                    returns = False
+                # Check for statements after the IFELSE statement (deadcode since all branches return)
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
-                if stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    return_exp = False
-                else:
-                    return_exp = True
-                returns = True
-            elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
-                return_exp = True
 
         elif type(stmt) is AST.LOOP:
-            returns, return_exp = analyseFuncStmts(func, stmt.stmts, loop_depth + 1, cond_depth)
-            if return_exp:
-                returns = False
+            # Whether something inside a loop returns does not matter, since we cant infer anything about its condition
+            _ = analyseFuncStmts(func, stmt.stmts, loop_depth + 1, cond_depth)
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
+            # Check if break or continue while not in a loop
             if loop_depth == 0:
                 ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt.val])
             else:
+                # Check for statements after break or continue
                 if k is not len(statements) - 1:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
-                    return False, return_exp
         elif type(stmt) is AST.RETURN:
+            # Check for statements after return
             if k is not len(statements) - 1:
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
-            return True, True
+            return True
 
-    if return_exp and cond_depth == 0:
+    # We are at the top level and we still expect a return, so a return stmt is missing
+    if returns != return_exp and cond_depth == 0:
         ERROR_HANDLER.addError(ERR.NotAllPathsReturn, [func.id.val, func.id])
 
-    return returns, return_exp
+    return returns
 
 '''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
 def analyseFunc(ast):
     treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
-    ERROR_HANDLER.checkpoint()
 
 '''
 def analyseFunc(symbol_table):
