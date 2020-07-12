@@ -533,10 +533,6 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                 branch_return = analyseFuncStmts(func, branch.stmts, loop_depth, cond_depth + 1)
                 returning_branches += branch_return
 
-<<<<<<< HEAD
-            if return_ctr == len(stmt.condbranches):
-                if k != len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-=======
             # All of the branches return
             if returning_branches == len(stmt.condbranches):
                 # Check if last branch is else (not elif)
@@ -546,7 +542,6 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                     returns = False
                 # Check for statements after the IFELSE statement (deadcode since all branches return)
                 if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
->>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
 
         elif type(stmt) is AST.LOOP:
@@ -557,20 +552,13 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
             if loop_depth == 0:
                 ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt])
             else:
-<<<<<<< HEAD
-                if k != len(statements) - 1:
-=======
                 # Check for statements after break or continue
-                if k is not len(statements) - 1:
->>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
+                if k != len(statements) - 1:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
         elif type(stmt) is AST.RETURN:
-<<<<<<< HEAD
             if k != len(statements) - 1:
-=======
             # Check for statements after return
-            if k is not len(statements) - 1:
->>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
+            if k != len(statements) - 1:
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
             # We can return immediately here since all stmts after is considered deadcode.
             return True
@@ -581,15 +569,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 
     return returns
 
-<<<<<<< HEAD
 '''Given the symbol table, find dead code statements after return/break/continue and see if all paths return'''
-=======
-'''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
-def analyseFunc(ast):
-    treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
-
-'''
->>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
 def analyseFunc(symbol_table):
     for (uniq, fun_id), decl_list in symbol_table.functions.items():
         for fundecl in decl_list:
