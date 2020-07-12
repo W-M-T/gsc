@@ -21,6 +21,14 @@
     [
       "Coord",
       "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Char\")), b=TYPE(val=BASICTYPE(type_id=\"Char\"))))"
+    ],
+    [
+      "Location",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      "Coordinate",
+      "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
     ]
   ]
 }

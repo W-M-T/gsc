@@ -34,9 +34,9 @@ Circularity is no concern because that is caught in the name resolution step for
 We prevent pointer problems by rewriting type syns directly when they are added to to the symbol table
 This also means that we should never need to recurse after rewriting a type syn once, because the rewrite result should already be normalized.
 '''
-def normalizeType(inputtype, symbol_table): # TODO add proper error handling
+def normalizeType(inputtype, symbol_table, full_normalize=True): # TODO add proper error handling
     if type(inputtype) is AST.TYPE:
-        inputtype.val = normalizeType(inputtype.val, symbol_table)
+        inputtype.val = normalizeType(inputtype.val, symbol_table, full_normalize=full_normalize)
         if type(inputtype.val) is AST.TYPE: # Unwrap so we don't have double occurrences of TYPE nodes
             return inputtype.val
         else:
@@ -44,15 +44,15 @@ def normalizeType(inputtype, symbol_table): # TODO add proper error handling
     if type(inputtype) is AST.BASICTYPE:
         return inputtype
     elif type(inputtype) is AST.TUPLETYPE:
-        inputtype.a = normalizeType(inputtype.a, symbol_table)
-        inputtype.b = normalizeType(inputtype.b, symbol_table)
+        inputtype.a = normalizeType(inputtype.a, symbol_table, full_normalize=full_normalize)
+        inputtype.b = normalizeType(inputtype.b, symbol_table, full_normalize=full_normalize)
         return inputtype
     elif type(inputtype) is AST.LISTTYPE:
         inputtype.type = normalizeType(inputtype.type, symbol_table)
         return inputtype
     elif type(inputtype) is AST.FUNTYPE:
-        inputtype.from_types = list(map(lambda x: normalizeType(x, symbol_table), inputtype.from_types))
-        inputtype.to_type = normalizeType(inputtype.to_type, symbol_table)
+        inputtype.from_types = list(map(lambda x: normalizeType(x, symbol_table, full_normalize=full_normalize), inputtype.from_types))
+        inputtype.to_type = normalizeType(inputtype.to_type, symbol_table, full_normalize=full_normalize)
         return inputtype
     elif type(inputtype) is Token: # TODO If we decide to implement polymorphism, if it is not found here it, is a forall type
         if inputtype.val in symbol_table.type_syns:
@@ -61,19 +61,18 @@ def normalizeType(inputtype, symbol_table): # TODO add proper error handling
         elif inputtype.val == VOID_TYPE:
             return inputtype
         else:
-            print("[ERROR] Typename {} not defined!".format(inputtype.val))
-            exit()
+            ERROR_HANDLER.addError(ERR.UndefinedTypeId, [inputtype.val]) # TODO hugely improve this
     else:
         print("Case not captured:",inputtype)
         exit()
 
-def normalizeAllTypes(symbol_table): # TODO clean this up and add proper error handling
+def normalizeAllTypes(symbol_table, full_normalize=True): # TODO clean this up and add proper error handling
     # Normalize type syn definitions:
     # Not necessary because this is done during the creation of the symbol table, in order to require sequentiality
 
     # Normalize global var types
     for glob_var in symbol_table.global_vars.items():
-        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table)
+        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table, full_normalize=full_normalize)
 
     # Normalize function types and find duplicates
     flag = False # Handle this in the error handler
@@ -81,7 +80,7 @@ def normalizeAllTypes(symbol_table): # TODO clean this up and add proper error h
         found_typesigs = []
         #print(len(func_list))
         for func in func_list:
-            func['type'] = normalizeType(func['type'], symbol_table)
+            func['type'] = normalizeType(func['type'], symbol_table, full_normalize=full_normalize)
             found_typesigs.append((func['type'], func))
 
         # Test if multiple functions have the same (normalized) type
@@ -111,6 +110,7 @@ def normalizeAllTypes(symbol_table): # TODO clean this up and add proper error h
             #print("FUNCTION ARG VARS OF", func['def'].id.val)
             # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
             #print(func['arg_vars'])
+    ERROR_HANDLER.checkpoint()
 
 '''
 Give an error for types containing Void in their input, or Void as a non-base type in the output
@@ -525,6 +525,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 
     for k in range(0, len(statements)):
         stmt = statements[k].val
+
         if type(stmt) is AST.IFELSE:
             returning_branches = 0
             # Check for each branch if it returns, count those branches
@@ -552,11 +553,11 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                 ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt])
             else:
                 # Check for statements after break or continue
-                if k is not len(statements) - 1:
+                if k != len(statements) - 1:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
         elif type(stmt) is AST.RETURN:
             # Check for statements after return
-            if k is not len(statements) - 1:
+            if k != len(statements) - 1:
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
             # We can return immediately here since all stmts after is considered deadcode.
             return True
@@ -567,16 +568,12 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
 
     return returns
 
-'''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
-def analyseFunc(ast):
-    treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
-
-'''
+'''Given the symbol table, find dead code statements after return/break/continue and see if all paths return'''
 def analyseFunc(symbol_table):
     for (uniq, fun_id), decl_list in symbol_table.functions.items():
         for fundecl in decl_list:
             analyseFuncStmts(fundecl['def'], fundecl['def'].stmts)
-'''
+    ERROR_HANDLER.checkpoint()
 
 '''
 symbol table bevat:
@@ -716,7 +713,7 @@ g (x) {
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])
             forbid_illegal_types(symbol_table)
-            #analyseFunc(x)
+            analyseFunc(symbol_table)
             #normalizeAllTypes(symbol_table)
 
             header_json = export_headers(symbol_table)
