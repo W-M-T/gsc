@@ -522,6 +522,7 @@ Goal of this function is:
 def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
     returns = False
     return_exp = not AST.equalVals(func.type.to_type, AST.TYPE(val=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Void")))
+
     for k in range(0, len(statements)):
         stmt = statements[k].val
         if type(stmt) is AST.IFELSE:
@@ -543,12 +544,12 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
 
         elif type(stmt) is AST.LOOP:
-            # Whether something inside a loop returns does not matter, since we cant infer anything about its condition
+            # Whether something inside a loop returns does not matter, since we cant assume anything about its condition
             _ = analyseFuncStmts(func, stmt.stmts, loop_depth + 1, cond_depth)
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
             # Check if break or continue while not in a loop
             if loop_depth == 0:
-                ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt.val])
+                ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt])
             else:
                 # Check for statements after break or continue
                 if k is not len(statements) - 1:
@@ -557,6 +558,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
             # Check for statements after return
             if k is not len(statements) - 1:
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
+            # We can return immediately here since all stmts after is considered deadcode.
             return True
 
     # We are at the top level and we still expect a return, so a return stmt is missing
