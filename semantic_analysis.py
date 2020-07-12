@@ -7,7 +7,7 @@ from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.symbol_table import SymbolTable, ExternalTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
-from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES
+from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE
 from lib.builtins.builtin_mod import enrichExternalTable, BUILTINS_NAME
 
 from lib.util.util import treemap, selectiveApply
@@ -58,7 +58,7 @@ def normalizeType(inputtype, symbol_table): # TODO add proper error handling
         if inputtype.val in symbol_table.type_syns:
             normalized_type = symbol_table.type_syns[inputtype.val]
             return normalized_type
-        elif inputtype.val in VOID_TYPE:
+        elif inputtype.val == VOID_TYPE:
             return inputtype
         else:
             print("[ERROR] Typename {} not defined!".format(inputtype.val))
@@ -123,9 +123,9 @@ def forbid_illegal_types(symbol_table):
         #print(type_syn)
         #print("  a  ")
         def killVoidType(node):
-            if type(node.val) is Token and node.val.val == "Void":
+            if type(node.val) is Token and node.val.val == VOID_TYPE:
                 # Type syn has void in type
-                ERROR_HANDLER.addError(ERR.TypeSynVoid, [type_id])
+                ERROR_HANDLER.addError(ERR.TypeSynVoid, [type_id, node])
             return node
 
         treemap(type_syn, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
@@ -135,12 +135,12 @@ def forbid_illegal_types(symbol_table):
 
         if glob_var.type is None:
             # Global var has no type (we're doing type checking for now, not inference)
-            ERROR_HANDLER.addError(ERR.GlobalVarTypeNone, [glob_var.id.val])
+            ERROR_HANDLER.addError(ERR.GlobalVarTypeNone, [glob_var.id.val, glob_var])
         else:
             def killVoidType(node):
-                if type(node.val) is Token and node.val.val == "Void":
+                if type(node.val) is Token and node.val.val == VOID_TYPE:
                     # Global variable type contains Void
-                    ERROR_HANDLER.addError(ERR.GlobalVarVoid, [glob_var_id])
+                    ERROR_HANDLER.addError(ERR.GlobalVarVoid, [glob_var_id, node])
                 return node
             treemap(glob_var.type, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
 
@@ -149,12 +149,12 @@ def forbid_illegal_types(symbol_table):
         for fun in fun_list:
             if fun['type'] is None:
                 # Function has no type
-                ERROR_HANDLER.addError(ERR.FunctionTypeNone, [fun['def'].id.val])
+                ERROR_HANDLER.addError(ERR.FunctionTypeNone, [fun['def'].id.val, fun['def']])
             else:
                 def killVoidType(node):
-                    if type(node.val) is Token and node.val.val == "Void":
+                    if type(node.val) is Token and node.val.val == VOID_TYPE:
                         # Function input type contains void
-                        ERROR_HANDLER.addError(ERR.FunctionInputVoid, [fun['def'].id.val])
+                        ERROR_HANDLER.addError(ERR.FunctionInputVoid, [fun['def'].id.val, node])
                     return node
                 for from_type in fun['type'].from_types:
                     treemap(from_type, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
@@ -163,9 +163,9 @@ def forbid_illegal_types(symbol_table):
                 returntype = fun['type'].to_type
                 if not (type(returntype) is AST.TYPE and type(returntype.val) is Token and returntype.val.val == "Void"): # Not direct Void type
                     def killVoidType(node):
-                        if type(node.val) is Token and node.val.val == "Void":
+                        if type(node.val) is Token and node.val.val == VOID_TYPE:
                             # Function output contains Void indirectly
-                            ERROR_HANDLER.addError(ERR.FunctionOutputNestedVoid, [fun['def'].id.val])
+                            ERROR_HANDLER.addError(ERR.FunctionOutputNestedVoid, [fun['def'].id.val, node])
                         return node
                     treemap(returntype, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
 
@@ -173,12 +173,12 @@ def forbid_illegal_types(symbol_table):
             for local_var in fun['local_vars'].values():
                 if local_var.type is None:
                     # Local var has no type
-                    ERROR_HANDLER.addError(ERR.LocalVarTypeNone, [local_var.id.val, fun['def'].id.val])
+                    ERROR_HANDLER.addError(ERR.LocalVarTypeNone, [local_var.id.val, fun['def'].id.val, local_var])
                 else:
                     def killVoidType(node):
-                        if type(node.val) is Token and node.val.val == "Void":
+                        if type(node.val) is Token and node.val.val == VOID_TYPE:
                             # Local var has void in type
-                            ERROR_HANDLER.addError(ERR.LocalVarVoid, [local_var.id.val, fun['def'].id.val])
+                            ERROR_HANDLER.addError(ERR.LocalVarVoid, [local_var.id.val, fun['def'].id.val, node.val])
                         return node
                     treemap(local_var, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
     ERROR_HANDLER.checkpoint()
@@ -219,8 +219,11 @@ def buildFuncEntry(val):
 #TODO: We don't check for redefinition attempts of builtin functions or ops -> Do this in type normaliser
 #TODO: Check if a main with signature -> Int was defined.
 
-def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=ExternalTable()):
+def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
     symbol_table = SymbolTable()
+
+    if ext_symbol_table is None: # If not running with imports, at least use builtins
+        ext_symbol_table = enrichExternalTable(ExternalTable())
     '''
     print("Imports")
     for el in ast.imports:
@@ -288,8 +291,12 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=ExternalTab
 
             if type_id in ext_symbol_table.type_syns:
                 if ext_symbol_table.type_syns[type_id]['module'] == BUILTINS_NAME:
-                    # Type identifier is reserved
+                    # Type identifier is reserved (built in typesyn)
                     ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
+            elif type_id in BUILTIN_TYPES:
+                # Type identifier is reserved (basic type)
+                ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
+
 
             if not type_id in symbol_table.type_syns:
                 if not just_for_headerfile:
@@ -307,8 +314,8 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=ExternalTab
 
     ERROR_HANDLER.checkpoint()
 
-    print("--------------------------")
-    print(symbol_table.repr_short())
+    #print("--------------------------")
+    #print(symbol_table.repr_short())
     return symbol_table
 
 
@@ -697,6 +704,7 @@ g (x) {
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])
+            forbid_illegal_types(symbol_table)
 
             header_json = export_headers(symbol_table)
 

@@ -11,6 +11,20 @@
       "TYPE(val=\"Void\")"
     ]
   ],
-  "globals": [],
-  "typesyns": []
+  "globals": [
+    [
+      "double_id",
+      "TYPE(val=BASICTYPE(type_id=\"Char\"))"
+    ]
+  ],
+  "typesyns": [
+    [
+      "Coord",
+      "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Char\")), b=TYPE(val=BASICTYPE(type_id=\"Char\"))))"
+    ],
+    [
+      "Void",
+      "TYPE(val=BASICTYPE(type_id=\"Char\"))"
+    ]
+  ]
 }
