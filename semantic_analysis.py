@@ -4,6 +4,7 @@ from lib.imports.imports import export_headers, import_headers, getImportFiles, 
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.token import Token, TOKEN
+from lib.datastructure.position import Position
 from lib.datastructure.symbol_table import SymbolTable, ExternalTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
@@ -395,7 +396,6 @@ def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_lo
     return assignment
 
 # TODO: Really check if all expression types are handled correctly here.
-
 '''
 Resolve an expression with the following globals in scope
 Functions are always in scope
@@ -452,66 +452,55 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
     return expr
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
-def parseAtom(exp, op_table, exp_index):
-
-    def recurse(exp, op_table):
-        recurse_res, _ = parseExpression(exp, op_table)
-        return recurse_res
+def parseAtom(exp, ext_table, exp_index):
 
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
-        return res, exp_index + 1
+        return AST.PARSEDEXPR(val=res), exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        return AST.PARSEDEXPR(val=recurse(exp[exp_index].contents, op_table)), exp_index + 1
+        sub_expr, _ = parseExpression(exp[exp_index].contents, ext_table)
+        return AST.PARSEDEXPR(val=sub_expr), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
-        if (FunUniq,PREFIX, exp[exp_index].id.val) not in op_table:
+        if (FunUniq.PREFIX, exp[exp_index].id.val) not in ext_table.functions:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
-        sub_expr = recurse(prefix.args, op_table)
-        return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
-    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
+        sub_expr, _ = parseExpression(prefix.args, ext_table)
+        return AST.FUNCALL(id=prefix.id, kind=2, args=[sub_expr]), exp_index + 1
+    elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.FUNC: # Function call
         func_args = []
         funcall = exp[exp_index]
         if funcall.args is not None:
             for arg in funcall.args:
-                sub_exp = recurse(arg.contents, op_table)
-                func_args.append(sub_exp)
-
+                sub_expr, _ = parseExpression(arg.contents, ext_table)
+                func_args.append(sub_expr)
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
-        # This should never happen
-        print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
-        print(type(exp[exp_index]))
-        print(exp[exp_index])
-        exit(1)
+        raise Exception("Unexpected token encountered while parsing atomic value in expression.")
 
+# TODO: Add custom operators
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
-    result, exp_index = parseAtom(exp, op_table, exp_index)
+def parseExpression(exp, ext_table, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(exp, ext_table, exp_index)
 
     while True:
-        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in op_table:
+        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in ext_table.functions:
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or op_table[(FunUniq.INFIX, exp[exp_index].val)][0] < min_precedence:
+        elif exp_index >= len(exp) or ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] < min_precedence:
             break
 
-        if op_table[(FunUniq.INFIX, exp[exp_index].val)][1] == FunKind.INFIXL:
-            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0] + 1
+        if ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind'] == FunKind.INFIXL:
+            next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] + 1
         else:
-            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0]
-        kind = op_table[(FunUniq.INFIX, exp[exp_index].val)][1]
-        print("Kind:")
-        print(kind)
+            next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity']
+        kind = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind']
         op = exp[exp_index]
         exp_index += 1
-        rh_expr, exp_index = parseExpression(exp, op_table, next_min_prec, exp_index)
+        rh_expr, exp_index = parseExpression(exp, ext_table, next_min_prec, exp_index)
         result = AST.FUNCALL(id=op, kind=kind, args=[result, rh_expr])
 
     return result, exp_index
 
-
-# TODO this depends on the old implementation of op table that didn't have external symbols
 ''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, op_table):
     decorated_ast = treemap(ast,
@@ -532,50 +521,75 @@ Goal of this function is:
 '''
 def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
     returns = False
-    return_exp = False
+    return_exp = not AST.equalVals(func.type.to_type, AST.TYPE(val=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Void")))
+
     for k in range(0, len(statements)):
         stmt = statements[k].val
 
         if type(stmt) is AST.IFELSE:
-            return_ctr = 0
+            returning_branches = 0
+            # Check for each branch if it returns, count those branches
             for branch in stmt.condbranches:
-                does_return, rexp = analyseFuncStmts(func, branch.stmts, loop_depth, cond_depth + 1)
-                return_exp = return_exp or rexp
-                return_ctr += does_return
+                branch_return = analyseFuncStmts(func, branch.stmts, loop_depth, cond_depth + 1)
+                returning_branches += branch_return
 
+<<<<<<< HEAD
             if return_ctr == len(stmt.condbranches):
                 if k != len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
+=======
+            # All of the branches return
+            if returning_branches == len(stmt.condbranches):
+                # Check if last branch is else (not elif)
                 if stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
-                    return_exp = False
-                else:
-                    return_exp = True
-                returns = True
-            elif return_ctr > 0 and return_ctr < len(stmt.condbranches):
-                return_exp = True
+                    returns = True
+                else: # Its an elif, since we do not know if the entire domain is covered we still expect a return
+                    returns = False
+                # Check for statements after the IFELSE statement (deadcode since all branches return)
+                if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
+>>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
+                    ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
 
         elif type(stmt) is AST.LOOP:
-            returns, return_exp = analyseFuncStmts(func, stmt.stmts, loop_depth + 1, cond_depth)
-            if return_exp:
-                returns = False
+            # Whether something inside a loop returns does not matter, since we cant assume anything about its condition
+            _ = analyseFuncStmts(func, stmt.stmts, loop_depth + 1, cond_depth)
         elif type(stmt) is AST.BREAK or type(stmt) is AST.CONTINUE:
+            # Check if break or continue while not in a loop
             if loop_depth == 0:
                 ERROR_HANDLER.addError(ERR.BreakOutsideLoop, [stmt])
             else:
+<<<<<<< HEAD
                 if k != len(statements) - 1:
+=======
+                # Check for statements after break or continue
+                if k is not len(statements) - 1:
+>>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
-                    return False, return_exp
         elif type(stmt) is AST.RETURN:
+<<<<<<< HEAD
             if k != len(statements) - 1:
+=======
+            # Check for statements after return
+            if k is not len(statements) - 1:
+>>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
-            return True, True
+            # We can return immediately here since all stmts after is considered deadcode.
+            return True
 
-    if return_exp and cond_depth == 0:
+    # We are at the top level and we still expect a return, so a return stmt is missing
+    if returns != return_exp and cond_depth == 0:
         ERROR_HANDLER.addError(ERR.NotAllPathsReturn, [func.id.val, func.id])
 
-    return returns, return_exp
+    return returns
 
+<<<<<<< HEAD
 '''Given the symbol table, find dead code statements after return/break/continue and see if all paths return'''
+=======
+'''Given the AST, find dead code statements after return/break/continue and see if all paths return'''
+def analyseFunc(ast):
+    treemap(ast, lambda node: selectiveApply(AST.FUNDECL, node, lambda f: analyseFuncStmts(f, f.stmts)), replace=False)
+
+'''
+>>>>>>> ca974b90d886863f7c3b69a9e97671f8e93ee83d
 def analyseFunc(symbol_table):
     for (uniq, fun_id), decl_list in symbol_table.functions.items():
         for fundecl in decl_list:

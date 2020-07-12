@@ -39,7 +39,7 @@ Lokale variabelen shadowen functieargumenten,
 Functieargumenten en lokale variabelen shadowen globale variabelen
 (shadowen geeft warnings)
 
-Als je bij het importeren lexing / parsing fouten krijgt in imports dan verzamelt hij die ipv te crashen bij de eerste (TODO btw)
+Als je bij het importeren lexing / parsing fouten krijgt in imports dan verzamelt hij die ipv te crashen bij de eerste
 
 imports kun je verder specificeren met de volgende argumenten (1 tot 3):
 '''

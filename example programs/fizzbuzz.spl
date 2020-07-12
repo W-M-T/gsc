@@ -1,0 +1,38 @@
+main() :: -> Int {
+    Int i = 1;
+
+    while(i < 20) {
+        if(i % 5 == 0 && i % 3 == 0) {
+            print('f');
+            print('i');
+            print('z');
+            print('z');
+            print('b');
+            print('u');
+            print('z');
+            print('z');
+            print('\\n');
+        }
+        elif(i % 3 == 0) {
+            print('f');
+            print('i');
+            print('z');
+            print('z');
+            print('\\n');
+        }
+        elif(i % 5 == 0) {
+            print('b');
+            print('u');
+            print('z');
+            print('z');
+            print('\\n');
+        }
+        else {
+            print(i);
+            print('\\n');
+        }
+        i = i + 1;
+    }
+
+    return 0;
+}

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 from lib.parser.lexer import tokenize
-import os
 from lib.parser.parser import *
 from semantic_analysis import *
 from lib.analysis.typechecker import *
+from lib.builtins.builtin_mod import generateBuiltinOps, mergeCustomOps, generateBuiltinFuncs
 from lib.codegen.codegen import generate_object_file
+from lib.datastructure.symbol_table import ExternalTable
 
 from lib.imports.imports import SOURCE_EXT
 def main():
@@ -29,12 +30,15 @@ def main():
     else:
         from io import StringIO
 
-        module_name = "control-stmt"
+        module_name = "return-test"
         testprog = StringIO('''
+            type Coord = (Int, Int)
+        
             main() :: -> Int {
-                print(5);
+                Coord x = (2, 2);
+                Int i = 5;
                 
-                return 5;
+                i = 3;
             }
         ''')
 
@@ -58,25 +62,26 @@ def main():
     resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
-    # Build operator table
-    op_table = buildOperatorTable()
-    mergeCustomOps(op_table, symbol_table, module_name)
-    builtin_funcs = generateBuiltinFuncs()
+    # Build external table
+    external_table = enrichExternalTable(ExternalTable())
 
     # Parse expressions
-    fixExpression(ast, op_table)
+    fixExpression(ast, external_table)
     ERROR_HANDLER.checkpoint()
 
     # Type check
-    typecheck_globals(symbol_table, op_table)
-    typecheck_functions(symbol_table, op_table, builtin_funcs)
+    analyseFunc(ast)
     ERROR_HANDLER.checkpoint()
 
-    gen_code = generate_object_file(symbol_table, module_name)
-    print(gen_code)
+    #typecheck_globals(symbol_table, external_table)
+    #typecheck_functions(symbol_table, external_table)
+    #ERROR_HANDLER.checkpoint()
 
-    with open('generated/' + module_name + '.splo', 'w+') as fh:
-        fh.write(gen_code)
+    #gen_code = generate_object_file(symbol_table, module_name)
+    #print(gen_code)
+
+    #with open('generated/' + module_name + '.splo', 'w+') as fh:
+    #    fh.write(gen_code)
 
 if __name__ == "__main__":
     main()
