@@ -100,7 +100,7 @@ def generateBuiltinOps():
                                         'kind': BUILTIN_INFIX_OPS[op_id][2]
                                         })
 
-    for op_id, typesig_str, _ in BUILTIN_PREFIX_OPS:
+    for op_id, (typesig_str, _) in BUILTIN_PREFIX_OPS.items():
         op_table[(FunUniq.PREFIX, op_id)] = []
         in_type, _, out_type = typesig_str.split()
         in_type_node = abstractToConcreteType(in_type)

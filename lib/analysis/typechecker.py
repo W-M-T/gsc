@@ -185,7 +185,7 @@ def typecheck(expr, exp_type, symbol_table, op_table, builtin_funcs = {}, func=N
                 return True, expr
 
             identifier = (FunKindToUniq(expr.kind), expr.id.val)
-            if identifier not in symbol_table.functions and expr.id.val not in builtin_funcs:
+            if identifier not in symbol_table.functions and (FunUniq.FUNC, expr.id.val) not in builtin_funcs:
                 ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])
                 return True, expr
 

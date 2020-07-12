@@ -436,60 +436,50 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
     return expr
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
-def parseAtom(exp, op_table, exp_index):
-
-    def recurse(exp, op_table):
-        recurse_res, _ = parseExpression(exp, op_table)
-        return recurse_res
+def parseAtom(exp, ext_table, exp_index):
 
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        return AST.PARSEDEXPR(val=recurse(exp[exp_index].contents, op_table)), exp_index + 1
+        sub_expr, _ = parseExpression(exp[exp_index].contents, ext_table)
+        return AST.PARSEDEXPR(val=sub_expr), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
-        if (FunUniq.PREFIX, exp[exp_index].id.val) not in op_table:
+        if (FunUniq.PREFIX, exp[exp_index].id.val) not in ext_table.functions:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
-        sub_expr = recurse(prefix.args, op_table)
+        sub_expr, _ = parseExpression(prefix.args, ext_table)
         return AST.FUNCALL(id=prefix.id, kind=2, args=sub_expr), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == 1: # Function call
         func_args = []
         funcall = exp[exp_index]
         if funcall.args is not None:
             for arg in funcall.args:
-                sub_exp = recurse(arg.contents, op_table)
-                func_args.append(sub_exp)
-
+                sub_expr, _ = parseExpression(arg.contents, ext_table)
+                func_args.append(sub_expr)
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
-        # This should never happen
-        print("[COMPILE ERROR] Unexpected token encountered while parsing atomic value in expression.")
-        print(type(exp[exp_index]))
-        print(exp[exp_index])
-        exit(1)
+        raise Exception("Unexpected token encountered while parsing atomic value in expression.")
 
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
-    result, exp_index = parseAtom(exp, op_table, exp_index)
+def parseExpression(exp, ext_table, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(exp, ext_table, exp_index)
 
     while True:
-        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in op_table:
+        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in ext_table.functions:
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or op_table[(FunUniq.INFIX, exp[exp_index].val)][0] < min_precedence:
+        elif exp_index >= len(exp) or ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] < min_precedence:
             break
 
-        if op_table[(FunUniq.INFIX, exp[exp_index].val)][1] == FunKind.INFIXL:
-            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0] + 1
+        if ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind'] == FunKind.INFIXL:
+            next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] + 1
         else:
-            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0]
-        kind = op_table[(FunUniq.INFIX, exp[exp_index].val)][1]
-        print("Kind:")
-        print(kind)
+            next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity']
+        kind = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind']
         op = exp[exp_index]
         exp_index += 1
-        rh_expr, exp_index = parseExpression(exp, op_table, next_min_prec, exp_index)
+        rh_expr, exp_index = parseExpression(exp, ext_table, next_min_prec, exp_index)
         result = AST.FUNCALL(id=op, kind=kind, args=[result, rh_expr])
 
     return result, exp_index
