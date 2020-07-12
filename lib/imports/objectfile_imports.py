@@ -38,11 +38,11 @@ def parseObjectFile(data):
     funcs, data = getSlice(data, "funcs", "main")
     main, data = getSlice(data, "main", None)
 
-    modnames = set()
+    modnames = OrderedDict()
     for line in [x for x in deps.split("\n") if len(x) > 0]:
         if line.startswith(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['dependitem']):
             found = line[len(OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['dependitem']):]
-            modnames.add(found)
+            modnames[found] = None # (i.e. Ordered set insert)
         elif line.startswith(OBJECT_COMMENT_PREFIX.rstrip()):
             pass
         else:

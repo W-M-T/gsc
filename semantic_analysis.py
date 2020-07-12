@@ -3,14 +3,12 @@
 from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT, IMPORT_DIR_ENV_VAR_NAME
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
-from lib.datastructure.position import Position
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.symbol_table import SymbolTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
-from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS, ILLEGAL_OP_IDENTIFIERS
 from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES
-from lib.builtins.functions import BUILTIN_FUNCTIONS
+from lib.builtins.builtin_mod import enrichExternalTable
 
 from lib.util.util import treemap, selectiveApply
 
@@ -183,7 +181,6 @@ def forbid_illegal_types(symbol_table):
                     treemap(local_var, lambda x: selectiveApply(AST.TYPE, x, killVoidType))
     ERROR_HANDLER.checkpoint()
 
-
 '''
 Helper function for symbol table building
 Return a dict with function info (insertion order is meaningful)
@@ -220,7 +217,7 @@ def buildFuncEntry(val):
 #TODO: We don't check for redefinition attempts of builtin functions or ops
 #TODO: Check if a main with signature -> Int was defined.
 
-def buildSymbolTable(ast, just_for_headerfile=True, external_symbols=None):
+def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
     symbol_table = SymbolTable()
 
     # Add builtin functions to symbol table:
@@ -438,144 +435,6 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
 
     return expr
 
-'''
-Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
-'''
-def abstractToConcreteType(abstract_type):
-    if abstract_type == 'T':
-        return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)) for b in BASIC_TYPES]
-    elif abstract_type in BASIC_TYPES:
-        return [AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, abstract_type))]
-    elif abstract_type == '[T]':
-        return [AST.LISTTYPE(type=AST.TYPE(val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, b)))) for b in BASIC_TYPES]
-    elif abstract_type in ['[' + x + ']' for x in BASIC_TYPES]:
-        return [AST.LISTTYPE(type=AST.TYPE(val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, abstract_type[1:-1]))))]
-    elif abstract_type in VOID_TYPE:
-        return [Token(Position(), TOKEN.TYPE_IDENTIFIER, "Void")]
-    else:
-        raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
-
-def generateBuiltinFuncs():
-
-    builtin_functions = {}
-    for f, v in BUILTIN_FUNCTIONS.items():
-        builtin_functions[f] = []
-
-        for o in v:
-            vals = o[0].split()
-            if vals[0] == '->':
-                from_types = []
-                to_type = abstractToConcreteType((vals[1]))
-            else:
-                from_types = abstractToConcreteType(vals[0])
-                to_type = abstractToConcreteType(vals[2])
-
-            builtin_functions[f].append(
-                AST.FUNTYPE(
-                    from_types=[] if len(from_types) == 0 else [AST.TYPE(val=from_types[0])],
-                    to_type=AST.TYPE(val=to_type[0])
-                )
-            )
-
-    return builtin_functions
-
-'''
-Given the symbol table, produce the operator table for of all the builtin operators.
-'''
-def buildOperatorTable():
-    op_table = {'infix_ops': {}, 'prefix_ops': {}}
-
-    for o in BUILTIN_INFIX_OPS:
-        op_table['infix_ops'][o] = (BUILTIN_INFIX_OPS[o][1], BUILTIN_INFIX_OPS[o][2], [])
-        for x in BUILTIN_INFIX_OPS[o][0]:
-            first_type, second_type, _, output_type = x.split()
-            first_types = abstractToConcreteType(first_type)
-            second_types = abstractToConcreteType(second_type)
-            output_types = abstractToConcreteType(output_type)
-
-            for ft in first_types:
-                for st in second_types:
-                        for ot in output_types:
-                            if len(first_types) == len(second_types) == len(BASIC_TYPES):
-                                if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type.val) and AST.equalVals(ft, ot.type.val)):
-                                    op_table['infix_ops'][o][2].append((
-                                            AST.FUNTYPE(
-                                                from_types=[ft, st],
-                                                to_type=ot
-                                            ),
-                                            "builtins"
-                                        )
-                                    )
-                            else:
-                                op_table['infix_ops'][o][2].append((
-                                        AST.FUNTYPE(
-                                            from_types=[ft, st],
-                                            to_type=ot
-                                        ),
-                                        "builtins"
-                                    )
-                                )
-
-    for o, v in BUILTIN_PREFIX_OPS.items():
-        op_table['prefix_ops'][o] = []
-        in_type, _, out_type = v[0].split()
-        in_type_node = abstractToConcreteType(in_type)
-        out_type_node = abstractToConcreteType(out_type)
-
-        for in_t in in_type_node:
-            for out_t in out_type_node:
-                op_table['prefix_ops'][o].append(
-                    (
-                        AST.FUNTYPE(
-                            from_types=[in_t],
-                            to_type=out_t
-                        ),
-                        "builtins"
-                    )
-                )
-
-    return op_table
-
-def mergeCustomOps(op_table, symbol_table, module_name):
-    for x in symbol_table.functions:
-        f = symbol_table.functions[x]
-        if x[0] is FunUniq.INFIX:
-            if x[1] not in op_table['infix_ops']:
-                op_table['infix_ops'][x[1]] = (f[0]['def'].fixity.val, f[0]['def'].kind, [])
-
-            for o in f:
-                if op_table['infix_ops'][x[1]][0] == o['def'].fixity.val and op_table['infix_ops'][x[1]][1] == o['def'].kind:
-                    ft = AST.FUNTYPE(
-                        from_types=[o['type'].from_types[0].val, o['type'].from_types[1].val],
-                        to_type=o['type'].to_type.val
-                    )
-                    cnt = 0
-                    for ot in op_table['infix_ops'][x[1]][2]:
-                        if AST.equalVals(ft, ot):
-                            cnt += 1
-
-                    if cnt == 0:
-                        op_table['infix_ops'][x[1]][2].append((ft, module_name))
-                    else:
-                        ERROR_HANDLER.addError(ERR.DuplicateOpDef, [o['def'].id.val, o['def'].id])
-                else:
-                    ERROR_HANDLER.addError(ERR.InconsistentOpDecl, [o['def'].id.val, o['def'].id])
-
-        elif x[0] is FunUniq.PREFIX:
-            if x[1] not in op_table['prefix_ops']:
-                op_table['prefix_ops'][x[1]] = []
-
-            for o in f:
-                op_table['prefix_ops'][x[1]].append(
-                    (
-                        AST.FUNTYPE(
-                            from_types=[o['type'].from_types[0].val],
-                            to_type=o['type'].to_type.val
-                        ),
-                        module_name
-                    )
-                )
-
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
 def parseAtom(exp, op_table, exp_index):
 
@@ -589,7 +448,7 @@ def parseAtom(exp, op_table, exp_index):
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         return AST.PARSEDEXPR(val=recurse(exp[exp_index].contents, op_table)), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
-        if exp[exp_index].id.val not in op_table['prefix_ops']:
+        if (FunUniq.PREFIX, exp[exp_index].id.val) not in op_table:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
         sub_expr = recurse(prefix.args, op_table)
@@ -615,17 +474,17 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
     result, exp_index = parseAtom(exp, op_table, exp_index)
 
     while True:
-        if exp_index < len(exp) and exp[exp_index].val not in op_table['infix_ops']:
+        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in op_table:
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or op_table['infix_ops'][exp[exp_index].val][0] < min_precedence:
+        elif exp_index >= len(exp) or op_table[(FunUniq.INFIX, exp[exp_index].val)][0] < min_precedence:
             break
 
-        if op_table['infix_ops'][exp[exp_index].val][1] == FunKind.INFIXL:
-            next_min_prec = op_table['infix_ops'][exp[exp_index].val][0] + 1
+        if op_table[(FunUniq.INFIX, exp[exp_index].val)][1] == FunKind.INFIXL:
+            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0] + 1
         else:
-            next_min_prec = op_table['infix_ops'][exp[exp_index].val][0]
-        kind = op_table['infix_ops'][exp[exp_index].val][1]
+            next_min_prec = op_table[(FunUniq.INFIX, exp[exp_index].val)][0]
+        kind = op_table[(FunUniq.INFIX, exp[exp_index].val)][1]
         print("Kind:")
         print(kind)
         op = exp[exp_index]
@@ -635,6 +494,8 @@ def parseExpression(exp, op_table, min_precedence = 1, exp_index = 0):
 
     return result, exp_index
 
+
+# TODO this depends on the old implementation of op table that didn't have external symbols
 ''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
 def fixExpression(ast, op_table):
     decorated_ast = treemap(ast,
@@ -733,7 +594,7 @@ if __name__ == "__main__":
         exit()
     #print(import_mapping)
     import_mapping = {a:os.path.splitext(b)[0] for (a,b) in import_mapping}
-    print("Imports:",import_mapping)
+    print("Import map:",import_mapping)
 
     if not args.infile.endswith(SOURCE_EXT):
         print("Input file needs to be {}".format(SOURCE_EXT))
@@ -827,7 +688,10 @@ g (x) {
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             a = getExternalSymbols(x, headerfiles)
-            print(a)
+            a = enrichExternalTable(a)
+            print("External symbols:",a)
+            print()
+            ERROR_HANDLER.checkpoint()
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])

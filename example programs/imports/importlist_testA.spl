@@ -1,8 +1,9 @@
 from importlist_testB import here, ++
 from importlist_testB import nothere
-from importlist_testB import Coord as IntTup, swap, ++
-from importlist_testB import swap, Coord, ++
+from importlist_testB import Coord as IntTup, swap as foo, ++
+from importlist_testB import swap, Coord, ++ as **
 //importall importlist_testB
+from importlist_testC import Coord as Tup, --, swap, double_id
 
 main() :: -> Void {
     Coord x = (2,2);

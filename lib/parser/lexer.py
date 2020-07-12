@@ -13,7 +13,6 @@ from lib.datastructure.position import Position
 from lib.util.util import pointToLine
 
 import codecs
-
 '''
 TODO
 Refactor tokenize along repeating pattern to improve readability
@@ -161,8 +160,9 @@ def prefix_val_literal(string):  # TODO improve this code
     tempmatch = REG_STR.match(string)
     if tempmatch:
         found_id = tempmatch.group(0)
+        conv_str = codecs.getdecoder("unicode_escape")(found_id)[0][1:-1]
         rest = string[len(found_id):]
-        return (True, rest, TOKEN.STRING, found_id)
+        return (True, rest, TOKEN.STRING, conv_str) 
     tempmatch = REG_CHR.match(string)
     if tempmatch:
         found_id = tempmatch.group(0)

@@ -68,15 +68,18 @@ class ERR(IntEnum):
     ImportTypeSynNotFound = 49
     ClashImportGlobal = 50
     ClashImportType = 51
+    ImportIdChangeType = 52
     # Compiler / Linker scripts
-    CompInputFileExtension = 52
-    CompInputFileNonExist = 53
-    CompInvalidImportMapping = 54
-    CompMalformedObjectFile = 55
-    CompInputFileException = 56
-    CompOutputFileException = 57
-    CompInvalidArguments = 58
-    CompModuleFileNameRegex = 59
+    CompInputFileExtension = 53
+    CompInputFileNonExist = 54
+    CompInvalidImportMapping = 55
+    CompMalformedObjectFile = 56
+    CompInputFileException = 57
+    CompOutputFileException = 58
+    CompInvalidArguments = 59
+    CompModuleFileNameRegex = 60
+    # Builtin clashes
+    ImportTypeClashBuiltin = 61
 
 
 
@@ -132,6 +135,7 @@ ERRMSG = {
     ERR.ImportTypeSynNotFound: 'Tried to import a type identifier "{}" from module {} that was not found in the headerfile {}',
     ERR.ClashImportGlobal: 'Multiple clashing definitions for global variable identifier "{}" in imports:\n{}',
     ERR.ClashImportType: 'Multiple clashing definitions for type identifier "{}" in imports:\n{}',
+    ERR.ImportIdChangeType: 'Identifier "{}" aliased to different identifier type:\n{} -> {}\n{}',
     ERR.CompInputFileExtension: 'Input file needs to have extension "{}"',
     ERR.CompInputFileNonExist: 'Input file does not exist: {}',
     ERR.CompInvalidImportMapping: 'Invalid import mapping\nExpecting format:\nLIBNAME:PATH(,LIBNAME:PATH)*\nLIBNAME={}\nPATH=file path not containing ","'.format(REG_FIL.pattern),
@@ -140,6 +144,7 @@ ERRMSG = {
     ERR.CompOutputFileException: 'Could not write to output file "{}":\n\t{}',
     ERR.CompInvalidArguments: 'Invalid arguments:\n{}',
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
+    ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
 }
 
 class WARN(IntEnum):

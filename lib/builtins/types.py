@@ -11,3 +11,7 @@ VOID_TYPE = [
 ]
 
 BUILTIN_TYPES = BASIC_TYPES + VOID_TYPE
+
+HIGHER_BUILTIN_TYPES = {
+    "String" : "[Char]"
+}
