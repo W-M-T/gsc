@@ -562,7 +562,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
             return True
 
     # We are at the top level and we still expect a return, so a return stmt is missing
-    if returns != return_exp and cond_depth == 0:
+    if returns != return_exp and cond_depth == 0 and loop_depth == 0:
         ERROR_HANDLER.addError(ERR.NotAllPathsReturn, [func.id.val, func.id])
 
     return returns

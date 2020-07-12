@@ -38,6 +38,14 @@ def main():
                 Coord x = (2, 2);
                 Int i = 5;
                 
+                while(i > 5) {
+                    break;
+                }   
+                
+                 while(i > 5) {
+                    break;
+                }   
+                
                 i = 3;
             }
         ''')
