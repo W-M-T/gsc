@@ -556,7 +556,6 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                 if k != len(statements) - 1:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtContBreak, [statements[k + 1]])
         elif type(stmt) is AST.RETURN:
-            if k != len(statements) - 1:
             # Check for statements after return
             if k != len(statements) - 1:
                 ERROR_HANDLER.addWarning(WARN.UnreachableStmtReturn, [statements[k+1]])
