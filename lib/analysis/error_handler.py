@@ -6,6 +6,7 @@ from lib.datastructure.token import Token
 from lib.datastructure.AST import AST
 from lib.util.util import pointToPosition
 from lib.parser.lexer import REG_FIL
+from lib.builtins.functions import ENTRYPOINT_FUNCNAME
 
 class ERRCOLOR:
     WARNING = '\033[33m'
@@ -80,6 +81,8 @@ class ERR(IntEnum):
     CompModuleFileNameRegex = 60
     # Builtin clashes
     ImportTypeClashBuiltin = 61
+    MultipleMain = 62
+    WrongMainType = 63
 
 
 
@@ -92,17 +95,17 @@ ERRMSG = {
     ERR.ReservedTypeId: 'Trying to redefine a reserved type identifier\n{}',
     ERR.DuplicateTypeId: 'Duplicate type identifier\n{}\nInitial definition:\n{}',
     ERR.DuplicateFunDef: 'Overloaded function "{}" has multiple definitions with the same type: {}\n{}',
-    ERR.UndefinedOp: 'Operator is not defined\n{}',
+    ERR.UndefinedOp: 'Operator is not defined:\n{}',
     ERR.BreakOutsideLoop: 'Using a break or continue statement outside of a loop\n{}',
     ERR.NotAllPathsReturn: 'Not all paths in function {} lead to a certain return\n{}',
-    ERR.TypeSynVoid: 'Type synonym {} cannot have Void in its type',
-    ERR.GlobalVarTypeNone: 'Global var {} needs a type',
-    ERR.GlobalVarVoid: 'Global variable {} cannot have Void in its type',
-    ERR.FunctionTypeNone: 'Function {} needs a type',
-    ERR.FunctionInputVoid: 'Input type of {} cannot contain Void',
-    ERR.FunctionOutputNestedVoid: 'Return type of {} contains nested Void',
-    ERR.LocalVarTypeNone: 'Local variable {} of function {} needs a type',
-    ERR.LocalVarVoid: 'Variable {} of function {} has type containing Void',
+    ERR.TypeSynVoid: 'Type synonym "{}" cannot contain Void:\n{}',
+    ERR.GlobalVarTypeNone: 'Global variable "{}" needs a type:\n{}',
+    ERR.GlobalVarVoid: 'Type of global variable "{}" cannot contain Void:\n{}',
+    ERR.FunctionTypeNone: 'Function "{}" needs a type:\n{}',
+    ERR.FunctionInputVoid: 'Input type of "{}" cannot contain Void:\n{}',
+    ERR.FunctionOutputNestedVoid: 'Return type of "{}" contains nested Void:\n{}',
+    ERR.LocalVarTypeNone: 'Local variable "{}" of function "{}" needs a type:\n{}',
+    ERR.LocalVarVoid: 'Type of local variable "{}" of function "{}" cannot contain Void:\n{}',
     ERR.UnsupportedOperandType: 'Unsupported operand type(s) for {}, expected argument {} to be {}\n{}',
     ERR.IncompatibleTypes: 'Incompatible types: Operator cannot possibly result in {}\n{}',
     ERR.UnexpectedType: 'Unexpected type {}, expected {}\n{}',
@@ -145,10 +148,12 @@ ERRMSG = {
     ERR.CompInvalidArguments: 'Invalid arguments:\n{}',
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
     ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
+    ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
+    ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}'
 }
 
 class WARN(IntEnum):
-    ShadowVarOtherModule = 1
+    ShadowGlobalOtherModule = 1
     ShadowFuncOtherModule = 2
     ShadowTypeOtherModule = 3
     ShadowFunArg = 4
@@ -161,9 +166,9 @@ class WARN(IntEnum):
     DuplicateTypeSameModuleImport = 11
 
 WARNMSG = {
-    WARN.ShadowVarOtherModule: 'Variable {} was already defined in another module, which is now shadowed',
+    WARN.ShadowGlobalOtherModule: 'Shadowing global variable "{}" from module "{}"',
     WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed',
-    WARN.ShadowTypeOtherModule: 'Typedef {} was already defined in another module, which is now shadowed',
+    WARN.ShadowTypeOtherModule: 'Shadowing type synonym "{}" from module "{}"',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
     WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',

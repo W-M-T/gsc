@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from lib.datastructure.token import TOKEN
+from lib.analysis.error_handler import ERRCOLOR
 
 TOKEN_SYNTAX = {
     TOKEN.VAR             : "var",
@@ -67,6 +68,5 @@ class ParseError(RuntimeError):
         self.expected = pretty_expected
         self.pos = pos
 
-    # TODO: Prettify this, remove stacktrace and add colors for consistency.
     def __str__(self):
-        return "An exception occured at {}\nExpected one of the following:\n{}".format(self.pos, self.expected)
+        return ERRCOLOR.FAIL + "[ERROR] A parser exception occurred at {}\nExpected one of the following:\n{}".format(self.pos, self.expected) + ERRCOLOR.ENDC

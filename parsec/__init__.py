@@ -95,6 +95,7 @@ class Parser(object):
         '''Parser a given string `text`.'''
         return self.parse_partial(text)[0]
 
+    # TODO catch this exception, to not show stacktrace
     def parse_partial(self, text, infile):
         global error_handler
         '''Parse the longest possible prefix of a given string.

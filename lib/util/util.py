@@ -61,9 +61,12 @@ def pointToPosition(instream, position): # Could be made O(1) instead of O(n) wi
     return pointToLine(line, position)
 
 def pointToLine(string, position):
+    offset = position.col - 1
+    tabcount = string[:offset].count('\t')
+    spacecount = offset - tabcount
     output = "line {}, col {}\n{}\n{}".format(
         position.line,
         position.col,
         string.rstrip(),
-        " " * (position.col - 1) + "^")
+        "\t" * tabcount + " " * spacecount + "^")
     return output

@@ -6,11 +6,9 @@ BASIC_TYPES = [
     "Bool"
 ]
 
-VOID_TYPE = [
-    "Void"
-]
+VOID_TYPE = "Void"
 
-BUILTIN_TYPES = BASIC_TYPES + VOID_TYPE
+BUILTIN_TYPES = BASIC_TYPES + [VOID_TYPE]
 
 HIGHER_BUILTIN_TYPES = {
     "String" : "[Char]"

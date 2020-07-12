@@ -5,8 +5,17 @@ from importlist_testB import swap, Coord, ++ as **
 //importall importlist_testB
 from importlist_testC import Coord as Tup, --, swap, double_id
 
-main() :: -> Void {
+main() :: -> Int {
     Coord x = (2,2);
     swap(here);
+	if (True) {
+		return 1;
+	}
+	elif (True) {
+		return 2;
+	}
 }
 
+type Coord = (Char, Char)
+
+Char double_id = 4;
