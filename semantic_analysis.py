@@ -4,11 +4,11 @@ from lib.imports.imports import export_headers, import_headers, getImportFiles, 
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.token import Token, TOKEN
-from lib.datastructure.symbol_table import SymbolTable
+from lib.datastructure.symbol_table import SymbolTable, ExternalTable
 from lib.datastructure.scope import NONGLOBALSCOPE
 
 from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES
-from lib.builtins.builtin_mod import enrichExternalTable
+from lib.builtins.builtin_mod import enrichExternalTable, BUILTINS_NAME
 
 from lib.util.util import treemap, selectiveApply
 
@@ -19,6 +19,8 @@ from lib.debug.AST_prettyprinter import print_node, subprint_type
 import os
 from enum import IntEnum
 from collections import OrderedDict
+
+ENTRYPOINT_FUNCNAME = "main"
 
 
 '''
@@ -214,21 +216,17 @@ def buildFuncEntry(val):
     return temp_entry
 
 
-#TODO: We don't check for redefinition attempts of builtin functions or ops
+#TODO: We don't check for redefinition attempts of builtin functions or ops -> Do this in type normaliser
 #TODO: Check if a main with signature -> Int was defined.
 
-def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
+def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=ExternalTable()):
     symbol_table = SymbolTable()
-
-    # Add builtin functions to symbol table:
-    #builtin_ops = buildOperatorTable()
-    #TODO add this implementation
-
-    # TODO Check for duplicates everywhere of course
+    '''
     print("Imports")
     for el in ast.imports:
         print(el)
-    print("Decls")
+    #'''
+    #print("Decls")
     
     for decl in ast.decls:
         val = decl.val
@@ -238,9 +236,10 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
             #print(var_id)
             if not var_id in symbol_table.global_vars: # New global var decl
                 if not just_for_headerfile:
-                    # TODO test if it exists in other module
-                    pass
-                    # ERROR_HANDLER.addWarning(WARN.ShadowVarOtherModule, [var_id])
+                    # Test if it exists in other module
+                    if var_id in ext_symbol_table.global_vars:
+                        # No need to check if it's builtin, since there are no builtin globals
+                        ERROR_HANDLER.addWarning(WARN.ShadowGlobalOtherModule, [var_id, ext_symbol_table.global_vars[var_id]['module']])
 
                 symbol_table.global_vars[var_id] = val
             else:
@@ -255,8 +254,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
             #print("params")
             #print(val.params)
 
-            # Types are not normalised here yet, because we don't yet have all type syns
-
+            # Types are not normalised here yet, because we don't yet have all type syn
             uniq_kind = FunKindToUniq(val.kind)
 
             # Test if argument count and type count match
@@ -266,13 +264,10 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
                     # Arg count doesn't match input type
                     ERROR_HANDLER.addError(ERR.ArgCountDoesNotMatchSign, [val.id])
 
+            # No check for external/builtin shadowing. Happens during type normalization
             # Test if this function is already defined
             fun_id = val.id.val
             if not (uniq_kind, fun_id) in symbol_table.functions:
-                if not just_for_headerfile:
-                    # TODO test if it is already defined (with the same type) in other module
-                    pass
-                    # ERROR_HANDLER.addWarning(WARN.ShadowFuncOtherModule, [uniq_kind.name, fun_id, print_node(val.type)])
 
                 # Completely new name
                 symbol_table.functions[(uniq_kind,fun_id)] = []
@@ -281,7 +276,6 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
                 #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
 
                 symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
-
 
             else: # Already defined in the table, check for overloading
                 temp_entry = buildFuncEntry(val)
@@ -292,16 +286,20 @@ def buildSymbolTable(ast, just_for_headerfile=True, external_symbol_table=None):
             type_id = val.type_id.val
             def_type = val.def_type
 
-            if type_id in BUILTIN_TYPES:
-                # Type identifier is reserved
-                ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
+            if type_id in ext_symbol_table.type_syns:
+                if ext_symbol_table.type_syns[type_id]['module'] == BUILTINS_NAME:
+                    # Type identifier is reserved
+                    ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
 
             if not type_id in symbol_table.type_syns:
                 if not just_for_headerfile:
-                    # TODO Test if it exists in another module
-                    pass
-                    # ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id])
-                normalized_type = normalizeType(def_type, symbol_table)
+                    # Test if it exists in another module
+                    if type_id in ext_symbol_table.type_syns:
+                        if ext_symbol_table.type_syns[type_id]['module'] != BUILTINS_NAME:
+                            # External type identifier is shadowed
+                            ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module']])
+
+                normalized_type = normalizeType(def_type, symbol_table) # TODO dit gaat nog niet goed
                 symbol_table.type_syns[type_id] = normalized_type
             else:
                 # Type identifier already used
@@ -687,11 +685,15 @@ g (x) {
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-            a = getExternalSymbols(x, headerfiles)
-            a = enrichExternalTable(a)
-            print("External symbols:",a)
-            print()
+            # Get all external symbols
+            external_symbol_table = getExternalSymbols(x, headerfiles)
+            external_symbol_table = enrichExternalTable(external_symbol_table)
             ERROR_HANDLER.checkpoint()
+
+            symbol_table = buildSymbolTable(x, compiler_target['header'], ext_symbol_table=external_symbol_table)
+
+            print(symbol_table)
+
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])

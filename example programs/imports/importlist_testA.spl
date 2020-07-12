@@ -10,3 +10,6 @@ main() :: -> Void {
     swap(here);
 }
 
+type Coord = (Char, Char)
+
+Char double_id = 4;

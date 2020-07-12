@@ -148,7 +148,7 @@ ERRMSG = {
 }
 
 class WARN(IntEnum):
-    ShadowVarOtherModule = 1
+    ShadowGlobalOtherModule = 1
     ShadowFuncOtherModule = 2
     ShadowTypeOtherModule = 3
     ShadowFunArg = 4
@@ -161,9 +161,9 @@ class WARN(IntEnum):
     DuplicateTypeSameModuleImport = 11
 
 WARNMSG = {
-    WARN.ShadowVarOtherModule: 'Variable {} was already defined in another module, which is now shadowed',
+    WARN.ShadowGlobalOtherModule: 'Shadowing global variable "{}" from module "{}"',
     WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed',
-    WARN.ShadowTypeOtherModule: 'Typedef {} was already defined in another module, which is now shadowed',
+    WARN.ShadowTypeOtherModule: 'Shadowing type synonym "{}" from module "{}"',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
     WARN.UnreachableStmtBranches: 'The statements can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'The statements can never be reached because of a continue or break statement\n{}',
