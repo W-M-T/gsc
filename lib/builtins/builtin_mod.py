@@ -2,12 +2,17 @@
 
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS, ILLEGAL_OP_IDENTIFIERS
-from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES
+from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE, BASIC_TYPES, HIGHER_BUILTIN_TYPES
 from lib.datastructure.AST import AST, FunUniq, FunKind
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.position import Position
 
 from lib.datastructure.symbol_table import ExternalTable
+
+from lib.analysis.error_handler import *
+
+
+BUILTINS_NAME = "builtins"
 
 '''
 Given an abstract type (like T) return all of its concrete possibilities as AST nodes.
@@ -45,7 +50,7 @@ def generateBuiltinFuncs():
                     from_types=[] if len(from_types) == 0 else [AST.TYPE(val=from_types[0])],
                     to_type=AST.TYPE(val=to_type[0])
                     ),
-                'module': "builtins",
+                'module': BUILTINS_NAME,
                 'orig_id': f_id,
                 'fixity': None,
                 'kind': FunKind.FUNC
@@ -78,7 +83,7 @@ def generateBuiltinOps():
                                                 from_types=[ft, st],
                                                 to_type=ot
                                             ),
-                                        'module': "builtins",
+                                        'module': BUILTINS_NAME,
                                         'orig_id': op_id,
                                         'fixity': BUILTIN_INFIX_OPS[op_id][1],
                                         'kind': BUILTIN_INFIX_OPS[op_id][2]
@@ -89,7 +94,7 @@ def generateBuiltinOps():
                                                 from_types=[ft, st],
                                                 to_type=ot
                                             ),
-                                        'module': "builtins",
+                                        'module': BUILTINS_NAME,
                                         'orig_id': op_id,
                                         'fixity': BUILTIN_INFIX_OPS[op_id][1],
                                         'kind': BUILTIN_INFIX_OPS[op_id][2]
@@ -108,13 +113,24 @@ def generateBuiltinOps():
                             from_types=[in_t],
                             to_type=out_t
                         ),
-                    'module': "builtins",
+                    'module': BUILTINS_NAME,
                     'orig_id': op_id[0],
                     'fixity': None,
                     'kind': FunKind.PREFIX
                     })
 
     return op_table
+
+def generateBuiltinTypesyns():
+    temp = {}
+    for name, def_str in HIGHER_BUILTIN_TYPES.items():
+        temp[name] = {
+            'def_type': AST.TYPE(val=abstractToConcreteType(def_str)[0]),
+            'module': BUILTINS_NAME,
+            'orig_id': name
+        }
+
+    return temp
 
 # TODO this is broken now
 def mergeCustomOps(op_table, symbol_table, module_name):
@@ -160,14 +176,25 @@ def mergeCustomOps(op_table, symbol_table, module_name):
 
 def enrichExternalTable(external_table):
     builtin_funcs = generateBuiltinFuncs()
-
     builtin_ops = generateBuiltinOps()
+    builtin_type_syns = generateBuiltinTypesyns()
 
-    print(builtin_funcs)
+    temp_functions = {**builtin_funcs, **builtin_ops}
 
-    '''
-    temp = ExternalTable()
-    temp.functions = builtin_ops
+    # Test if type syns of imports clash with builtins
+    # Test for function clashes happens after normalisation
 
-    print(temp)
-'''
+    # Merge functions:
+    for k,v in temp_functions.items():
+        if k not in external_table.functions:
+            external_table.functions[k] = []
+        external_table.functions[k].extend(v)
+
+    # Merge type syns:
+    for k,v in builtin_type_syns.items():
+        if k in external_table.type_syns:
+            ERROR_HANDLER.addError(ERR.ImportTypeClashBuiltin, [k])
+        external_table.type_syns[k] = v
+    #ERROR_HANDLER.checkpoint()
+    
+    return external_table

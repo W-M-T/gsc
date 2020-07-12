@@ -8,7 +8,7 @@ from collections import OrderedDict
 '''
 typesyns:
     gewone: type id naar definitie
-    externe: type id naar originele id, module, definitie = ('def_type', 'module', 'orig_id')
+    externe: type id naar dict originele id, module, definitie = ('def_type', 'module', 'orig_id')
 
 globals:
     gewone: identifier naar definitienode ("type", "id", "expr")

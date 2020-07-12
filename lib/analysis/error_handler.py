@@ -78,6 +78,8 @@ class ERR(IntEnum):
     CompOutputFileException = 58
     CompInvalidArguments = 59
     CompModuleFileNameRegex = 60
+    # Builtin clashes
+    ImportTypeClashBuiltin = 61
 
 
 
@@ -142,6 +144,7 @@ ERRMSG = {
     ERR.CompOutputFileException: 'Could not write to output file "{}":\n\t{}',
     ERR.CompInvalidArguments: 'Invalid arguments:\n{}',
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
+    ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
 }
 
 class WARN(IntEnum):

@@ -688,9 +688,10 @@ g (x) {
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             a = getExternalSymbols(x, headerfiles)
+            a = enrichExternalTable(a)
             print("External symbols:",a)
             print()
-            a = enrichExternalTable(a)
+            ERROR_HANDLER.checkpoint()
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])

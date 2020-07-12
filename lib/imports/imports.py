@@ -9,6 +9,7 @@ from lib.analysis.error_handler import *
 
 from collections import OrderedDict
 from lib.parser.lexer import REG_FIL
+from lib.builtins.builtin_mod import BUILTINS_NAME
 
 import os
 
@@ -20,7 +21,7 @@ TARGET_EXT = ".ssm"
 IMPORT_DIR_ENV_VAR_NAME = "SPL_PATH"
 
 RESERVED_MODNAMES = [
-    "builtins"
+    BUILTINS_NAME
 ]
 
 '''
@@ -195,7 +196,7 @@ def getExternalSymbols(ast, headerfiles):
             if imp_statement.alias is not None:
                 if imp_statement.name.typ != imp_statement.alias.typ: # Identifier aliased as different identifier type
                     ERROR_HANDLER.addError(ERR.ImportIdChangeType, [imp_statement.name.val, imp_statement.name.typ.name, imp_statement.alias.typ.name, imp_statement.name])
-        ERROR_HANDLER.checkpoint()
+        #ERROR_HANDLER.checkpoint()
 
 
         id_imports = list(filter(lambda x: x.name.typ == TOKEN.IDENTIFIER, all_cur_imports))
@@ -241,7 +242,7 @@ def getExternalSymbols(ast, headerfiles):
 
                     if (FunUniq.FUNC, match_orig) in cur_symbols['functions']:
                         found_funcs = cur_symbols['functions'][(FunUniq.FUNC, match_orig)]
-                        print("Found_funcs",match_orig,found_funcs)
+                        #print("Found_funcs",match_orig,found_funcs)
 
                         add_entries = list(map(lambda x: {
                                 'type': x['type'],
@@ -330,6 +331,6 @@ def getExternalSymbols(ast, headerfiles):
                 else:
                     ERROR_HANDLER.addError(ERR.ImportTypeSynNotFound, [match_orig, modname, headerfiles[modname]['path']])
 
-        ERROR_HANDLER.checkpoint()
+        #ERROR_HANDLER.checkpoint()
 
     return ext_symbol_table
