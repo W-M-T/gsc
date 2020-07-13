@@ -353,24 +353,35 @@ def ExpLiteral():
     return tok
 
 @ps.generate
-def ExpSub():
-    yield ps.token(TOKEN.PAR_OPEN)
-    subexp = yield Exp
-    yield ps.token(TOKEN.PAR_CLOSE)
-    return subexp
-
-@ps.generate
-def ExpTup():
+def ExpSubTup():
     yield ps.token(TOKEN.PAR_OPEN)
     a = yield Exp
-    yield ps.token(TOKEN.COMMA) # komma gaan we volledig verbieden binnen alle operators, wordt apart tokentype
+    b = yield ExpClose
+    if b is None:
+        return a
+    else:
+        return AST.TUPLE(a=a, b=b)
+
+@ps.generate
+def ExpClose():
+    a = yield ExpSubClose ^ ExpTupClose
+    return a
+
+@ps.generate
+def ExpSubClose():
+    yield ps.token(TOKEN.PAR_CLOSE)
+    return None
+
+@ps.generate
+def ExpTupClose():
+    yield ps.token(TOKEN.COMMA) 
     b = yield Exp
     yield ps.token(TOKEN.PAR_CLOSE)
-    return AST.TUPLE(a=a, b=b)
+    return b
 
 @ps.generate
 def ConvExp():
-    a = yield FunCall ^ IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSub ^ ExpTup
+    a = yield FunCall ^ IdField ^ PrefixOpExp ^ ExpLiteral ^ ExpSubTup
     return a
 
 # STATEMENTS ====================================================

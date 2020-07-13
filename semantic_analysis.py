@@ -190,7 +190,7 @@ def forbid_illegal_types(symbol_table):
         for match in symbol_table.functions[(FunUniq.FUNC, ENTRYPOINT_FUNCNAME)]:
             temp_from_types = match['type'].from_types
             temp_to_type = match['type'].to_type
-            if not (temp_from_types == [] and temp_to_type is not None and type(temp_to_type.val) == AST.BASICTYPE and temp_to_type.val.type_id.val == "Int"):
+            if not (temp_from_types == [] and temp_to_type is not None and ((type(temp_to_type.val) == AST.BASICTYPE and temp_to_type.val.type_id.val == "Int") or (type(temp_to_type.val == Token and temp_to_type.val.val == "Void")))):
                 ERROR_HANDLER.addError(ERR.WrongMainType, [match['type']])
 
     ERROR_HANDLER.checkpoint()
@@ -254,7 +254,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
                     # Test if it exists in other module
                     if var_id in ext_symbol_table.global_vars:
                         # No need to check if it's builtin, since there are no builtin globals
-                        ERROR_HANDLER.addWarning(WARN.ShadowGlobalOtherModule, [var_id, ext_symbol_table.global_vars[var_id]['module']])
+                        ERROR_HANDLER.addWarning(WARN.ShadowGlobalOtherModule, [var_id, ext_symbol_table.global_vars[var_id]['module'], val.id])
 
                 symbol_table.global_vars[var_id] = val
             else:
@@ -316,7 +316,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
                     if type_id in ext_symbol_table.type_syns:
                         if ext_symbol_table.type_syns[type_id]['module'] != BUILTINS_NAME:
                             # External type identifier is shadowed
-                            ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module']])
+                            ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
 
                 normalized_type = normalizeType(def_type, symbol_table) # TODO dit gaat nog niet goed
                 symbol_table.type_syns[type_id] = normalized_type
@@ -563,7 +563,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
             return True
 
     # We are at the top level and we still expect a return, so a return stmt is missing
-    if returns != return_exp and cond_depth == 0:
+    if returns != return_exp and cond_depth == 0 and loop_depth == 0:
         ERROR_HANDLER.addError(ERR.NotAllPathsReturn, [func.id.val, func.id])
 
     return returns
@@ -706,8 +706,9 @@ g (x) {
             ERROR_HANDLER.checkpoint()
 
             symbol_table = buildSymbolTable(x, compiler_target['header'], ext_symbol_table=external_symbol_table)
-
             print(symbol_table)
+            forbid_illegal_types(symbol_table)
+            analyseFunc(symbol_table)
 
             exit()
         else:
