@@ -34,19 +34,20 @@ def main():
         testprog = StringIO('''
             type Coord = (Int, Int)
         
-            main() :: -> Int {
+            main() :: -> Void {
                 Coord x = (2, 2);
                 Int i = 5;
                 
-                while(i > 5) {
-                    break;
-                }   
-                
-                 while(i > 5) {
-                    break;
-                }   
-                
-                i = 3;
+                while(True) {
+                    if(True) {
+                        return 1;
+                    }
+                    elif (True) {
+                        continue;
+                        x = 1;
+                        return;
+                    }
+                }
             }
         ''')
 
@@ -78,7 +79,7 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Type check
-    analyseFunc(ast)
+    analyseFunc(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     #typecheck_globals(symbol_table, external_table)
