@@ -149,7 +149,7 @@ ERRMSG = {
     ERR.CompModuleFileNameRegex: ('Module name "{}" needs to be of format ' + REG_FIL.pattern),
     ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
     ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
-    ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}',
+    ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int" or ":: -> Void":\n{}',
     ERR.UndefinedTypeId: 'Type identifier "{}" is not defined',
 }
 
@@ -167,9 +167,9 @@ class WARN(IntEnum):
     DuplicateTypeSameModuleImport = 11
 
 WARNMSG = {
-    WARN.ShadowGlobalOtherModule: 'Shadowing global variable "{}" from module "{}"',
-    WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed',
-    WARN.ShadowTypeOtherModule: 'Shadowing type synonym "{}" from module "{}"',
+    WARN.ShadowGlobalOtherModule: 'Shadowing global variable "{}" from module "{}":\n{}',
+    WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed', # Unused as of yet
+    WARN.ShadowTypeOtherModule: 'Shadowing type synonym "{}" from module "{}":\n{}',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
     WARN.UnreachableStmtBranches: 'Statement(s) can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'Statement(s) can never be reached because of a continue or break statement\n{}',

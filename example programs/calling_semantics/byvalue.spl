@@ -1,0 +1,55 @@
+
+Int glob = 2;
+
+foo(x) :: Int -> Int {
+    x = x + 1;
+    print(x);
+    print('\n');
+    return x;
+}
+
+bar() :: -> Void {
+    glob = glob + 1;
+}
+
+baz() :: -> Void {
+    Int loc = 5;
+    foo(x);
+    print(loc)
+    print('\n');
+}
+
+main() :: -> Int {
+    Int other = 99;
+    /*
+    Print the global and show that the local variable is a copy of it's value
+    since the printed global after is still the same.
+    */
+    print(glob);
+    print('\n');
+    other = foo(glob);
+    print(glob);
+    print('\n');
+    print(other)
+    print('\n');
+    other = 55; // Also the return of foo is a value, not a reference. Shown by the assignment not modifying glob 
+    print(glob);
+    print('\n');
+    print(other);
+    print('\n')
+
+
+    /*
+    Now call a function that actually modifies the global instead of a copy
+    */
+    bar();
+    print(glob);
+    print('\n');
+
+    /*
+    Also show that local variables of basic types are passed by value, same as globals (obviously)
+    */
+    baz()
+
+    return 0;
+}

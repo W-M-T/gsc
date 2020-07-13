@@ -65,10 +65,12 @@ ConvExp     = id Field*
             | string
             | 'False'
             | 'True'
-            | '(' Exp ')'
-            | '(' Exp ',' Exp ')'
+            | '(' Exp ExpClose
             | FunCall
             | '[]'
+
+ExpClose    = ')'
+            | ',' Exp ')'
 
 Field       = ('.hd' | '.tl' | '.fst' | '.snd' )
 

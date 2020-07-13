@@ -8,18 +8,8 @@ from importlist_testC import Coord as Tup, --, swap, double_id
 main() :: -> Int {
     Coord x = (2,2);
     swap(here);
-	/*
-	while (True) {
-		if (True) {
-			return 1;
-		}
-		elif (True) {
-			continue;
-			x = 1;
-			return;
-		}
-	}
-	*/
+
+	return 0;
 }
 
 type Coord = (Char, Char)
@@ -27,7 +17,5 @@ type Coord = (Char, Char)
 type Location = Int
 
 type Coordinate = (Location, Location)
-
-
 
 Char double_id = 4;
