@@ -33,7 +33,7 @@ RetType     = Type
             | 'Void'
 
 Type        = BasicType
-            | '(' Type ',' Type ')' # Note: this is different from in expressions, where parentheses are not required
+            | '(' Type ',' Type ')'
             | '[' Type ']'
             | type_id
 
@@ -66,9 +66,9 @@ ConvExp     = id Field*
             | 'False'
             | 'True'
             | '(' Exp ')'
-			| '(' Exp ',' Exp ')'
+            | '(' Exp ',' Exp ')'
             | FunCall
-            | []
+            | '[]'
 
 Field       = ('.hd' | '.tl' | '.fst' | '.snd' )
 
@@ -79,7 +79,7 @@ ActArgs     = Exp (',' Exp)*
 op          = opChar+
 
 opChar      = '!' | '#' | '$' | '%' | '&' | '*' | '+' | '/' | '<' | '=' | '>' | '?'
-            | '@' | '\' | '^' | '|' | '-' | '~' | ',' | ':'
+            | '@' | '\' | '^' | '|' | ':' | '~' | '-'
 
 int         = digit+
 

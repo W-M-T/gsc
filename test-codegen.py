@@ -32,22 +32,14 @@ def main():
 
         module_name = "return-test"
         testprog = StringIO('''
-            type Coord = (Int, Int)
+            f(x) :: Int -> Int {
+                return x;
+            }
         
             main() :: -> Void {
-                Coord x = (2, 2);
-                Int i = 5;
+                Int x = 3 + 2 - f(1);
                 
-                while(True) {
-                    if(True) {
-                        return 1;
-                    }
-                    elif (True) {
-                        continue;
-                        x = 1;
-                        return;
-                    }
-                }
+                x = 5;
             }
         ''')
 
