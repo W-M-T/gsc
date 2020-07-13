@@ -1,0 +1,50 @@
+
+(Int, Int) globtup = (2,2);
+
+print(x) :: (Int, Int) -> Void {
+    print('(');
+    print(x.fst);
+    print(',');
+    print(x.snd);
+    print(')');
+    print('\n');
+}
+
+foo(x) :: (Int, Int) -> (Int, Int) {
+    Int loc = x.fst;
+    x.fst = 1;
+    print(x);
+    print('\n');
+    print(loc); // Local not modified since x.fst dereferenced it.
+    print('\n');
+    return x;
+}
+
+baz() :: -> Void {
+    (Int, Int) loctup = (5,5);
+    foo(loctup);
+}
+
+main() :: -> Int {
+    (Int, Int) other = (0,0);
+
+    /*
+    Show that tuples are objects and passed by reference. Also implicitly dereferenced when necessary. (attribute used as value instead of as an assignment target)
+
+    Also: other becomes the same pointer as globtup because it is overwritten with globtup (which was returned by foo). This means that modifying globtup also modifies other.
+    */
+    other = foo(globtup);
+    print(globtup);
+    print('\n');
+    print(other);
+    print('\n');
+    globtup.snd = 8;
+    print(other);
+    print(globtup);
+    print('\n');
+    print(other);
+    print('\n');
+
+
+    return 0;
+}
