@@ -456,6 +456,7 @@ def parseAtom(exp, ext_table, exp_index):
 
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
+        # TODO: This was without AST ParsedExpr, possibly remove this again
         return AST.PARSEDEXPR(val=res), exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         sub_expr, _ = parseExpression(exp[exp_index].contents, ext_table)
@@ -541,7 +542,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
                 else: # Its an elif, since we do not know if the entire domain is covered we still expect a return
                     returns = False
                 # Check for statements after the IFELSE statement (deadcode since all branches return)
-                if k is not len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
+                if k != len(statements) - 1 and stmt.condbranches[len(stmt.condbranches) - 1].expr is None:
                     ERROR_HANDLER.addWarning(WARN.UnreachableStmtBranches, [statements[k+1]])
 
         elif type(stmt) is AST.LOOP:
@@ -563,7 +564,7 @@ def analyseFuncStmts(func, statements, loop_depth=0, cond_depth=0):
             return True
 
     # We are at the top level and we still expect a return, so a return stmt is missing
-    if returns != return_exp and cond_depth == 0 and loop_depth == 0:
+    if not returns and return_exp and cond_depth == 0 and loop_depth == 0:
         ERROR_HANDLER.addError(ERR.NotAllPathsReturn, [func.id.val, func.id])
 
     return returns

@@ -374,7 +374,7 @@ def ExpSubClose():
 
 @ps.generate
 def ExpTupClose():
-    yield ps.token(TOKEN.COMMA) 
+    yield ps.token(TOKEN.COMMA)
     b = yield Exp
     yield ps.token(TOKEN.PAR_CLOSE)
     return b
