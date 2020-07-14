@@ -31,14 +31,20 @@ def main():
         from io import StringIO
 
         module_name = "tuples"
-        testprog = StringIO('''        
-        main() :: -> Int {
-            (Int, (Int, Int)) a = (2, (3, 4));
-                        
-            a.fst = 5;
-            a.snd = (6, 7);
+        testprog = StringIO('''      
+        type Coord = (Int, Int)
         
-            return a.fst + a.snd.fst;
+        infixl 7 + (a, b) :: (Int, Int) Coord -> (Int, Int) {
+            return (a.fst + b.fst, a.snd + b.snd);
+        }
+          
+        main() :: -> Int {
+            Coord a = (2, 3);
+            Coord b = (5, 6);
+            
+            Coord c = a + b;
+                    
+            return c.fst;
         }
         ''')
 

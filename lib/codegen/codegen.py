@@ -59,7 +59,6 @@ def generate_expr(expr, module_name, mappings):
         res = []
 
         for a in expr.args:
-            print(a)
             res.extend(generate_expr(a, module_name, mappings))
 
         module = expr.module if expr.module is not None else module_name
@@ -84,7 +83,6 @@ def generate_expr(expr, module_name, mappings):
 
         return res
     elif type(expr) is AST.TUPLE:
-        print(expr)
         res = []
 
         res.extend(generate_expr(expr.a, module_name, mappings))
@@ -107,7 +105,6 @@ def generate_ret(stmt, code, module_name, mappings, label):
 
 def generate_actstmt(stmt, code, module_name, mappings, label):
     if type(stmt.val) == AST.TYPED_FUNCALL:
-        print(stmt.val)
         code.extend(generate_expr(stmt.val, module_name, mappings))
     else:
         code.extend(generate_expr(stmt.val.expr, module_name, mappings))
@@ -226,8 +223,9 @@ def generate_func(func, symbol_table, module_name, label, mappings):
     code.append('LINK ' + link_count)
     
     arg_index = -2
-    for arg in reversed(func['arg_vars']):
-        mappings['args'][arg] = str(arg_index)
+    for k, arg in reversed(func['arg_vars'].items()):
+        memtype = MEMTYPE.POINTER if type(arg['type'].val) == AST.TUPLETYPE or type(arg['type'].val) == AST.LISTTYPE else MEMTYPE.BASICTYPE
+        mappings['args'][k] = (str(arg_index), memtype)
         arg_index -= 1
 
     var_index = 1
@@ -302,7 +300,6 @@ def generate_object_file(symbol_table, module_name):
         o = 0
         for of in symbol_table.functions[f]:
             key = module_name
-            print(of)
             if of['def'].kind is FunKind.PREFIX:
                 key += '_prefix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind),of['def'].id.val))) + "_"
             elif of['def'].kind  is FunKind.INFIXL or of['def'].kind  is FunKind.INFIXR:

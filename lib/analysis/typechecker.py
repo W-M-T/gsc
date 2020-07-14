@@ -56,7 +56,11 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         if type(expr.val) is AST.RES_GLOBAL:
             typ = symbol_table.global_vars[expr.val.id.val].type.val
             fields = list(reversed(expr.val.fields))
-            typ = getSubType(typ, fields, expr)
+
+            success, typ = getSubType(typ, fields, expr)
+
+            if not success:
+                return True, expr
 
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
@@ -71,7 +75,10 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 typ = func['arg_vars'][expr.val.id.val]['type'].val
 
             fields = list(reversed(expr.val.fields))
-            typ = getSubType(typ, fields, expr)
+            success, typ = getSubType(typ, fields, expr)
+
+            if not success:
+                return True, expr
 
             if not AST.equalVals(typ, exp_type):
                 if r == 0 and not noErrors:
@@ -178,10 +185,10 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
             return True, expr
 
-        type1 = typecheck(expr.a, exp_type.a.val, symbol_table, ext_table, func)
-        type2 = typecheck(expr.b, exp_type.b.val, symbol_table, ext_table, func)
+        type1, a = typecheck(expr.a, exp_type.a.val, symbol_table, ext_table, func)
+        type2, b = typecheck(expr.b, exp_type.b.val, symbol_table, ext_table, func)
 
-        return type1 or type2, expr
+        return type1 or type2, AST.TUPLE(a=a, b=b)
 
     else:
         print(expr)
@@ -189,16 +196,23 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         raise Exception('Unknown type of expression encountered in typechecking')
 
 def getSubType(typ, fields, varref):
+    success = True
     while len(fields) > 0:
         field = fields.pop()
         if field == Accessor.FST or field == Accessor.SND:
             if type(typ) is AST.TUPLETYPE:
+                print("Correct")
+                print(typ)
                 if field == Accessor.FST:
                     typ = typ.a.val
                 else:
                     typ = typ.b.val
             else:
+                print("Incorrect")
+                print(typ)
+
                 ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [varref])
+                success = False
         elif field == Accessor.HD or field == Accessor.SND:
             if type(typ) is AST.LISTTYPE:
                 typ = typ.type.val
@@ -207,7 +221,7 @@ def getSubType(typ, fields, varref):
         else:
             raise Exception("Unknown accessor encountered: %s " + field)
 
-    return typ
+    return success, typ
 
 def typecheck_actstmt(stmt, symbol_table, ext_table, func):
     typ = None
@@ -222,9 +236,10 @@ def typecheck_actstmt(stmt, symbol_table, ext_table, func):
 
     if type(stmt.val) == AST.ASSIGNMENT:
         fields = list(reversed(stmt.val.varref.val.fields))
-        typ = getSubType(typ, fields, stmt.val.varref)
+        success, typ = getSubType(typ, fields, stmt.val.varref)
 
-        _, stmt.val.expr = typecheck(stmt.val.expr, typ, symbol_table, ext_table, func)
+        if success:
+            _, stmt.val.expr = typecheck(stmt.val.expr, typ, symbol_table, ext_table, func)
     else:
         _, stmt.val = typecheck(stmt.val, typ, symbol_table, ext_table, func)
 
