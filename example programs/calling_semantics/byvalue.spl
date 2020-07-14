@@ -14,8 +14,8 @@ bar() :: -> Void {
 
 baz() :: -> Void {
     Int loc = 5;
-    foo(x);
-    print(loc)
+    foo(loc);
+    print(loc);
     print('\n');
 }
 
@@ -30,13 +30,13 @@ main() :: -> Int {
     other = foo(glob);
     print(glob);
     print('\n');
-    print(other)
+    print(other);
     print('\n');
     other = 55; // Also the return of foo is a value, not a reference. Shown by the assignment not modifying glob 
     print(glob);
     print('\n');
     print(other);
-    print('\n')
+    print('\n');
 
 
     /*
@@ -49,7 +49,7 @@ main() :: -> Int {
     /*
     Also show that local variables of basic types are passed by value, same as globals (obviously)
     */
-    baz()
+    baz();
 
     return 0;
 }

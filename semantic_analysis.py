@@ -457,7 +457,7 @@ def parseAtom(exp, ext_table, exp_index):
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         # TODO: This was without AST ParsedExpr, possibly remove this again
-        return AST.PARSEDEXPR(val=res), exp_index + 1
+        return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
         sub_expr, _ = parseExpression(exp[exp_index].contents, ext_table)
         return AST.PARSEDEXPR(val=sub_expr), exp_index + 1
@@ -507,7 +507,7 @@ def fixExpression(ast, op_table):
     decorated_ast = treemap(ast,
                         lambda node:
                             selectiveApply(AST.DEFERREDEXPR, node,
-                                lambda y:  AST.PARSEDEXPR(val=parseExpression(y.contents, op_table)[0])
+                                lambda y:  parseExpression(y.contents, op_table)[0]
                             )
                         )
 

@@ -97,7 +97,7 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
             if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
                 code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val])
             else:
-                code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val])
+                code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val])
         else:
             key = module_name + '_global_' + stmt.val.varref.val.id.val
             code.extend(['LDC ' + key, 'STA 00'])

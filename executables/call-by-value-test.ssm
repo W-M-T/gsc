@@ -1,0 +1,104 @@
+// DEPENDENCIES:
+// INIT SECTION
+LDC 2
+LDC semantics_global_glob
+STA 00
+// ENTRYPOINT
+BRA main
+// GLOBAL SECTION
+semantics_global_glob: NOP
+// FUNCTION SECTION
+builtins_func_read_1: TRAP 11
+builtins_func_read_0: TRAP 10
+builtins_func_isEmpty_1: nop
+semantics_func_foo_0: LINK 00
+LDL -2
+LDC 1
+ADD
+STL -2
+LDL -2
+TRAP 00
+LDC 10
+TRAP 1
+LDL -2
+STR RR
+BRA semantics_func_foo_0_exit
+semantics_func_foo_0_exit: UNLINK
+RET
+builtins_func_print_2: TRAP 00
+builtins_func_print_0: TRAP 00
+semantics_func_main_0: LINK 00
+LDC 99
+LDC semantics_global_glob
+LDA 00
+TRAP 00
+LDC 10
+TRAP 1
+LDC semantics_global_glob
+LDA 00
+BSR semantics_func_foo_0
+AJS -1
+LDR RR
+STL 1
+LDC semantics_global_glob
+LDA 00
+TRAP 00
+LDC 10
+TRAP 1
+LDL 1
+TRAP 00
+LDC 10
+TRAP 1
+LDC 55
+STL 1
+LDC semantics_global_glob
+LDA 00
+TRAP 00
+LDC 10
+TRAP 1
+LDL 1
+TRAP 00
+LDC 10
+TRAP 1
+BSR semantics_func_bar_0
+LDR RR
+LDC semantics_global_glob
+LDA 00
+TRAP 00
+LDC 10
+TRAP 1
+BSR semantics_func_baz_0
+LDR RR
+LDC 00
+STR RR
+BRA semantics_func_main_0_exit
+semantics_func_main_0_exit: UNLINK
+RET
+semantics_func_baz_0: LINK 00
+LDC 5
+LDL 1
+BSR semantics_func_foo_0
+AJS -1
+LDR RR
+LDL 1
+TRAP 00
+LDC 10
+TRAP 1
+semantics_func_baz_0_exit: UNLINK
+RET
+builtins_func_print_1: TRAP 1
+builtins_func_isEmpty_0: nop
+builtins_func_isEmpty_2: nop
+semantics_func_bar_0: LINK 00
+LDC semantics_global_glob
+LDA 00
+LDC 1
+ADD
+LDC semantics_global_glob
+STA 00
+semantics_func_bar_0_exit: UNLINK
+RET
+// MAIN
+main: BSR semantics_func_main_0
+LDR RR
+TRAP 00

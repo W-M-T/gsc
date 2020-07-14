@@ -43,14 +43,14 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             else:
                 ERROR_HANDLER.addError(ERR.UnexpectedEmptyList, [expr])
 
-        val = tokenToNode(expr)
-        print("COMPARISON")
-        print(val)
-        print(exp_type)
+        typ = tokenToNode(expr)
+        #print("COMPARISON")
+        #print(typ)
+        #print(exp_type.val)
 
-        if not AST.equalVals(val, exp_type):
+        if not AST.equalVals(typ, exp_type.val):
             if r == 0 and not noErrors:
-                ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(val), subprint_type(exp_type), expr])
+                ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
             return False, expr
 
         return True, expr
@@ -58,12 +58,11 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         return typecheck(expr.val, exp_type, symbol_table, ext_table, func, r, noErrors)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
-            typ = symbol_table.global_vars[expr.val.id.val].type.val
-
+            typ = symbol_table.global_vars[expr.val.id.val].type
             fields = list(reversed(expr.val.fields))
             typ = getSubType(typ, fields, expr)
 
-            if not AST.equalVals(typ, exp_type):
+            if not AST.equalVals(typ.val, exp_type.val):
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False, expr
@@ -71,20 +70,23 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         elif type(expr.val) is AST.RES_NONGLOBAL:
             typ = None
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
-                typ = func['local_vars'][expr.val.id.val].type.val
+                typ = func['local_vars'][expr.val.id.val].type
             else:
-                typ = func['arg_vars'][expr.val.id.val]['type'].val
+                typ = func['arg_vars'][expr.val.id.val]['type']
 
             fields = list(reversed(expr.val.fields))
             typ = getSubType(typ, fields, expr)
 
-            if not AST.equalVals(typ, exp_type):
+            print(typ)
+            print(exp_type)
+            if not AST.equalVals(typ.val, exp_type.val):
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False, expr
 
         return True, expr
     elif type(expr) is AST.FUNCALL:
+        print("FUNC BEING CALLED IS")
         print(expr.id)
         if func is None:
             ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
@@ -102,9 +104,13 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             out_type_matches = {}
             i = 0
             for o in symbol_table.functions[identifier]:
-                if AST.equalVals(o['type'].to_type, exp_type) or exp_type is None:
+                if exp_type is None:
+                    out_type_matches[i] = o
+                elif AST.equalVals(exp_type.val, o['type'].to_type.val):
                     out_type_matches[i] = o
                 i += 1
+
+            print(out_type_matches)
 
             for k, o in out_type_matches.items():
                 args = []
@@ -113,8 +119,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                     input_matches = 0
 
                     for i in range(len(o['type'].from_types)):
-                        print("YYY")
-                        print(expr.args[i])
                         typ, arg_res = typecheck(expr.args[i], o['type'].from_types[i], symbol_table, ext_table, func, r, noErrors=True)
                         args.append(arg_res)
                         if typ:
@@ -129,10 +133,11 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
 
         if identifier in ext_table.functions:
             print("In ext table")
+            print(expr.id.val)
             out_type_matches = {}
             i = 0
             for o in ext_table.functions[identifier]:
-                if AST.equalVals(o['type'].to_type, exp_type) or exp_type is None:
+                if AST.equalVals(exp_type, o['type'].to_type.val) or exp_type is None:
                     out_type_matches[i] = o
                 i += 1
 
@@ -147,24 +152,26 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                     input_matches = 0
 
                     for i in range(len(o['type'].from_types)):
-                        print("YY")
-                        print(expr.args[i])
+                        #print("ARG")
+                        #print(expr.args[i])
+                        #print(o['type'].from_types[i])
                         typ, arg_res = typecheck(expr.args[i], o['type'].from_types[i], symbol_table, ext_table, func, r, noErrors=True)
                         args.append(arg_res)
                         if typ:
                             input_matches += 1
 
                     if input_matches == len(expr.args):
+                        print("MATCH found")
                         matches.append({
                             'id': k,
                             'module': o['module'],
                             'args': args,
                         })
 
-        print(expr.id.val)
-        print("Matches")
-        print(matches)
         if len(matches) == 0:
+            print(expr.id.val)
+            print("Matches")
+            print(matches)
             if not noErrors:
                 ERROR_HANDLER.addError(ERR.NoOverloadedFunWithArgs, [expr.id.val, expr.id])
             return False, expr
@@ -177,7 +184,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
             return False, expr
 
-        print(matches[0])
         return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=matches[0]['args'], oid=matches[0]['id'],
                                            module=matches[0]['module'])
 
@@ -222,7 +228,7 @@ def typecheck_actstmt(stmt, symbol_table, ext_table, func):
     if hasattr(stmt.val, 'varref'):
         if type(stmt.val.varref.val) == AST.RES_NONGLOBAL:
             if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                typ = func['local_vars'][stmt.val.varref.val.id.val].type.val
+                typ = func['local_vars'][stmt.val.varref.val.id.val].type
             else:
                 typ = func['arg_vars'][stmt.val.varref.val.id.val]['type'].val
         else:
@@ -234,11 +240,11 @@ def typecheck_actstmt(stmt, symbol_table, ext_table, func):
 
         _, stmt.val.expr = typecheck(stmt.val.expr, typ, symbol_table, ext_table, func)
     else:
-        x = typecheck(stmt.val, typ, symbol_table, ext_table, func)
+        _, stmt.val = typecheck(stmt.val, typ, symbol_table, ext_table, func)
 
 def typecheck_stmts(func, symbol_table, ext_table):
     for vardecl in func['def'].vardecls:
-        _, vardecl.expr = typecheck(vardecl.expr.val, vardecl.type.val, symbol_table, ext_table, func)
+        _, vardecl.expr = typecheck(vardecl.expr, vardecl.type, symbol_table, ext_table, func)
 
     stmts = list(reversed(func['def'].stmts))
     ast_boolnode = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
@@ -261,7 +267,7 @@ def typecheck_stmts(func, symbol_table, ext_table):
             stmts.extend(list(reversed(stmt.val.stmts)))
         elif type(stmt.val) == AST.RETURN:
             if stmt.val.expr is not None:
-                _, stmt.val.expr = typecheck(stmt.val.expr, func['type'].to_type.val, symbol_table, ext_table, func)
+                _, stmt.val.expr = typecheck(stmt.val.expr, func['type'].to_type, symbol_table, ext_table, func)
 
 def typecheck_functions(symbol_table, ext_table):
     for f in symbol_table.functions:
@@ -270,4 +276,6 @@ def typecheck_functions(symbol_table, ext_table):
 
 def typecheck_globals(symbol_table, ext_table):
     for g in symbol_table.global_vars:
-        _, symbol_table.global_vars[g].expr = typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type.val, symbol_table, ext_table)
+        print("GLOB type")
+        print(symbol_table.global_vars[g].type)
+        _, symbol_table.global_vars[g].expr = typecheck(symbol_table.global_vars[g].expr, symbol_table.global_vars[g].type, symbol_table, ext_table)
