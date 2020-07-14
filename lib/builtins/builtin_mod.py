@@ -56,8 +56,6 @@ def generateBuiltinFuncs():
                 'kind': FunKind.FUNC
                 })
 
-    print(builtin_functions)
-
     return builtin_functions
 
 '''
@@ -113,8 +111,8 @@ def generateBuiltinOps():
             for out_t in out_type_node:
                 op_table[(FunUniq.PREFIX, op_id)].append({
                     'type': AST.FUNTYPE(
-                            from_types=[in_t],
-                            to_type=out_t
+                            from_types=[AST.TYPE(val=in_t)],
+                            to_type=AST.TYPE(val=out_t)
                         ),
                     'module': BUILTINS_NAME,
                     'orig_id': op_id[0],

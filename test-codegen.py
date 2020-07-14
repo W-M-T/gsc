@@ -30,62 +30,30 @@ def main():
     else:
         from io import StringIO
 
-        module_name = "semantics"
-        testprog = StringIO('''      
-        Int glob = 2;
-
-        foo(x) :: Int -> Int {
-            x = x + 1;
-            print(x);
-            print('\\n');
+        module_name = "testing"
+        testprog = StringIO('''   
+        
+        f(x) :: Int -> Bool {
+            return True;
+        }
+        
+        f(x) :: Int -> Int {
             return x;
         }
         
-        bar() :: -> Void {
-            glob = glob + 1;
+        g(x) :: Bool -> Int {
+            return 1;
         }
         
-        baz() :: -> Void {
-            Int loc = 5;
-            foo(loc);
-            print(loc);
-            print('\\n');
+        g(x) :: Int -> Int {
+            return x;
         }
         
         main() :: -> Int {
-            Int other = 99;
-            /*
-            Print the global and show that the local variable is a copy of it's value
-            since the printed global after is still the same.
-            */
-            print(glob);
-            print('\\n');
-            other = foo(glob);
-            print(glob);
-            print('\\n');
-            print(other);
-            print('\\n');
-            other = 55; // Also the return of foo is a value, not a reference. Shown by the assignment not modifying glob 
-            print(glob);
-            print('\\n');
-            print(other);
-            print('\\n');
+            Int x = 1;
+            g(f(1));
         
-        
-            /*
-            Now call a function that actually modifies the global instead of a copy
-            */
-            bar();
-            print(glob);
-            print('\\n');
-
-        
-            /*
-            Also show that local variables of basic types are passed by value, same as globals (obviously)
-            */
-            baz();
-        
-            return 0;
+            return x;
         }
         ''')
 
@@ -113,14 +81,12 @@ def main():
     external_table = enrichExternalTable(ExternalTable())
 
     # Parse expressions
-    fixExpression(ast, external_table)
+    fixExpression(ast, symbol_table, external_table)
     ERROR_HANDLER.checkpoint()
 
     # Type check
     analyseFunc(symbol_table)
     ERROR_HANDLER.checkpoint()
-
-    print(ast)
 
     typecheck_globals(symbol_table, external_table)
     typecheck_functions(symbol_table, external_table)
