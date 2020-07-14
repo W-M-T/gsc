@@ -5,6 +5,11 @@ from lib.datastructure.AST import *
 from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
 from lib.builtins.functions import BUILTIN_FUNCTIONS
+from enum import IntEnum
+
+class MEMTYPE(IntEnum):
+    BASICTYPE   = 1
+    POINTER     = 2
 
 def generate_expr(expr, module_name, mappings):
     if type(expr) is Token:
@@ -33,9 +38,20 @@ def generate_expr(expr, module_name, mappings):
         else:
             res = []
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
-                res.append('LDL ' + mappings['vars'][expr.val.id.val])
+                res.append('LDL ' + mappings['vars'][expr.val.id.val][0])
             else:
-                res.append('LDL ' + mappings['args'][expr.val.id.val])
+                res.append('LDL ' + mappings['args'][expr.val.id.val][0])
+
+            fields = list(reversed(expr.val.fields))
+            while len(fields) > 0:
+                field = fields.pop()
+                if field == Accessor.FST or field == Accessor.SND:
+                    if field == Accessor.FST:
+                        res.append('LDH -1')
+                    else:
+                        res.append('LDH 00')
+                else:
+                    raise Exception("Unknown accessor encountered: %s " + field)
 
             return res
 
@@ -50,8 +66,6 @@ def generate_expr(expr, module_name, mappings):
 
         if expr.module == 'builtins':
             if expr.uniq == FunUniq.FUNC:
-                print(expr.id.val)
-                print(expr.oid)
                 res.extend(BUILTIN_FUNCTIONS[expr.id.val][expr.oid][1])
             elif expr.uniq == FunUniq.INFIX:
                 res.append(BUILTIN_INFIX_OPS[expr.id.val][3])
@@ -62,10 +76,7 @@ def generate_expr(expr, module_name, mappings):
                 code_id = expr.id.val
             else:
                 code_id = str(mappings['operators'].index((expr.uniq,expr.id.val)))
-                print(code_id)
 
-            print("OID")
-            print(expr.oid)
             res.append('BSR ' + module + '_{}_'.format(expr.uniq.name.lower()) + code_id + '_' + str(expr.oid))
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
@@ -73,7 +84,14 @@ def generate_expr(expr, module_name, mappings):
 
         return res
     elif type(expr) is AST.TUPLE:
-        raise Exception("Not implemented")
+        print(expr)
+        res = []
+
+        res.extend(generate_expr(expr.a, module_name, mappings))
+        res.extend(generate_expr(expr.b, module_name, mappings))
+        res.append("STMH 2")
+
+        return res
     else:
         print(expr)
         print(type(expr))
@@ -94,10 +112,37 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
     else:
         code.extend(generate_expr(stmt.val.expr, module_name, mappings))
         if type(stmt.val.varref.val) is AST.RES_NONGLOBAL:
-            if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val])
+            if mappings['vars'][stmt.val.varref.val.id.val][1] == MEMTYPE.BASICTYPE:
+                if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                    code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
+                else:
+                    code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val][0])
             else:
-                code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val])
+                if len(stmt.val.varref.val.fields) > 0:
+                    fields = list(reversed(stmt.val.varref.val.fields))
+                    while len(fields) > 0:
+                        field = fields.pop()
+                        if field == Accessor.FST or field == Accessor.SND:
+                            if field == Accessor.FST:
+                                if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                                    code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
+                                else:
+                                    code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
+                                code.append('STA -1')
+                            else:
+                                if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                                    code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
+                                else:
+                                    code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
+                                code.append('STA 00')
+                        else:
+                            raise Exception("Unknown accessor encountered: %s " + field)
+                else: # No fields used so we simply overwrite the pointer.
+                    if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                        code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
+                    else:
+                        code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val][0])
+
         else:
             key = module_name + '_global_' + stmt.val.varref.val.id.val
             code.extend(['LDC ' + key, 'STA 00'])
@@ -116,7 +161,6 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
         elif type(stmt.val) == AST.CONTINUE:
             code.append("BRA " + loop_label + "_update")
         elif type(stmt.val) == AST.ACTSTMT:
-            print(stmt.val)
             code = generate_actstmt(stmt.val, code, module_name, mappings, label)
         elif type(stmt.val) == AST.IFELSE:
             branch_stmts = []
@@ -164,8 +208,6 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
                 cond = generate_expr(stmt.val.cond, module_name, mappings)
                 code.extend(cond)
                 code.append("BRF " + label + "_" + str(start_index) + "_exit")
-            print("Statements")
-            print(stmt.val.stmts)
             branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, mappings, index, loop_label)
             code.extend(branch_stmt)
             code.append(label + "_" + str(start_index) + "_update: nop")
@@ -190,7 +232,8 @@ def generate_func(func, symbol_table, module_name, label, mappings):
 
     var_index = 1
     for vardecl in func['def'].vardecls:
-        mappings['vars'][vardecl.id.val] = str(var_index)
+        memtype = MEMTYPE.POINTER if type(vardecl.type.val) == AST.TUPLETYPE or type(vardecl.type.val) == AST.LISTTYPE else MEMTYPE.BASICTYPE
+        mappings['vars'][vardecl.id.val] = (str(var_index), memtype)
         var_index += 1
         code.extend(generate_expr(vardecl.expr, module_name, mappings))
 

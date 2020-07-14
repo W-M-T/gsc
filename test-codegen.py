@@ -30,30 +30,15 @@ def main():
     else:
         from io import StringIO
 
-        module_name = "testing"
-        testprog = StringIO('''   
-        
-        f(x) :: Int -> Bool {
-            return True;
-        }
-        
-        f(x) :: Int -> Int {
-            return x;
-        }
-        
-        g(x) :: Bool -> Int {
-            return 1;
-        }
-        
-        g(x) :: Int -> Int {
-            return x;
-        }
-        
+        module_name = "tuples"
+        testprog = StringIO('''        
         main() :: -> Int {
-            Int x = 1;
-            g(f(1));
+            (Int, (Int, Int)) a = (2, (3, 4));
+                        
+            a.fst = 5;
+            a.snd = (6, 7);
         
-            return x;
+            return a.fst + a.snd.fst;
         }
         ''')
 
@@ -93,7 +78,7 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     gen_code = generate_object_file(symbol_table, module_name)
-    print(gen_code)
+    #print(gen_code)
 
     with open('generated/' + module_name + '.splo', 'w+') as fh:
         fh.write(gen_code)
