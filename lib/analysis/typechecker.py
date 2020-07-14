@@ -72,12 +72,17 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 typ = func['local_vars'][expr.val.id.val].type.val
             else:
+                print("ARG")
+                print(func['arg_vars'][expr.val.id.val]['type'])
                 typ = func['arg_vars'][expr.val.id.val]['type'].val
 
+            print("Before sub")
+            print(typ)
             fields = list(reversed(expr.val.fields))
             success, typ = getSubType(typ, fields, expr)
 
             if not success:
+                print("bummer")
                 return True, expr
 
             if not AST.equalVals(typ, exp_type):
@@ -201,16 +206,11 @@ def getSubType(typ, fields, varref):
         field = fields.pop()
         if field == Accessor.FST or field == Accessor.SND:
             if type(typ) is AST.TUPLETYPE:
-                print("Correct")
-                print(typ)
                 if field == Accessor.FST:
                     typ = typ.a.val
                 else:
                     typ = typ.b.val
             else:
-                print("Incorrect")
-                print(typ)
-
                 ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [varref])
                 success = False
         elif field == Accessor.HD or field == Accessor.SND:

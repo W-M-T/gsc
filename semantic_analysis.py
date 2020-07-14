@@ -81,6 +81,8 @@ def normalizeAllTypes(symbol_table, full_normalize=True): # TODO clean this up a
         #print(len(func_list))
         for func in func_list:
             func['type'] = normalizeType(func['type'], symbol_table, full_normalize=full_normalize)
+            print("After normalizing")
+            print(func['type'])
             found_typesigs.append((func['type'], func))
 
         # Test if multiple functions have the same (normalized) type
@@ -224,6 +226,9 @@ def buildFuncEntry(val):
 
     temp_entry["arg_vars"] = funarg_vars
     temp_entry["local_vars"]  = local_vars
+
+    print("TEMP ENTRY")
+    print(temp_entry)
 
     return temp_entry
 
