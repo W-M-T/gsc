@@ -1,13 +1,28 @@
-// These functions do not always return values.
-// Each of them should be rejected by the type checker.
-
-infixl 3 = (a, b) :: Char Char -> Char {
-    return b;
+flip(n, l) :: Int [Int] -> [Int]
+{
+    if( n <= 0 ) {
+        return l;
+    }
+    else {
+        return flop(n-1, 0:l);
+    }
 }
 
-main ( ) :: -> Int {
-    Bool x = 'a' = '\n' = '\\';
-    print(x);
+flop(n, l) :: Int [Int] -> [Int]
+{
+    return flip(n, 1:l);
+}
 
-    return 0;
+f(x) :: [Int] -> [Int]
+{
+    return 2 : x;
+}
+
+main() :: -> Int
+{
+    [Int] a = [];
+
+    a = flop(2, a);
+
+    return a.hd;
 }
