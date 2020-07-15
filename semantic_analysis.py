@@ -324,7 +324,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
                 # Type identifier already used
                 ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, symbol_table.type_syns[val.type_id.val]])
 
-    ERROR_HANDLER.checkpoint()
+    #ERROR_HANDLER.checkpoint()
 
     #print("--------------------------")
     #print(symbol_table.repr_short())
