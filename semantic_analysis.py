@@ -30,7 +30,10 @@ Replace all type synonyms in type with their definition, until the base case.
 def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normalize=True):
     # Sadly we cannot just merge the typesyns in symbol_table and ext_table, because we need to overwrite them in each table and the pointers do not work out to accomplish that
 
-    def_type = symbol_table.type_syns[type_id]['def_type']
+    if type_id in symbol_table.type_syns:
+        def_type = symbol_table.type_syns[type_id]['def_type']
+    else:
+        def_type = ext_table.type_syns[type_id]['def_type']
     #print("DEF_TYPE",def_type)
     def replace_other(x):
         #print(x)
@@ -38,7 +41,10 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
             found_typesyn = x.val.val
             #print(found_typesyn,type_id)
             if type_id == found_typesyn:
-                ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, symbol_table.type_syns[type_id]['decl']])
+                if type_id in symbol_table.type_syns:
+                    ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, symbol_table.type_syns[type_id]['decl']])
+                else:
+                    ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, ""])
             else:
                 print(ext_table)
                 if found_typesyn in symbol_table.type_syns:
@@ -119,14 +125,17 @@ def normalizeAllTypes(symbol_table, ext_table, full_normalize=True):
     type_graph = {}
     
     for type_id, def_type in symbol_table.type_syns.items():
-        #print(type_id,def_type)
         type_graph[type_id] = getTypeDependencies(type_id, symbol_table, ext_table)
-
+    for type_id, def_type in ext_table.type_syns.items():
+        type_graph[type_id] = getTypeDependencies(type_id, symbol_table, ext_table)
+    #print(type_graph)
     topo = iterative_topological_sort(type_graph, list(symbol_table.type_syns)[0])
+    print(topo)
 
     err_produced = []
     for type_id in reversed(topo):
-        normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
+        pass
+        #normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
     #TODO for exponential types this is still slow because after replacing, the entire subtree is traversed. This should not be necessary
 
 
@@ -369,6 +378,7 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
                 if ext_symbol_table.type_syns[type_id]['module'] == BUILTINS_NAME:
                     # Type identifier is reserved (builtin typesyn)
                     ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
+
             elif type_id in BUILTIN_TYPES:
                 # Type identifier is reserved (basic type)
                 ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
@@ -380,7 +390,9 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
                     if type_id in ext_symbol_table.type_syns:
                         if ext_symbol_table.type_syns[type_id]['module'] != BUILTINS_NAME:
                             # External type identifier is shadowed
-                            ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
+                            # TODO this should be possible, but it is easier for now to forbid it.
+                            ERROR_HANDLER.addError(ERR.ImportTypeClash, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
+                            #ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
 
                 #normalized_type = normalizeType(def_type, symbol_table, ext_symbol_table) # TODO dit gaat nog niet goed
                 symbol_table.type_syns[type_id] = {
@@ -775,7 +787,6 @@ g (x) {
         #print(ERROR_HANDLER)
 
         if compiler_target['object']: # We need to actually read the headerfiles of the imports:
-            print("MAKE OBJECT FILE")
             headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
@@ -783,14 +794,13 @@ g (x) {
             # Get all external symbols
             external_symbol_table, all_import_modnames = getExternalSymbols(x, headerfiles)
             external_symbol_table = enrichExternalTable(external_symbol_table)
-            print(external_symbol_table)
             ERROR_HANDLER.checkpoint()
 
             symbol_table = buildSymbolTable(x, compiler_target['header'], ext_symbol_table=external_symbol_table)
-            #print(symbol_table)
+            print(symbol_table)
             #print(all_import_modnames)
-            #print(external_symbol_table)
-            #normalizeAllTypes(symbol_table, external_symbol_table, full_normalize=True)
+            print(external_symbol_table)
+            normalizeAllTypes(symbol_table, external_symbol_table, full_normalize=True)
             #forbid_illegal_types(symbol_table)
             #analyseFunc(symbol_table)
 
