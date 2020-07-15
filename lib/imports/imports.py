@@ -170,7 +170,7 @@ def getImportFiles(ast, modname, extension, local_dir, file_mapping_arg={}, lib_
         pass
     unique_names = list(unique_names)
 
-    temp = {}
+    temp = OrderedDict()
     for impname in unique_names:
         validate_modname(impname)
         try:
@@ -212,7 +212,7 @@ def getHeaders(ast, modname, extension, local_dir, file_mapping_arg={}, lib_dir_
     for head in headerfiles.values():
         head['filehandle'].close()
 
-    temp_typesyn_headers = {}
+    temp_typesyn_headers = OrderedDict()
     for rec_name in recurse_names:
         try:
             handle, path = resolveFileName(rec_name, extension, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)

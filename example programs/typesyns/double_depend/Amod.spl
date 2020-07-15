@@ -1,5 +1,5 @@
 from Bmod import B as B2
-importall Cmod
+//importall Cmod
 
 
 type A = B
