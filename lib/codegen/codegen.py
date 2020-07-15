@@ -6,6 +6,8 @@ from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 from enum import IntEnum
+from lib.imports.objectfile_imports import OBJECT_FORMAT, OBJECT_COMMENT_PREFIX
+from lib.parser.parser import Accessor_lookup
 
 class MEMTYPE(IntEnum):
     BASICTYPE   = 1
@@ -19,6 +21,8 @@ def generate_expr(expr, module_name, mappings):
             return ['LDC ' + str(ord(expr.val))]
         elif expr.typ is TOKEN.BOOL:
             return ['LDC -1'] if expr.val else ['LDC 00']
+        elif expr.typ is TOKEN.EMPTY_LIST:
+            return ['LDC 00']
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:
@@ -34,24 +38,51 @@ def generate_expr(expr, module_name, mappings):
             res.append('LDC ' + module + '_global_' + expr.val.id.val)
             res.append('LDA 00')
 
-            return res
-        else:
-            res = []
-            if expr.val.scope == NONGLOBALSCOPE.LocalVar:
-                res.append('LDL ' + mappings['vars'][expr.val.id.val][0])
-            else:
-                res.append('LDL ' + mappings['args'][expr.val.id.val][0])
-
             fields = list(reversed(expr.val.fields))
             while len(fields) > 0:
                 field = fields.pop()
-                if field == Accessor.FST or field == Accessor.SND:
+                if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
+                    if Accessor_lookup[field.val] == Accessor.FST:
+                        res.append('LDH -1')
+                    else:
+                        res.append('LDH 00')
+                else:
+                    if Accessor_lookup[field.val] == Accessor.HD:
+                        res.append('BSR head')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
+                    else:
+                        res.append('BSR tail')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
+
+            return res
+        else:
+            res = []
+
+            if expr.val.scope == NONGLOBALSCOPE.LocalVar:
+                var_offset = mappings['vars'][expr.val.id.val][0]
+            else:
+                var_offset = mappings['args'][expr.val.id.val][0]
+
+            res.append('LDL ' + var_offset)
+            fields = list(reversed(expr.val.fields))
+            while len(fields) > 0:
+                field = fields.pop()
+                if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
                     if field == Accessor.FST:
                         res.append('LDH -1')
                     else:
                         res.append('LDH 00')
                 else:
-                    raise Exception("Unknown accessor encountered: %s " + field)
+                    if Accessor_lookup[field.val] == Accessor.HD:
+                        res.append('BSR head')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
+                    else:
+                        res.append('BSR tail')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
 
             return res
 
@@ -109,13 +140,13 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
     else:
         code.extend(generate_expr(stmt.val.expr, module_name, mappings))
         if type(stmt.val.varref.val) is AST.RES_NONGLOBAL:
-            if mappings['vars'][stmt.val.varref.val.id.val][1] == MEMTYPE.BASICTYPE:
+            if (stmt.val.varref.val.id.val in mappings['vars'] and mappings['vars'][stmt.val.varref.val.id.val][1] == MEMTYPE.BASICTYPE) or (stmt.val.varref.val.id.val in mappings['args'] and mappings['args'][stmt.val.varref.val.id.val][1] == MEMTYPE.BASICTYPE):
                 if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
                     code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
                 else:
                     code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val][0])
             else:
-                if len(stmt.val.varref.val.fields) > 0:
+                if len(stmt.val.varref.val.fields) > 0: # We have accessors
                     fields = list(reversed(stmt.val.varref.val.fields))
                     if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
                         code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
@@ -123,18 +154,25 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
                         code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
                     while len(fields) > 1:
                         field = fields.pop()
-                        if field == Accessor.FST or field == Accessor.SND:
-                            if field == Accessor.FST:
+                        if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
+                            if Accessor_lookup[field.val] == Accessor.FST:
                                 code.append('LDH -1')
                             else:
-                                code.append('LDA 00')
+                                code.append('LDH 00')
                         else:
-                            raise Exception("Unknown accessor encountered: %s " + field)
-                    if fields[0] == Accessor.FST:
+                            if field == Accessor_lookup[field.val] == Accessor.HD:
+                                code.append('BSR head')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                            else:
+                                code.append('BSR tail')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                    if Accessor_lookup[fields[0].val] == Accessor.FST or Accessor_lookup[fields[0].val] == Accessor.HD:
                         code.append('STA -1')
                     else:
                         code.append('STA 00')
-                else: # No fields used so we simply overwrite the pointer.
+                else: # No accessors used so we simply overwrite the pointer.
                     if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
                         code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
                     else:
@@ -142,7 +180,37 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
 
         else:
             key = module_name + '_global_' + stmt.val.varref.val.id.val
-            code.extend(['LDC ' + key, 'STA 00'])
+            if mappings['globals'][stmt.val.varref.val.id.val] == MEMTYPE.BASICTYPE:
+                code.extend(['LDC ' + key, 'STA 00'])
+            else:
+                if len(stmt.val.varref.val.fields) > 0: # We have accessors
+                    fields = list(reversed(stmt.val.varref.val.fields))
+                    code.extend(['LDC ' + key, 'LDA 00'])
+                    while len(fields) > 1:
+                        field = fields.pop()
+                        if field == Accessor.FST or field == Accessor.SND:
+                            if field == Accessor.FST:
+                                code.append('LDH -1')
+                            else:
+                                code.append('LDH 00')
+                        else:
+                            if field == Accessor_lookup[field.val] == Accessor.HD:
+                                code.append('BSR head')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                            else:
+                                code.append('BSR tail')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                    if Accessor_lookup[fields[0].val] == Accessor.FST or Accessor_lookup[fields[0].val] == Accessor.HD:
+                        code.append('STA -1')
+                    else:
+                        code.append('STA 00')
+                else: # No accessors used so we simply overwrite the pointer.
+                    if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                        code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
+                    else:
+                        code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val][0])
 
     return code
 
@@ -168,14 +236,16 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
                 index += 1
                 indices.append(index)
 
+                # If or elif
                 if b.expr is not None:
                     code.extend(generate_expr(b.expr, module_name, mappings))
                     code.append("BRT " + label + "_" + str(index))
-                else:
+                else: # Else
                     code.append("BRA " + label + "_" + str(index))
 
                 branch_stmt, index = generate_stmts(b.stmts, label, module_name, mappings, index, loop_label)
 
+                # Add label to exit in case when there is no else statement
                 if i == len(stmt.val.condbranches) and b.expr is not None:
                     code.append("BRA " + label + "_" + str(index + 1))
 
@@ -185,7 +255,7 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
             index += 1
             i = 0
             for b in branch_stmts:
-                print(b[-1])
+                # Check if branch does not end in return, if not add exit label
                 if not b[-1].endswith("_exit"):
                     b.append("BRA " + label + "_" + str(index))
                 b[0] = label + '_' + str(indices[i]) + ': ' + b[0]
@@ -199,17 +269,27 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
                 generate_actstmt(stmt.val.init, code, module_name, mappings, label)
             index += 1
             start_index = index
+
+            # Start label
             loop_label = label + "_" + str(index)
             code.append(loop_label + ": nop")
+
+            # Condition
             if stmt.val.cond is not None:
                 cond = generate_expr(stmt.val.cond, module_name, mappings)
                 code.extend(cond)
                 code.append("BRF " + label + "_" + str(start_index) + "_exit")
+
+            # Statements
             branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, mappings, index, loop_label)
             code.extend(branch_stmt)
+
+            # Update
             code.append(label + "_" + str(start_index) + "_update: nop")
             if stmt.val.update is not None:
                 generate_actstmt(stmt.val.update, code, module_name, mappings, label)
+
+            # Exit
             code.append('BRA ' + label + '_' + str(start_index))
             code.append(label + '_' + str(start_index) + '_exit: nop')
 
@@ -245,46 +325,49 @@ def generate_func(func, symbol_table, module_name, label, mappings):
 
     return code
 
-def build_object_file(module_name, global_code, global_labels, function_code):
+def build_object_file(module_name, dependencies, global_code, global_labels, function_code):
     # Depedencies
-    object_file = '// DEPENDENCIES:\n'
+    object_file = OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['depend'] + '\n'
+    for d in dependencies:
+        object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['dependitem'] + d + '\n'
 
     # Init section
-    object_file += '// INIT SECTION\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['init'] + '\n'
     object_file += '\n'.join(global_code)
     object_file += '\n'
 
     # Entry point
-    object_file += '// ENTRYPOINT\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + '\n'
     object_file += 'BRA main\n'
 
     # Global section
-    object_file += '// GLOBAL SECTION\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['globals'] + '\n'
     for l in global_labels:
         object_file += l + ': ' + 'NOP\n'
 
     # Function Section
-    object_file += '// FUNCTION SECTION\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['funcs'] + '\n'
     for l in function_code:
         object_file += l + ': '
         object_file += '\n'.join(function_code[l])
         object_file += '\n'
 
     # Main
-    object_file += '// MAIN\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + '\n'
     object_file += 'main: BSR ' + module_name + '_func_main_0\n'
     object_file += 'LDR RR\n'
-    object_file += 'TRAP 00'
+    object_file += 'TRAP 00\n'
+
+    object_file += 'program_crash: NOP'
 
     return object_file
 
-def generate_object_file(symbol_table, module_name):
-    print(module_name)
-
+def generate_object_file(symbol_table, module_name, dependencies):
     global_code = []
     global_labels = []
     function_code = {}
     mappings = {
+        'globals': {},
         'operators': list(filter(lambda x: x[0] in [FunUniq.INFIX, FunUniq.PREFIX], list(symbol_table.functions.keys()))),
         'args': {},
         'vars': {}
@@ -293,6 +376,7 @@ def generate_object_file(symbol_table, module_name):
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g
         global_labels.append(key)
+        mappings['globals'][g] = MEMTYPE.POINTER if type(symbol_table.global_vars[g].type.val) == AST.TUPLETYPE or type(symbol_table.global_vars[g].type.val) == AST.LISTTYPE else MEMTYPE.BASICTYPE
         global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name, mappings))
         global_code.extend(['LDC ' + key, 'STA 00'])
 
@@ -301,22 +385,56 @@ def generate_object_file(symbol_table, module_name):
         for of in symbol_table.functions[f]:
             key = module_name
             if of['def'].kind is FunKind.PREFIX:
-                key += '_prefix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind),of['def'].id.val))) + "_"
+                key += '_prefix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind), of['def'].id.val))) + "_"
             elif of['def'].kind  is FunKind.INFIXL or of['def'].kind  is FunKind.INFIXR:
-                key += '_infix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind),of['def'].id.val))) + "_"
+                key += '_infix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind), of['def'].id.val))) + "_"
             else:
                 key += '_func_' + f[1] + "_"
             key += str(o)
             function_code[key] = generate_func(of, symbol_table, module_name, key, mappings)
             o += 1
 
+    accessors = {
+        'head':
+            [
+                'LINK 00',
+                'LDL -2',
+                'LDC 00',
+                'EQ',
+                'BRT program_crash',
+                'LDL -2',
+                'LDH -1',
+                'STR RR',
+                'unlink',
+                'ret'
+            ],
+        'tail':
+            [
+                'LINK 00',
+                'LDL -2',
+                'LDC 00',
+                'EQ',
+                'BRT program_crash',
+                'LDL -2',
+                'LDH 00',
+                'STR RR',
+                'unlink',
+                'ret',
+            ]
+    }
+
+    for ac, code in accessors.items():
+        function_code[ac] = code
+
+    '''
     for f, b in BUILTIN_FUNCTIONS.items():
         i = 0
         for o in b:
             key = 'builtins_func_' + f + '_' + str(i)
             function_code[key] = o[1]
             i += 1
+    '''
 
-    gen_code = build_object_file(module_name, global_code, global_labels, function_code)
+    gen_code = build_object_file(module_name, dependencies, global_code, global_labels, function_code)
 
     return gen_code

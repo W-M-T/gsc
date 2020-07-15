@@ -16,10 +16,10 @@ OBJECT_FORMAT = {
     "depend"    : "DEPENDENCIES:",
     "dependitem": "DEPEND ",
     "init"      : "INIT SECTION:",
-    "entrypoint": "ENTRYPOINT:",
+    "entrypoint": "BOOTSTRAP:",
     "globals"   : "GLOBAL SECTION:",
     "funcs"     : "FUNCTION SECTION:",
-    "main"      : "MAIN:"
+    "main"      : "ENTRYPOINT:"
 }
 
 def getSlice(text, start, end):

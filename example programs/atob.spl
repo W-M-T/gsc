@@ -20,5 +20,7 @@ btoc (x) :: Int -> Bool {
 }
 
 main () :: -> Void {
-    print(btoc(atob(True)))
+    print(btoc(atob(True)));
+
+    return 0;
 }

@@ -88,6 +88,7 @@ class Parser(object):
         res = self.fn(text, index)
         if res.status:
             if type(res.value) in AST.nodes:
+                # TODO: Fix error for empty file
                 res.value._start_pos = text[index].pos
         return res
 

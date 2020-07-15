@@ -13,13 +13,16 @@ flop(n, l) :: Int [Int] -> [Int]
     return flip(n, 1:l);
 }
 
-main()
+f(x) :: [Int] -> [Int]
+{
+    return 2 : x;
+}
+
+main() :: -> Int
 {
     [Int] a = [];
 
-    flip(2, a);
-
-    print(a.tl.hd);
+    a = flop(2, a);
 
     return a.hd;
 }
