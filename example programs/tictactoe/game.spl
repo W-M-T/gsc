@@ -1,0 +1,22 @@
+importall board
+
+// Test if game is over
+prefix ! (b) :: Board -> Bool {
+    Bool gameOver = False;
+
+    return gameOver;
+}
+
+main() :: -> Int {
+    Board b = ('.' : '.' : '.' : []) : ('.' : '.' : '.' : []) : ('.' : '.' : '.' : []);
+    Int turn = 1;
+    Int winner = 0;
+
+    while(!b) {
+
+    }
+
+    display(b);
+
+    return winner;
+}

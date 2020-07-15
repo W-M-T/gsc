@@ -37,21 +37,27 @@ def main():
         infixl 7 + (a, b) :: (Int, Int) (Int, Int) -> Coord {
             return (a.fst + b.fst, a.snd + b.snd);
         }
+        
+        print(t) :: (Int, Int) -> Void {
+            print('(');
+            print(t.fst);
+            print(',');
+            print(t.snd);
+            print(')');
+            print('\\n');
+        }
           
         main() :: -> Int {
-            Coord a = (2, 3);
+            (Coord, Coord) a = ((2, 3), (4, 5));
             Coord b = (5, 6);
             
-            (Coord, Coord) d = (a, b);
+            a.fst = b;
             
-            Coord c = (0, 0);
-            c = a + b;
+            b.fst = 8;
             
-            d.fst.fst = 27;
-            
-            d.snd = c;
-                    
-            return d.fst.fst + d.snd.fst;
+            print(a.fst);
+        
+            return a.fst.fst;
         }
         ''')
 

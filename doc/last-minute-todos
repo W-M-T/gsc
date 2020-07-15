@@ -6,7 +6,7 @@ v Typechecking aparte errors voor operatoren.
 - Sommige errors hebben geen pointToPosition (type identifier blabla is not defined).
 
 Codegen
-- Tuples
+V Tuples
 - Lijsten
 - Accessors
 V Dubbel check even de expressies.

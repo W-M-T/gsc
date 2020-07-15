@@ -102,7 +102,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         # Symbol table functions
         matches = []
         if identifier in symbol_table.functions:
-            print(expr.id.val)
             out_type_matches = {}
             i = 0
             for o in symbol_table.functions[identifier]:
@@ -113,15 +112,12 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 i += 1
 
             for k, o in out_type_matches.items():
-                print("Start matching")
                 args = []
 
                 if len(o['type'].from_types) == len(expr.args):
                     input_matches = 0
 
                     for i in range(len(o['type'].from_types)):
-                        print("from")
-                        print(o['type'].from_types[i].val)
                         typ, arg_res = typecheck(expr.args[i], o['type'].from_types[i].val, symbol_table, ext_table, func, r, noErrors=True)
                         args.append(arg_res)
                         if typ:
