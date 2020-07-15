@@ -1,9 +1,10 @@
 /*
     Should return an error
 */
+type Inf = [Inf]
 type A = B
 type B = C
 type C = D
-type D = E
-type E = A
+type D = Int // E
+//type E = A
 
