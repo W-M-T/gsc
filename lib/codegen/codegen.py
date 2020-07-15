@@ -154,7 +154,6 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
                         code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
                     while len(fields) > 1:
                         field = fields.pop()
-                        print(field)
                         if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
                             if Accessor_lookup[field.val] == Accessor.FST:
                                 code.append('LDH -1')

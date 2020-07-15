@@ -3,12 +3,24 @@
 // algorithm that has survived to the present day." -- Don Knuth
 
 // This one only works for positive n, m
-gcd(m, n)
+gcd(m, n) :: Int Int -> Int
 {
-  if( n < m )
-    return gcd(n, m);
-  else if( n == m )
-    return n;
-  else // n > m
-    return gcd(m, n - m);
+    if( n < m ) {
+        return gcd(n, m);
+    }
+    elif( n == m ) {
+        return n;
+    }
+    else {
+        return gcd(m, n - m);
+    }
+}
+
+
+main() :: -> Int {
+    Int a = 5;
+
+    a = gcd(187, 119);
+
+    return a;
 }

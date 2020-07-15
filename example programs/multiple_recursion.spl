@@ -1,14 +1,25 @@
-// Generates a list of zeros and ones
-
-flip(n, l)
+flip(n, l) :: Int [Int] -> [Int]
 {
-  if( n <= 0 )
-    return l;
-  else
-    return flop(n-1, 0:l);
+    if( n <= 0 ) {
+        return l;
+    }
+    else {
+        return flop(n-1, 0:l);
+    }
 }
 
-flop(n, l)
+flop(n, l) :: Int [Int] -> [Int]
 {
-  return flip(n, 1:l);
+    return flip(n, 1:l);
+}
+
+main()
+{
+    [Int] a = [];
+
+    flip(2, a);
+
+    print(a.tl.hd);
+
+    return a.hd;
 }

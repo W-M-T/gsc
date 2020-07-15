@@ -72,6 +72,7 @@ def main():
     # Get all external symbols
     external_table, dependencies = getExternalSymbols(ast, headerfiles)
     external_table = enrichExternalTable(external_table)
+    print(external_table)
     ERROR_HANDLER.checkpoint()
 
     # Normalize table

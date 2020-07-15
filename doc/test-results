@@ -1,0 +1,30 @@
+Succesvol uitgevoerd:
+- op_test1.spl
+- op_test2.spl
+- atob.spl - Print een error, maar niet helemaal de error die we willen
+- comma_op.spl - Print een error, maar wel dat hij een Operator verwacht ipv , en niet dat de gegeven operator verboden is.
+- comments.spl
+- deadcode.spl
+- elif.spl
+- emoji.spl
+- empty.spl
+- import_lex.spl
+- simply_test.spl
+- recursion.spl
+- return_in_all_code_paths.spl
+- typesig_count.spl
+
+Mislukt:
+- assign_op.spl - resulteert niet in de verwachte error.
+- multiple-recusion.spl - geeft geen output komt waarschijnlijk doordat de head of de tail conditie ergens faalt.
+- void_functions.spl - geen errors?
+- void_value.spl - geeft de verkeerde error
+
+Anders/niet gerund:
+- assoc_example1.spl - Wat is het idee hier? resultaat is Void maar hij returned wel een Int.
+- debug.spl - Beetje vaag waar dit voor is, misschien meer een lexer dingetje
+- exponential_types.spl - niet runnable
+- fizzbuzz.spl - niet echt een test
+- generic_typedef.spl - niet ondersteund (polymorfisme)
+- identity.spl - niet ondersteund (polymorfisme)
+- polymorphic_*

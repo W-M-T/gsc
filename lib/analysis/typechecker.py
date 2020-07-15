@@ -122,11 +122,13 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
 
         if identifier in ext_table.functions:
             out_type_matches = {}
+            i = 0
             for o in ext_table.functions[identifier]:
                 if AST.equalVals(exp_type, o['type'].to_type.val) or exp_type is None:
                     if o['module'] not in out_type_matches:
-                        out_type_matches[o['module']] = []
-                    out_type_matches[o['module']].append(o)
+                        out_type_matches[o['module']] = {}
+                    out_type_matches[o['module']][i] = o
+                i += 1
 
             if len(out_type_matches) == 0 and len(matches) == 0:
                 if not noErrors and exp_type is not None:
@@ -137,13 +139,13 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 return False, expr
 
             for module, f in out_type_matches.items():
-                for oid in range(0, len(f)):
+                for oid, of in f.items():
                     args = []
-                    if len(f[oid]['type'].from_types) == len(expr.args):
+                    if len(of['type'].from_types) == len(expr.args):
                         input_matches = 0
 
-                        for i in range(len(f[oid]['type'].from_types)):
-                            typ, arg_res = typecheck(expr.args[i], f[oid]['type'].from_types[i].val, symbol_table, ext_table, func, r, noErrors=True)
+                        for i in range(len(of['type'].from_types)):
+                            typ, arg_res = typecheck(expr.args[i], of['type'].from_types[i].val, symbol_table, ext_table, func, r, noErrors=True)
                             args.append(arg_res)
                             if typ:
                                 input_matches += 1
@@ -173,7 +175,7 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
             return False, expr
         else:
-            if func is None and matches[0]['module'] != 'builtins' or expr.kind == FunKind.FUNC:
+            if func is None and (matches[0]['module'] != 'builtins' or expr.kind == FunKind.FUNC):
                 ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
                 return True, expr
 
@@ -197,7 +199,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
 
 def getSubType(typ, fields, expr):
     success = True
-    print(expr)
     while len(fields) > 0:
         field = fields.pop()
         if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val]  == Accessor.SND:
