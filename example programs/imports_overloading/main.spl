@@ -4,5 +4,7 @@ Int b = 3 + 4;
 main() :: -> Int {
     [Int] b = [];
 
+    a.tl.hd = 9;
+
     return a.tl.hd;
 }

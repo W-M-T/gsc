@@ -20,10 +20,21 @@ main_global_b: NOP
 // FUNCTION SECTION:
 main_func_main_0: LINK 00
 LDC 00
+LDC 9
 LDC main_global_a
 LDA 00
-LDH 00
-LDH -1
+BSR tail
+AJS -1
+LDR RR
+STA -1
+LDC main_global_a
+LDA 00
+BSR tail
+AJS -1
+LDR RR
+BSR head
+AJS -1
+LDR RR
 STR RR
 BRA main_func_main_0_exit
 main_func_main_0_exit: UNLINK

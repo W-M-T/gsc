@@ -48,9 +48,13 @@ def generate_expr(expr, module_name, mappings):
                         res.append('LDH 00')
                 else:
                     if Accessor_lookup[field.val] == Accessor.HD:
-                        res.append('LDH -1')
+                        res.append('BSR head')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
                     else:
-                        res.append('LDH 00')
+                        res.append('BSR tail')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
 
             return res
         else:
@@ -191,8 +195,15 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
                             else:
                                 code.append('LDH 00')
                         else:
-                            raise Exception("Unknown accessor encountered: %s " + field)
-                    if fields[0] == Accessor.FST:
+                            if field == Accessor_lookup[field.val] == Accessor.HD:
+                                code.append('BSR head')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                            else:
+                                code.append('BSR tail')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                    if Accessor_lookup[fields[0].val] == Accessor.FST or Accessor_lookup[fields[0].val] == Accessor.HD:
                         code.append('STA -1')
                     else:
                         code.append('STA 00')
