@@ -1,28 +1,16 @@
-flip(n, l) :: Int [Int] -> [Int]
-{
-    if( n <= 0 ) {
-        return l;
+print(string) :: [Char] -> Void {
+    [Char] s = string;
+    while(!isEmpty(s)) {
+        print(s.hd);
+        s = s.tl;
     }
-    else {
-        return flop(n-1, 0:l);
-    }
-}
-
-flop(n, l) :: Int [Int] -> [Int]
-{
-    return flip(n, 1:l);
-}
-
-f(x) :: [Int] -> [Int]
-{
-    return 2 : x;
 }
 
 main() :: -> Int
 {
-    [Int] a = [];
+    [Char] a = "Hello world!";
 
-    a = flop(2, a);
+    print(a);
 
-    return a.hd;
+    return 5;
 }

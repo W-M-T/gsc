@@ -23,6 +23,9 @@ def generate_expr(expr, module_name, mappings):
             return ['LDC -1'] if expr.val else ['LDC 00']
         elif expr.typ is TOKEN.EMPTY_LIST:
             return ['LDC 00']
+        elif expr.typ is TOKEN.STRING:
+            print(expr.val)
+            return []
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:

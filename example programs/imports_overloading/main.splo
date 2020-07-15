@@ -5,64 +5,28 @@
 BRA main
 // GLOBAL SECTION:
 // FUNCTION SECTION:
-main_func_f_0: LINK 00
-LDC 2
+main_func_print_0: LINK 00
 LDL -2
-STMH 2
-STR RR
-BRA main_func_f_0_exit
-main_func_f_0_exit: UNLINK
-RET
-main_func_main_0: LINK 00
-LDC 00
-LDC 2
+main_func_print_0_1: nop
 LDL 1
-BSR main_func_flop_0
-AJS -2
-LDR RR
-STL 1
+LDC 00
+EQ
+NOT
+BRF main_func_print_0_1_exit
 LDL 1
 BSR head
 AJS -1
 LDR RR
-STR RR
-BRA main_func_main_0_exit
-main_func_main_0_exit: UNLINK
-RET
-main_func_flip_0: LINK 00
-LDL -3
-LDC 00
-LE
-BRT main_func_flip_0_1
-BRA main_func_flip_0_2
-main_func_flip_0_1: LDL -2
-STR RR
-BRA main_func_flip_0_exit
-main_func_flip_0_2: LDL -3
-LDC 1
-SUB
-LDC 00
-LDL -2
-STMH 2
-BSR main_func_flop_0
-AJS -2
+TRAP 1
+LDL 1
+BSR tail
+AJS -1
 LDR RR
-STR RR
-BRA main_func_flip_0_exit
-main_func_flip_0_3: nop
-main_func_flip_0_exit: UNLINK
-RET
-main_func_flop_0: LINK 00
-LDL -3
-LDC 1
-LDL -2
-STMH 2
-BSR main_func_flip_0
-AJS -2
-LDR RR
-STR RR
-BRA main_func_flop_0_exit
-main_func_flop_0_exit: UNLINK
+STL 1
+main_func_print_0_1_update: nop
+BRA main_func_print_0_1
+main_func_print_0_1_exit: nop
+main_func_print_0_exit: UNLINK
 RET
 tail: LINK 00
 LDL -2
@@ -84,6 +48,16 @@ LDH -1
 STR RR
 unlink
 ret
+main_func_main_0: LINK 00
+LDL 1
+BSR main_func_print_0
+AJS -1
+LDR RR
+LDC 5
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_exit: UNLINK
+RET
 // ENTRYPOINT:
 main: BSR main_func_main_0
 LDR RR
