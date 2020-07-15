@@ -117,23 +117,23 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
             else:
                 if len(stmt.val.varref.val.fields) > 0:
                     fields = list(reversed(stmt.val.varref.val.fields))
-                    while len(fields) > 0:
+                    if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
+                        code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
+                    else:
+                        code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
+                    while len(fields) > 1:
                         field = fields.pop()
                         if field == Accessor.FST or field == Accessor.SND:
                             if field == Accessor.FST:
-                                if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                                    code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
-                                else:
-                                    code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
-                                code.append('STA -1')
+                                code.append('LDH -1')
                             else:
-                                if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
-                                    code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
-                                else:
-                                    code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
-                                code.append('STA 00')
+                                code.append('LDA 00')
                         else:
                             raise Exception("Unknown accessor encountered: %s " + field)
+                    if fields[0] == Accessor.FST:
+                        code.append('STA -1')
+                    else:
+                        code.append('STA 00')
                 else: # No fields used so we simply overwrite the pointer.
                     if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
                         code.append('STL ' + mappings['vars'][stmt.val.varref.val.id.val][0])

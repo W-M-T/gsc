@@ -42,13 +42,16 @@ def main():
             Coord a = (2, 3);
             Coord b = (5, 6);
             
-            Coord c = (0, 0);
-            
             (Coord, Coord) d = (a, b);
             
-            a.fst = 27;
+            Coord c = (0, 0);
+            c = a + b;
+            
+            d.fst.fst = 27;
+            
+            d.snd = c;
                     
-            return d.fst.fst;
+            return d.fst.fst + d.snd.fst;
         }
         ''')
 
@@ -82,8 +85,6 @@ def main():
     # Type check
     analyseFunc(symbol_table)
     ERROR_HANDLER.checkpoint()
-
-    print(symbol_table.functions)
 
     typecheck_globals(symbol_table, external_table)
     typecheck_functions(symbol_table, external_table)
