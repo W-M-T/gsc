@@ -85,6 +85,7 @@ class ERR(IntEnum):
     WrongMainType = 63
     UndefinedTypeId = 64
     CyclicTypeSyn = 65
+    CyclicTypeSynExternal = 66
 
 
 ERRMSG = {
@@ -151,8 +152,9 @@ ERRMSG = {
     ERR.ImportTypeClashBuiltin: 'Imported type synonym "{}" conflicts with builtin type',
     ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
     ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}',
-    ERR.UndefinedTypeId: 'Type identifier "{}" is not defined',
-    ERR.CyclicTypeSyn: 'Type synonym "{}" has cyclical definition:\n{}'
+    ERR.UndefinedTypeId: 'Type identifier "{}" is not defined:\n{}',
+    ERR.CyclicTypeSyn: 'Type synonym "{}" has cyclical definition:\n{}',
+    ERR.CyclicTypeSynExternal: 'Imported type synonym "{}" has cyclical definiton.'
 }
 
 class WARN(IntEnum):

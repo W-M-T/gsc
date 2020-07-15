@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 
+from collections import OrderedDict
+
 ENTRYPOINT_FUNCNAME = "main"
 
-BUILTIN_FUNCTIONS = {
-    "print":
+BUILTIN_FUNCTIONS = OrderedDict([
+    ("print",
         [
             ("Int -> Void", ["TRAP 00"]),
             ("Char -> Void", ["TRAP 1"]),
             ("Bool -> Void", ["TRAP 00"]),
-        ],
-    "read":
+        ]),
+    ("read",
         [
             (" -> Int", ["TRAP 10"]),
             (" -> Char", ["TRAP 11"]),
-        ],
-    "isEmpty":
+        ]),
+    ("isEmpty",
         [
             ("[Int] -> Bool", ["nop"]),
             ("[Bool] -> Bool", ["nop"]),
             ("[Char] -> Bool", ["nop"])
-        ]
-}
+        ])
+])

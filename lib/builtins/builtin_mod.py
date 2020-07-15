@@ -11,6 +11,8 @@ from lib.datastructure.symbol_table import ExternalTable
 
 from lib.analysis.error_handler import *
 
+from collections import OrderedDict
+
 
 BUILTINS_NAME = "builtins"
 
@@ -32,7 +34,7 @@ def abstractToConcreteType(abstract_type):
         raise Exception("Unknown abstract type encountered in builtin operator table: %s" % abstract_type)
 
 def generateBuiltinFuncs():
-    builtin_functions = {}
+    builtin_functions = OrderedDict()
     for f_id, f_list in BUILTIN_FUNCTIONS.items():
         builtin_functions[(FunUniq.FUNC, f_id)] = []
 
@@ -63,12 +65,13 @@ generate the ExternalTable entries for of all the builtin operators.
 # TODO refactor this to not use integer indices in lib.builtins.operators and make infixes and prefixes use the same code here and datastructure there
 '''
 def generateBuiltinOps():
-    op_table = {}
+    op_table = OrderedDict()
 
     for op_id in BUILTIN_INFIX_OPS:
         op_table[(FunUniq.INFIX, op_id)] = []
 
         for typesig_str in BUILTIN_INFIX_OPS[op_id][0]:
+            #print(typesig_str)
             first_type, second_type, _, output_type = typesig_str.split()
             first_types = abstractToConcreteType(first_type)
             second_types = abstractToConcreteType(second_type)
@@ -123,7 +126,7 @@ def generateBuiltinOps():
     return op_table
 
 def generateBuiltinTypesyns():
-    temp = {}
+    temp = OrderedDict()
     for name, def_str in HIGHER_BUILTIN_TYPES.items():
         temp[name] = {
             'def_type': AST.TYPE(val=abstractToConcreteType(def_str)[0]),
@@ -180,7 +183,7 @@ def enrichExternalTable(external_table):
     builtin_ops = generateBuiltinOps()
     builtin_type_syns = generateBuiltinTypesyns()
 
-    temp_functions = {**builtin_funcs, **builtin_ops}
+    temp_functions = OrderedDict(list(builtin_funcs.items()) + list(builtin_ops.items()))
 
     # Test if type syns of imports clash with builtins
     # Test for function clashes happens after normalisation

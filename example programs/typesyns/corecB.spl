@@ -1,0 +1,13 @@
+importall corecA
+
+type B = A
+
+Int pi = 3;
+
+foo() :: -> Void {
+	print('f');
+}
+infixl 2 -- (a,b) :: Int Int -> Int {
+	print(a);
+	return a;
+}

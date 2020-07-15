@@ -1,7 +1,6 @@
 /*
     Should return an error
 */
-type Inf = [Inf]
 type A = B
 type B = C
 type C = D

@@ -16,3 +16,6 @@ V Check of alles goed werkt als een for-component mist.
 
 Alles aan elkaar maken
 - Entrypoint uit de object file
+
+
+externe globals moeten orig_id gebruiken
