@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
+from lib.parser.parser import Accessor_lookup
 from lib.datastructure.position import Position
 from lib.datastructure.token import Token, TOKEN
 from lib.datastructure.AST import AST, FunKind, FunKindToUniq, FunUniq, Accessor
 from lib.datastructure.scope import NONGLOBALSCOPE
-
 from lib.debug.AST_prettyprinter import subprint_type
-
 from lib.analysis.error_handler import ERR, ERROR_HANDLER
 
 def tokenToNode(token):
@@ -102,9 +101,7 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             out_type_matches = {}
             i = 0
             for o in symbol_table.functions[identifier]:
-                if exp_type is None:
-                    out_type_matches[i] = o
-                elif AST.equalVals(exp_type, o['type'].to_type.val):
+                if AST.equalVals(exp_type, o['type'].to_type.val) or exp_type is None:
                     out_type_matches[i] = o
                 i += 1
 
@@ -129,11 +126,11 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
 
         if identifier in ext_table.functions:
             out_type_matches = {}
-            i = 0
             for o in ext_table.functions[identifier]:
                 if AST.equalVals(exp_type, o['type'].to_type.val) or exp_type is None:
-                    out_type_matches[i] = o
-                i += 1
+                    if o['module'] not in out_type_matches:
+                        out_type_matches[o['module']] = []
+                    out_type_matches[o['module']].append(o)
 
             if len(out_type_matches) == 0 and len(matches) == 0:
                 if not noErrors and exp_type is not None:
@@ -143,23 +140,24 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                         ERROR_HANDLER.addError(ERR.NoOpDefWithType, [expr.id.val, subprint_type(exp_type), expr.id])
                 return False, expr
 
-            for k, o in out_type_matches.items():
-                args = []
-                if len(o['type'].from_types) == len(expr.args):
-                    input_matches = 0
+            for module, f in out_type_matches.items():
+                for oid in range(0, len(f)):
+                    args = []
+                    if len(f[oid]['type'].from_types) == len(expr.args):
+                        input_matches = 0
 
-                    for i in range(len(o['type'].from_types)):
-                        typ, arg_res = typecheck(expr.args[i], o['type'].from_types[i].val, symbol_table, ext_table, func, r, noErrors=True)
-                        args.append(arg_res)
-                        if typ:
-                            input_matches += 1
+                        for i in range(len(f[oid]['type'].from_types)):
+                            typ, arg_res = typecheck(expr.args[i], f[oid]['type'].from_types[i].val, symbol_table, ext_table, func, r, noErrors=True)
+                            args.append(arg_res)
+                            if typ:
+                                input_matches += 1
 
-                    if input_matches == len(expr.args):
-                        matches.append({
-                            'id': k,
-                            'module': o['module'],
-                            'args': args,
-                        })
+                        if input_matches == len(expr.args):
+                            matches.append({
+                                'id': oid,
+                                'module': module,
+                                'args': args,
+                            })
 
         if len(matches) == 0:
             if not noErrors:
@@ -170,10 +168,12 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             return False, expr
         elif len(matches) > 1 and exp_type is None:
             if not noErrors:
+                # TODO: Different error for ops
                 ERROR_HANDLER.addError(ERR.AmbiguousFunCall, [expr.id.val, expr.id])
             return False, expr
         elif len(matches) > 1:
             if not noErrors:
+                # TODO: Different error for ops
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
             return False, expr
 
@@ -199,22 +199,22 @@ def getSubType(typ, fields, varref):
     success = True
     while len(fields) > 0:
         field = fields.pop()
-        if field == Accessor.FST or field == Accessor.SND:
+        if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val]  == Accessor.SND:
             if type(typ) is AST.TUPLETYPE:
                 if field == Accessor.FST:
                     typ = typ.a.val
                 else:
                     typ = typ.b.val
             else:
-                ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [varref])
+                ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [field])
                 success = False
-        elif field == Accessor.HD or field == Accessor.SND:
+        elif Accessor_lookup[field.val] == Accessor.HD or Accessor_lookup[field.val] == Accessor.TL:
             if type(typ) is AST.LISTTYPE:
                 typ = typ.type.val
             else:
-                ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [varref])
+                ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [field])
         else:
-            raise Exception("Unknown accessor encountered: %s " + field)
+            raise Exception("Unknown accessor encountered: %s " + field.val)
 
     return success, typ
 

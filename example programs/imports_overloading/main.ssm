@@ -1,0 +1,61 @@
+//===================================================
+// SSM ASSEMBLY GENERATED ON WED JUL 15 15:32:32 2020
+// © Ward Theunisse & Ischa Stork 2020
+//===================================================
+// INIT SECTION:
+
+
+
+// ENTRYPOINT:
+BRA main
+// GLOBAL SECTION:
+
+
+
+// FUNCTION SECTION:
+main_func_main_0: LINK 00
+LDC 97
+LDC 98
+LDC 1
+LDC 2
+LDL 1
+LDL 2
+BSR importB_func_sum_0
+AJS -2
+LDR RR
+TRAP 1
+LDL 3
+LDL 4
+BSR importA_func_sum_0
+AJS -2
+LDR RR
+TRAP 00
+LDC 00
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_exit: UNLINK
+RET
+importB_func_sum_0: LINK 00
+LDC 99
+STR RR
+BRA importB_func_sum_0_exit
+importB_func_sum_0_exit: UNLINK
+RET
+importB_func_sum_1: LINK 00
+LDL -3
+STR RR
+BRA importB_func_sum_1_exit
+importB_func_sum_1_exit: UNLINK
+RET
+importA_func_sum_0: LINK 00
+LDL -3
+LDL -2
+ADD
+STR RR
+BRA importA_func_sum_0_exit
+importA_func_sum_0_exit: UNLINK
+RET
+// MAIN:
+main: BSR main_func_main_0
+LDR RR
+TRAP 00

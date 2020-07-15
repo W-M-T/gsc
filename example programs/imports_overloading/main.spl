@@ -1,15 +1,5 @@
-from importA import sum
-from importB import sum
-
 main() :: -> Int {
-    Char a = 'a';
-    Char b = 'b';
-    Int c = 1;
-    Int d = 2;
+    [Int] a = 2 : 3 : [];
 
-    print(sum(a, b));
-
-    print(sum(c, d));
-
-    return 0;
+    return a.tl.hd;
 }

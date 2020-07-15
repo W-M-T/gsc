@@ -6,6 +6,8 @@ from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.operators import BUILTIN_INFIX_OPS, BUILTIN_PREFIX_OPS
 from lib.builtins.functions import BUILTIN_FUNCTIONS
 from enum import IntEnum
+from lib.imports.objectfile_imports import OBJECT_FORMAT, OBJECT_COMMENT_PREFIX
+from lib.parser.parser import Accessor_lookup
 
 class MEMTYPE(IntEnum):
     BASICTYPE   = 1
@@ -19,6 +21,8 @@ def generate_expr(expr, module_name, mappings):
             return ['LDC ' + str(ord(expr.val))]
         elif expr.typ is TOKEN.BOOL:
             return ['LDC -1'] if expr.val else ['LDC 00']
+        elif expr.typ is TOKEN.EMPTY_LIST:
+            return ['LDC 00']
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:
@@ -43,7 +47,10 @@ def generate_expr(expr, module_name, mappings):
                     else:
                         res.append('LDH 00')
                 else:
-                    raise Exception("Unknown accessor encountered: %s " + field)
+                    if field == Accessor.HD:
+                        res.append('LDH -1')
+                    else:
+                        res.append('LDH 00')
 
             return res
         else:
@@ -62,7 +69,10 @@ def generate_expr(expr, module_name, mappings):
                     else:
                         res.append('LDH 00')
                 else:
-                    raise Exception("Unknown accessor encountered: %s " + field)
+                    if field == Accessor.HD:
+                        res.append('LDH -1')
+                    else:
+                        res.append('LDH 00')
 
             return res
 
@@ -294,33 +304,33 @@ def generate_func(func, symbol_table, module_name, label, mappings):
 
 def build_object_file(module_name, dependencies, global_code, global_labels, function_code):
     # Depedencies
-    object_file = '// DEPENDENCIES:\n'
+    object_file = OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['depend'] + '\n'
     for d in dependencies:
-        object_file += 'DEPEND ' + d + '\n'
+        object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['dependitem'] + d + '\n'
 
     # Init section
-    object_file += '// INIT SECTION\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['init'] + '\n'
     object_file += '\n'.join(global_code)
     object_file += '\n'
 
     # Entry point
-    object_file += '// ENTRYPOINT\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + '\n'
     object_file += 'BRA main\n'
 
     # Global section
-    object_file += '// GLOBAL SECTION\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['globals'] + '\n'
     for l in global_labels:
         object_file += l + ': ' + 'NOP\n'
 
     # Function Section
-    object_file += '// FUNCTION SECTION\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['funcs'] + '\n'
     for l in function_code:
         object_file += l + ': '
         object_file += '\n'.join(function_code[l])
         object_file += '\n'
 
     # Main
-    object_file += '// MAIN\n'
+    object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + '\n'
     object_file += 'main: BSR ' + module_name + '_func_main_0\n'
     object_file += 'LDR RR\n'
     object_file += 'TRAP 00'

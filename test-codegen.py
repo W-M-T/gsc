@@ -63,14 +63,6 @@ def main():
     symbol_table = buildSymbolTable(ast)
     ERROR_HANDLER.checkpoint()
 
-    # Normalize table
-    normalizeAllTypes(symbol_table)
-    ERROR_HANDLER.checkpoint()
-
-    # Resolve Expr names
-    resolveNames(symbol_table)
-    ERROR_HANDLER.checkpoint()
-
     # Build external table
     headerfiles = getImportFiles(ast, HEADER_EXT, os.path.dirname(args.infile),
                                  file_mapping_arg=import_mapping,
@@ -78,8 +70,16 @@ def main():
                                  lib_dir_env=os.environ[
                                      IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
     # Get all external symbols
-    external_table = getExternalSymbols(ast, headerfiles)
+    external_table, dependencies = getExternalSymbols(ast, headerfiles)
     external_table = enrichExternalTable(external_table)
+    ERROR_HANDLER.checkpoint()
+
+    # Normalize table
+    normalizeAllTypes(symbol_table, external_table)
+    ERROR_HANDLER.checkpoint()
+
+    # Resolve Expr names
+    resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
 
     # Parse expressions
@@ -96,10 +96,10 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Code gen
-    gen_code = generate_object_file(symbol_table, module_name)
+    gen_code = generate_object_file(symbol_table, module_name, dependencies)
     #print(gen_code)
 
-    with open('generated/' + module_name + '.splo', 'w+') as fh:
+    with open('example programs/imports_overloading/' + module_name + '.splo', 'w+') as fh:
         fh.write(gen_code)
 
 if __name__ == "__main__":

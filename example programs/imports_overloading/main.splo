@@ -1,0 +1,23 @@
+// DEPENDENCIES:
+// INIT SECTION:
+
+// ENTRYPOINT:
+BRA main
+// GLOBAL SECTION:
+// FUNCTION SECTION:
+main_func_main_0: LINK 00
+LDC 2
+LDC 3
+LDC 00
+STMH 2
+STMH 2
+LDL 1
+LDH -1
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_exit: UNLINK
+RET
+// MAIN:
+main: BSR main_func_main_0
+LDR RR
+TRAP 00

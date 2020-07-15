@@ -12,6 +12,19 @@
         "TYPE(val=BASICTYPE(type_id=\"Char\"))"
       ],
       "TYPE(val=BASICTYPE(type_id=\"Char\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "sum"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ],
   "globals": [],

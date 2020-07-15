@@ -8,7 +8,7 @@ BUILTIN_INFIX_OPS = {
     "%": (["Int Int -> Int"], 7, FunKind.INFIXL, "MOD"),
     "+": (["Int Int -> Int", "Char Char -> Char"], 6, FunKind.INFIXL, "ADD"),
     "-": (["Int Int -> Int", "Char Char -> Char"], 6, FunKind.INFIXL, "SUB"),
-    ":": (["T [T] -> [T]"], 5, FunKind.INFIXR, None),
+    ":": (["T [T] -> [T]"], 5, FunKind.INFIXR, "STMH 2"),
     "==": (["T T -> Bool"], 4, FunKind.INFIXL, "EQ"),
     "<": (["T T -> Bool"], 4, FunKind.INFIXL, "LT"),
     ">": (["T T -> Bool"], 4, FunKind.INFIXL, "GT"),

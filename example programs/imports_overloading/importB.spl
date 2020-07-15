@@ -1,3 +1,7 @@
 sum(a, b) :: Char Char -> Char {
     return 'c';
 }
+
+sum(a, b) :: Int Int -> Int {
+    return a;
+}
