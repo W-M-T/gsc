@@ -90,6 +90,7 @@ def main():
     analyseFunc(symbol_table)
     ERROR_HANDLER.checkpoint()
 
+    print(ast)
     # Typechecking
     typecheck_globals(symbol_table, external_table)
     typecheck_functions(symbol_table, external_table)

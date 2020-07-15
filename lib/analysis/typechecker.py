@@ -195,13 +195,14 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         print(type(expr))
         raise Exception('Unknown type of expression encountered in typechecking')
 
-def getSubType(typ, fields, varref):
+def getSubType(typ, fields, expr):
     success = True
+    print(expr)
     while len(fields) > 0:
         field = fields.pop()
         if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val]  == Accessor.SND:
             if type(typ) is AST.TUPLETYPE:
-                if field == Accessor.FST:
+                if  Accessor_lookup[field.val] == Accessor.FST:
                     typ = typ.a.val
                 else:
                     typ = typ.b.val
@@ -209,10 +210,10 @@ def getSubType(typ, fields, varref):
                 ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [field])
                 success = False
         elif Accessor_lookup[field.val] == Accessor.HD or Accessor_lookup[field.val] == Accessor.TL:
-            if type(typ) is AST.LISTTYPE:
+            if Accessor_lookup[field.val] == Accessor.HD:
                 typ = typ.type.val
             else:
-                ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [field])
+                typ = typ
         else:
             raise Exception("Unknown accessor encountered: %s " + field.val)
 

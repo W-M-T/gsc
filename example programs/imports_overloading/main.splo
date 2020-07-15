@@ -12,7 +12,10 @@ LDC 00
 STMH 2
 STMH 2
 LDL 1
-LDH -1
+LDH 00
+LDH 00
+LDL 1
+LDH 00
 STR RR
 BRA main_func_main_0_exit
 main_func_main_0_exit: UNLINK
