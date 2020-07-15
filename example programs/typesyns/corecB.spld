@@ -1,0 +1,39 @@
+{
+  "functions": [
+    [
+      [
+        "FUNC",
+        "foo"
+      ],
+      null,
+      "FUNC",
+      [],
+      "TYPE(val=\"Void\")"
+    ],
+    [
+      [
+        "INFIX",
+        "--"
+      ],
+      2,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ],
+  "globals": [
+    [
+      "pi",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ],
+  "typesyns": [
+    [
+      "B",
+      "TYPE(val=\"A\")"
+    ]
+  ]
+}

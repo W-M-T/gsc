@@ -75,8 +75,8 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Normalize table
-    normalizeAllTypes(symbol_table, external_table)
-    ERROR_HANDLER.checkpoint()
+    # normalizeAllTypes(symbol_table, external_table)
+    # ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
     resolveNames(symbol_table)

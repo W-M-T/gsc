@@ -1,0 +1,7 @@
+from corecB import --, foo, pi as fa
+importall corecC
+
+
+type A = B
+type OtherInt = Int
+//type B = Int

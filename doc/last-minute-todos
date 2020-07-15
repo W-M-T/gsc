@@ -16,3 +16,6 @@ v Lijst van dependencies
 
 Alles aan elkaar maken
 - Entrypoint uit de object file
+
+
+externe globals moeten orig_id gebruiken
