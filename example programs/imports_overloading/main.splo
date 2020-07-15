@@ -1,26 +1,73 @@
 // DEPENDENCIES:
 // INIT SECTION:
 
-// ENTRYPOINT:
+// BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
 // FUNCTION SECTION:
+head: LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH -1
+STR RR
+unlink
+ret
 main_func_main_0: LINK 00
 LDC 2
 LDC 3
+LDC 4
+LDC 5
 LDC 00
 STMH 2
 STMH 2
+STMH 2
+STMH 2
+LDC 15
+LDC 00
+STMH 2
+LDL 2
 LDL 1
-LDH 00
-LDH 00
+BSR tail
+AJS -1
+LDR RR
+STA 00
 LDL 1
-LDH 00
+BSR tail
+AJS -1
+LDR RR
+BSR head
+AJS -1
+LDR RR
+LDL 1
+BSR tail
+AJS -1
+LDR RR
+BSR tail
+AJS -1
+LDR RR
+BSR head
+AJS -1
+LDR RR
+ADD
 STR RR
 BRA main_func_main_0_exit
 main_func_main_0_exit: UNLINK
 RET
-// MAIN:
+tail: LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH 00
+STR RR
+unlink
+ret
+// ENTRYPOINT:
 main: BSR main_func_main_0
 LDR RR
 TRAP 00
+program_crash: NOP

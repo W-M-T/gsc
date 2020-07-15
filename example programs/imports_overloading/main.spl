@@ -1,7 +1,8 @@
 main() :: -> Int {
-    [Int] a = 2 : 3 : [];
+    [Int] a = 2 : 3 : 4 : 5 : [];
+    [Int] b = 15 : [];
 
-    [Int] b = a.tl.tl.hd;
+    a.tl.tl = b;
 
-    return a.hd;
+    return a.tl.hd + a.tl.tl.hd;
 }

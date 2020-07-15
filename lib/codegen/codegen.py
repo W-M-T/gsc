@@ -41,13 +41,13 @@ def generate_expr(expr, module_name, mappings):
             fields = list(reversed(expr.val.fields))
             while len(fields) > 0:
                 field = fields.pop()
-                if field == Accessor.FST or field == Accessor.SND:
-                    if field == Accessor.FST:
+                if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
+                    if Accessor_lookup[field.val] == Accessor.FST:
                         res.append('LDH -1')
                     else:
                         res.append('LDH 00')
                 else:
-                    if field == Accessor.HD:
+                    if Accessor_lookup[field.val] == Accessor.HD:
                         res.append('LDH -1')
                     else:
                         res.append('LDH 00')
@@ -55,24 +55,30 @@ def generate_expr(expr, module_name, mappings):
             return res
         else:
             res = []
-            if expr.val.scope == NONGLOBALSCOPE.LocalVar:
-                res.append('LDL ' + mappings['vars'][expr.val.id.val][0])
-            else:
-                res.append('LDL ' + mappings['args'][expr.val.id.val][0])
 
+            if expr.val.scope == NONGLOBALSCOPE.LocalVar:
+                var_offset = mappings['vars'][expr.val.id.val][0]
+            else:
+                var_offset = mappings['args'][expr.val.id.val][0]
+
+            res.append('LDL ' + var_offset)
             fields = list(reversed(expr.val.fields))
             while len(fields) > 0:
                 field = fields.pop()
-                if field == Accessor.FST or field == Accessor.SND:
+                if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
                     if field == Accessor.FST:
                         res.append('LDH -1')
                     else:
                         res.append('LDH 00')
                 else:
-                    if field == Accessor.HD:
-                        res.append('LDH -1')
+                    if Accessor_lookup[field.val] == Accessor.HD:
+                        res.append('BSR head')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
                     else:
-                        res.append('LDH 00')
+                        res.append('BSR tail')
+                        res.append('AJS -1')
+                        res.append('LDR RR')
 
             return res
 
@@ -144,14 +150,22 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
                         code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
                     while len(fields) > 1:
                         field = fields.pop()
-                        if field == Accessor.FST or field == Accessor.SND:
-                            if field == Accessor.FST:
+                        print(field)
+                        if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
+                            if Accessor_lookup[field.val] == Accessor.FST:
                                 code.append('LDH -1')
                             else:
                                 code.append('LDH 00')
                         else:
-                            raise Exception("Unknown accessor encountered: %s " + field)
-                    if fields[0] == Accessor.FST:
+                            if field == Accessor_lookup[field.val] == Accessor.HD:
+                                code.append('BSR head')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                            else:
+                                code.append('BSR tail')
+                                code.append('AJS -1')
+                                code.append('LDR RR')
+                    if Accessor_lookup[fields[0].val] == Accessor.FST or Accessor_lookup[fields[0].val] == Accessor.HD:
                         code.append('STA -1')
                     else:
                         code.append('STA 00')
@@ -164,7 +178,6 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
         else:
             key = module_name + '_global_' + stmt.val.varref.val.id.val
             if mappings['globals'][stmt.val.varref.val.id.val] == MEMTYPE.BASICTYPE:
-                key = module_name + '_global_' + stmt.val.varref.val.id.val
                 code.extend(['LDC ' + key, 'STA 00'])
             else:
                 if len(stmt.val.varref.val.fields) > 0: # We have accessors
@@ -333,7 +346,9 @@ def build_object_file(module_name, dependencies, global_code, global_labels, fun
     object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + '\n'
     object_file += 'main: BSR ' + module_name + '_func_main_0\n'
     object_file += 'LDR RR\n'
-    object_file += 'TRAP 00'
+    object_file += 'TRAP 00\n'
+
+    object_file += 'program_crash: NOP'
 
     return object_file
 
@@ -368,6 +383,38 @@ def generate_object_file(symbol_table, module_name, dependencies):
             key += str(o)
             function_code[key] = generate_func(of, symbol_table, module_name, key, mappings)
             o += 1
+
+    accessors = {
+        'head':
+            [
+                'LINK 00',
+                'LDL -2',
+                'LDC 00',
+                'EQ',
+                'BRT program_crash',
+                'LDL -2',
+                'LDH -1',
+                'STR RR',
+                'unlink',
+                'ret'
+            ],
+        'tail':
+            [
+                'LINK 00',
+                'LDL -2',
+                'LDC 00',
+                'EQ',
+                'BRT program_crash',
+                'LDL -2',
+                'LDH 00',
+                'STR RR',
+                'unlink',
+                'ret',
+            ]
+    }
+
+    for ac, code in accessors.items():
+        function_code[ac] = code
 
     '''
     for f, b in BUILTIN_FUNCTIONS.items():

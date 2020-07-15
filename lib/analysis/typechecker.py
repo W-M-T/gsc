@@ -211,9 +211,10 @@ def getSubType(typ, fields, expr):
                 success = False
         elif Accessor_lookup[field.val] == Accessor.HD or Accessor_lookup[field.val] == Accessor.TL:
             if Accessor_lookup[field.val] == Accessor.HD:
-                typ = typ.type.val
-            else:
-                typ = typ
+                if type(typ) is AST.LISTTYPE:
+                    typ = typ.type.val
+                else:
+                    ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [field])
         else:
             raise Exception("Unknown accessor encountered: %s " + field.val)
 
