@@ -1,4 +1,3 @@
-
 (Int, Int) globtup = (2,2);
 
 print(x) :: (Int, Int) -> Void {

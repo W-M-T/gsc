@@ -30,25 +30,35 @@ def main():
     else:
         from io import StringIO
 
-        module_name = "return-test"
-        testprog = StringIO('''
-            type Coord = (Int, Int)
+        module_name = "tuples"
+        testprog = StringIO('''      
+        type Coord = (Int, Int)
         
-            main() :: -> Void {
-                Coord x = (2, 2);
-                Int i = 5;
-                
-                while(True) {
-                    if(True) {
-                        return 1;
-                    }
-                    elif (True) {
-                        continue;
-                        x = 1;
-                        return;
-                    }
-                }
-            }
+        infixl 7 + (a, b) :: (Int, Int) (Int, Int) -> Coord {
+            return (a.fst + b.fst, a.snd + b.snd);
+        }
+        
+        print(t) :: (Int, Int) -> Void {
+            print('(');
+            print(t.fst);
+            print(',');
+            print(t.snd);
+            print(')');
+            print('\\n');
+        }
+          
+        main() :: -> Int {
+            (Coord, Coord) a = ((2, 3), (4, 5));
+            Coord b = (5, 6);
+            
+            a.fst = b;
+            
+            b.fst = 8;
+            
+            print(a.fst);
+        
+            return a.fst.fst;
+        }
         ''')
 
         # Tokenize / parse
@@ -75,22 +85,22 @@ def main():
     external_table = enrichExternalTable(ExternalTable())
 
     # Parse expressions
-    fixExpression(ast, external_table)
+    fixExpression(ast, symbol_table, external_table)
     ERROR_HANDLER.checkpoint()
 
     # Type check
     analyseFunc(symbol_table)
     ERROR_HANDLER.checkpoint()
 
-    #typecheck_globals(symbol_table, external_table)
-    #typecheck_functions(symbol_table, external_table)
-    #ERROR_HANDLER.checkpoint()
+    typecheck_globals(symbol_table, external_table)
+    typecheck_functions(symbol_table, external_table)
+    ERROR_HANDLER.checkpoint()
 
-    #gen_code = generate_object_file(symbol_table, module_name)
+    gen_code = generate_object_file(symbol_table, module_name)
     #print(gen_code)
 
-    #with open('generated/' + module_name + '.splo', 'w+') as fh:
-    #    fh.write(gen_code)
+    with open('generated/' + module_name + '.splo', 'w+') as fh:
+        fh.write(gen_code)
 
 if __name__ == "__main__":
     main()

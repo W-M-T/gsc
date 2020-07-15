@@ -452,27 +452,27 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
     return expr
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
-def parseAtom(exp, ext_table, exp_index):
+def parseAtom(exp, symbol_table, ext_table, exp_index):
 
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         # TODO: This was without AST ParsedExpr, possibly remove this again
-        return AST.PARSEDEXPR(val=res), exp_index + 1
+        return res, exp_index + 1
     elif type(exp[exp_index]) is AST.DEFERREDEXPR: # Sub expression
-        sub_expr, _ = parseExpression(exp[exp_index].contents, ext_table)
+        sub_expr, _ = parseExpression(exp[exp_index].contents, symbol_table, ext_table)
         return AST.PARSEDEXPR(val=sub_expr), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.PREFIX: # Prefix
-        if (FunUniq.PREFIX, exp[exp_index].id.val) not in ext_table.functions:
+        if (FunUniq.PREFIX, exp[exp_index].id.val) not in ext_table.functions and (FunUniq.PREFIX, exp[exp_index].id.val) not in symbol_table.functions:
             ERROR_HANDLER.addError(ERR.UndefinedPrefixOp, [exp[exp_index].id.val, exp[exp_index]])
         prefix = exp[exp_index]
-        sub_expr, _ = parseExpression(prefix.args, ext_table)
+        sub_expr, _ = parseExpression(prefix.args, symbol_table, ext_table)
         return AST.FUNCALL(id=prefix.id, kind=2, args=[sub_expr]), exp_index + 1
     elif type(exp[exp_index]) is AST.FUNCALL and exp[exp_index].kind == FunKind.FUNC: # Function call
         func_args = []
         funcall = exp[exp_index]
         if funcall.args is not None:
             for arg in funcall.args:
-                sub_expr, _ = parseExpression(arg.contents, ext_table)
+                sub_expr, _ = parseExpression(arg.contents, symbol_table, ext_table)
                 func_args.append(sub_expr)
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
@@ -480,34 +480,45 @@ def parseAtom(exp, ext_table, exp_index):
 
 # TODO: Add custom operators
 ''' Parse expressions by performing precedence climbing algorithm. '''
-def parseExpression(exp, ext_table, min_precedence = 1, exp_index = 0):
-    result, exp_index = parseAtom(exp, ext_table, exp_index)
+def parseExpression(exp, symbol_table, ext_table, min_precedence = 1, exp_index = 0):
+    result, exp_index = parseAtom(exp, symbol_table, ext_table, exp_index)
 
     while True:
-        if exp_index < len(exp) and (FunUniq.INFIX, exp[exp_index].val) not in ext_table.functions:
+        if exp_index < len(exp) and ((FunUniq.INFIX, exp[exp_index].val) not in ext_table.functions and (FunUniq.INFIX, exp[exp_index].val) not in symbol_table.functions):
             ERROR_HANDLER.addError(ERR.UndefinedOp, [exp[exp_index]])
             break
-        elif exp_index >= len(exp) or ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] < min_precedence:
+        elif exp_index >= len(exp):
+            break
+        elif (FunUniq.INFIX, exp[exp_index].val) in ext_table.functions and ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] < min_precedence:
+            break
+        elif (FunUniq.INFIX, exp[exp_index].val) in symbol_table.functions and symbol_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['def'].fixity.val < min_precedence:
             break
 
-        if ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind'] == FunKind.INFIXL:
-            next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] + 1
+        if (FunUniq.INFIX, exp[exp_index].val) in ext_table.functions:
+            if ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind'] == FunKind.INFIXL:
+                next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity'] + 1
+            else:
+                next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity']
+            kind = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind']
         else:
-            next_min_prec = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['fixity']
-        kind = ext_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['kind']
+            if symbol_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['def'].kind == FunKind.INFIXL:
+                next_min_prec = symbol_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['def'].fixity.val + 1
+            else:
+                next_min_prec = symbol_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['def'].fixity.val
+            kind = symbol_table.functions[(FunUniq.INFIX, exp[exp_index].val)][0]['def'].kind
         op = exp[exp_index]
         exp_index += 1
-        rh_expr, exp_index = parseExpression(exp, ext_table, next_min_prec, exp_index)
+        rh_expr, exp_index = parseExpression(exp, symbol_table, ext_table, next_min_prec, exp_index)
         result = AST.FUNCALL(id=op, kind=kind, args=[result, rh_expr])
 
     return result, exp_index
 
 ''' Given the operator table, properly transform an expression into a tree instead of a list of operators and terms '''
-def fixExpression(ast, op_table):
+def fixExpression(ast, symbol_table, ext_table):
     decorated_ast = treemap(ast,
                         lambda node:
                             selectiveApply(AST.DEFERREDEXPR, node,
-                                lambda y:  AST.PARSEDEXPR(val=parseExpression(y.contents, op_table)[0])
+                                lambda y:  parseExpression(y.contents, symbol_table, ext_table)[0]
                             )
                         )
 

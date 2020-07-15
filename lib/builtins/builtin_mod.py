@@ -55,6 +55,7 @@ def generateBuiltinFuncs():
                 'fixity': None,
                 'kind': FunKind.FUNC
                 })
+
     return builtin_functions
 
 '''
@@ -80,8 +81,8 @@ def generateBuiltinOps():
                                 if AST.equalVals(ft, st) or (type(st) == AST.LISTTYPE and AST.equalVals(ft, st.type.val) and AST.equalVals(ft, ot.type.val)):
                                     op_table[(FunUniq.INFIX, op_id)].append({
                                         'type': AST.FUNTYPE(
-                                                from_types=[ft, st],
-                                                to_type=ot
+                                                from_types=[AST.TYPE(val=ft), AST.TYPE(val=st)],
+                                                to_type=AST.TYPE(val=ot)
                                             ),
                                         'module': BUILTINS_NAME,
                                         'orig_id': op_id,
@@ -91,8 +92,8 @@ def generateBuiltinOps():
                             else:
                                 op_table[(FunUniq.INFIX, op_id)].append({
                                         'type': AST.FUNTYPE(
-                                                from_types=[ft, st],
-                                                to_type=ot
+                                                from_types=[AST.TYPE(val=ft), AST.TYPE(val=st)],
+                                                to_type=AST.TYPE(val=ot)
                                             ),
                                         'module': BUILTINS_NAME,
                                         'orig_id': op_id,
@@ -110,8 +111,8 @@ def generateBuiltinOps():
             for out_t in out_type_node:
                 op_table[(FunUniq.PREFIX, op_id)].append({
                     'type': AST.FUNTYPE(
-                            from_types=[in_t],
-                            to_type=out_t
+                            from_types=[AST.TYPE(val=in_t)],
+                            to_type=AST.TYPE(val=out_t)
                         ),
                     'module': BUILTINS_NAME,
                     'orig_id': op_id[0],

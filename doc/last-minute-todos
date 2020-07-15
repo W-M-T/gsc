@@ -1,0 +1,18 @@
+Semantische analyse
+v Custom operators in expression parsing
+- Checken van gelijke precedence en associativity bij geimportde symbolen t.o.v. builtins en andere definities
+- Type normalisation voor imports en header files
+v Typechecking aparte errors voor operatoren.
+- Sommige errors hebben geen pointToPosition (type identifier blabla is not defined).
+
+Codegen
+V Tuples
+- Lijsten
+- Accessors
+V Dubbel check even de expressies.
+V Check of alles goed werkt als een for-component mist.
+- String printer
+- Lijst van dependencies
+
+Alles aan elkaar maken
+- Entrypoint uit de object file

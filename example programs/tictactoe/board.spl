@@ -1,0 +1,25 @@
+type Cell = Char
+type Board = [[Cell]]
+
+setVal(board, x, y) :: Board Int Int -> Board {
+    while(x != 0) {
+        while(y != 0) {
+
+        }
+    }
+}
+
+getVal(board, x, y) :: Board Int Int -> Cell {
+
+}
+
+display(board) :: Board -> Void {
+    [Cell] row = '.' : '.' : '.' : []
+    Cell cell = '.';
+
+    row = board.hd
+    while(!isEmpty(row)) {
+
+        row = board.hd;
+    }
+}

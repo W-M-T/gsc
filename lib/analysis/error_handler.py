@@ -49,8 +49,8 @@ class ERR(IntEnum):
     UndefinedFun = 30
     IllegalTupleAccessorUsage = 31
     UndefinedPrefixOp = 32
-    NoPrefixDefWithType = 33
-    NoPrefixWithInputType = 34
+    NoOpDefWithType = 33
+    NoOpDefWithInputType = 34
     AmbiguousPrefixOp = 35
     InconsistentOpDecl = 36
     DuplicateOpDef = 37
@@ -119,8 +119,8 @@ ERRMSG = {
     ERR.UndefinedFun: 'Function {} is not defined\n{}',
     ERR.IllegalTupleAccessorUsage: 'Trying to use tuple accessor on variable that is not a tuple\n{}',
     ERR.UndefinedPrefixOp: 'Prefix operator "{}" is not defined\n{}',
-    ERR.NoPrefixDefWithType: 'No prefix operator definition for "{}" with type {}\n{}',
-    ERR.NoPrefixWithInputType: 'No definition of prefix operator "{}" which has the given argument type\n{}',
+    ERR.NoOpDefWithType: 'No operator definition for "{}" with type {}\n{}',
+    ERR.NoOpDefWithInputType: 'No definition of operator "{}" which has the given argument type\n{}',
     ERR.AmbiguousPrefixOp: 'Ambigious usage of prefix operator "{}", multiple matches on given input type\n{}',
     ERR.InconsistentOpDecl: 'Inconsistent declaration of operator {}, fixity and precedence have to be equal to initial definition\n{}',
     ERR.DuplicateOpDef: 'Duplicate operator definition for operator {}, operator with the exact same type was already defined\n{}',
