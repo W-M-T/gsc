@@ -7,8 +7,8 @@ from collections import OrderedDict
 # TODO handle external symbol table the same as the regular one maybe?
 '''
 typesyns:
-    gewone: type id naar definitie
-    externe: type id naar dict originele id, module, definitie = ('def_type', 'module', 'orig_id')
+    gewone: type id naar definitienode
+    externe: type id naar dict originele id, module, gedefinieerd type = ('def_type', 'module', 'orig_id')
 
 globals:
     gewone: identifier naar definitienode ("type", "id", "expr")
@@ -63,7 +63,7 @@ class SymbolTable():
         return "\n"+deflist
 
     def repr_short(self):
-        temp_types = list(map(lambda x: "\n{} = {}".format(x[0], print_node(x[1])), self.type_syns.items()))
+        temp_types = list(map(lambda x: "\n{} = {}".format(x[0], print_node(x[1]["def_type"])), self.type_syns.items()))
         return "=== Symbol table:\n== Global vars: {}\n== Functions: {}\n== Type synonyms: {}".format(
             list(self.global_vars.keys()),
             self.repr_funcs(),

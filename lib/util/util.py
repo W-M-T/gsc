@@ -39,9 +39,11 @@ def treemap(ast, f, replace=True):
             for x in ast:
                 res.append(unpack(x, f))
             ast = res
-        else:
+        elif type(ast) in AST.nodes:
             for attr in ast.items():
                 ast[attr[0]] = unpack(attr[1], f)
+        else:
+            raise Exception("Tried to treemap on ",type(ast),ast)
 
     return ast
 

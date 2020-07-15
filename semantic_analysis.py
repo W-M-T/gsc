@@ -34,9 +34,29 @@ Circularity is no concern because that is caught in the name resolution step for
 We prevent pointer problems by rewriting type syns directly when they are added to to the symbol table
 This also means that we should never need to recurse after rewriting a type syn once, because the rewrite result should already be normalized.
 '''
-def normalizeType(inputtype, symbol_table, full_normalize=True): # TODO add proper error handling
+def normalizeType(type_id, symbol_table, ext_table, full_normalize=True): # TODO add proper error handling
+    #print(type_id)
+
+    def_type = symbol_table.type_syns[type_id]['def_type']
+    #print("DEF_TYPE",def_type)
+    def replace_other(x):
+        #print(x)
+        if type(x.val) is Token:
+            found_typesyn = x.val.val
+            #print(found_typesyn,type_id)
+            if type_id == found_typesyn:
+                ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, symbol_table.type_syns[type_id]['decl']])
+            #print("Token", x.val.val)
+        return x
+    treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+    #print(def_type)
+
+    #treemap
+    #selectiveApply
+
+    '''
     if type(inputtype) is AST.TYPE:
-        inputtype.val = normalizeType(inputtype.val, symbol_table, full_normalize=full_normalize)
+        inputtype.val = normalizeType(inputtype.val, symbol_table, ext_table, full_normalize=full_normalize)
         if type(inputtype.val) is AST.TYPE: # Unwrap so we don't have double occurrences of TYPE nodes
             return inputtype.val
         else:
@@ -44,15 +64,15 @@ def normalizeType(inputtype, symbol_table, full_normalize=True): # TODO add prop
     if type(inputtype) is AST.BASICTYPE:
         return inputtype
     elif type(inputtype) is AST.TUPLETYPE:
-        inputtype.a = normalizeType(inputtype.a, symbol_table, full_normalize=full_normalize)
-        inputtype.b = normalizeType(inputtype.b, symbol_table, full_normalize=full_normalize)
+        inputtype.a = normalizeType(inputtype.a, symbol_table, ext_table, full_normalize=full_normalize)
+        inputtype.b = normalizeType(inputtype.b, symbol_table, ext_table, full_normalize=full_normalize)
         return inputtype
     elif type(inputtype) is AST.LISTTYPE:
         inputtype.type = normalizeType(inputtype.type, symbol_table)
         return inputtype
     elif type(inputtype) is AST.FUNTYPE:
-        inputtype.from_types = list(map(lambda x: normalizeType(x, symbol_table, full_normalize=full_normalize), inputtype.from_types))
-        inputtype.to_type = normalizeType(inputtype.to_type, symbol_table, full_normalize=full_normalize)
+        inputtype.from_types = list(map(lambda x: normalizeType(x, symbol_table, ext_table, full_normalize=full_normalize), inputtype.from_types))
+        inputtype.to_type = normalizeType(inputtype.to_type, symbol_table, ext_table, full_normalize=full_normalize)
         return inputtype
     elif type(inputtype) is Token: # TODO If we decide to implement polymorphism, if it is not found here it, is a forall type
         if inputtype.val in symbol_table.type_syns:
@@ -65,14 +85,21 @@ def normalizeType(inputtype, symbol_table, full_normalize=True): # TODO add prop
     else:
         print("Case not captured:",inputtype)
         exit()
+    '''
 
-def normalizeAllTypes(symbol_table, full_normalize=True): # TODO clean this up and add proper error handling
+def normalizeAllTypes(symbol_table, ext_table, full_normalize=True): # TODO clean this up and add proper error handling
     # Normalize type syn definitions:
-    # Not necessary because this is done during the creation of the symbol table, in order to require sequentiality
+    
+    for type_id, def_type in symbol_table.type_syns.items():
+        #print(type_id,def_type)
+        normalizeType(type_id, symbol_table, ext_table, full_normalize=full_normalize)
+    ERROR_HANDLER.checkpoint()
+        
 
+    '''
     # Normalize global var types
     for glob_var in symbol_table.global_vars.items():
-        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table, full_normalize=full_normalize)
+        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table, ext_table, full_normalize=full_normalize)
 
     # Normalize function types and find duplicates
     flag = False # Handle this in the error handler
@@ -80,7 +107,7 @@ def normalizeAllTypes(symbol_table, full_normalize=True): # TODO clean this up a
         found_typesigs = []
         #print(len(func_list))
         for func in func_list:
-            func['type'] = normalizeType(func['type'], symbol_table, full_normalize=full_normalize)
+            func['type'] = normalizeType(func['type'], symbol_table, ext_table, full_normalize=full_normalize)
             found_typesigs.append((func['type'], func))
 
         # Test if multiple functions have the same (normalized) type
@@ -99,18 +126,20 @@ def normalizeAllTypes(symbol_table, full_normalize=True): # TODO clean this up a
 
     if flag:
         exit()
-
+    '''
+    '''
     # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
     for key, func_list in symbol_table.functions.items():
         #print(len(func_list))
         for func in func_list:
             #print("FUNCTION LOCAL VARS OF", func['def'].id.val)
             for local_var_key, local_var in func['local_vars'].items():
-                local_var.type = normalizeType(local_var.type, symbol_table)
+                local_var.type = normalizeType(local_var.type, symbol_table, ext_table, full_normalize=full_normalize)
             #print("FUNCTION ARG VARS OF", func['def'].id.val)
             # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
             #print(func['arg_vars'])
     ERROR_HANDLER.checkpoint()
+    '''
 
 '''
 Give an error for types containing Void in their input, or Void as a non-base type in the output
@@ -190,7 +219,7 @@ def forbid_illegal_types(symbol_table):
         for match in symbol_table.functions[(FunUniq.FUNC, ENTRYPOINT_FUNCNAME)]:
             temp_from_types = match['type'].from_types
             temp_to_type = match['type'].to_type
-            if not (temp_from_types == [] and temp_to_type is not None and ((type(temp_to_type.val) == AST.BASICTYPE and temp_to_type.val.type_id.val == "Int") or (type(temp_to_type.val == Token and temp_to_type.val.val == "Void")))):
+            if not (temp_from_types == [] and temp_to_type is not None and (type(temp_to_type.val) == AST.BASICTYPE and temp_to_type.val.type_id.val == "Int")):
                 ERROR_HANDLER.addError(ERR.WrongMainType, [match['type']])
 
     ERROR_HANDLER.checkpoint()
@@ -227,9 +256,6 @@ def buildFuncEntry(val):
 
     return temp_entry
 
-
-#TODO: We don't check for redefinition attempts of builtin functions or ops -> Do this in type normaliser
-#TODO: Check if a main with signature -> Int was defined.
 
 def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
     symbol_table = SymbolTable()
@@ -318,13 +344,16 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
                             # External type identifier is shadowed
                             ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
 
-                normalized_type = normalizeType(def_type, symbol_table) # TODO dit gaat nog niet goed
-                symbol_table.type_syns[type_id] = normalized_type
+                #normalized_type = normalizeType(def_type, symbol_table, ext_symbol_table) # TODO dit gaat nog niet goed
+                symbol_table.type_syns[type_id] = {
+                    "decl":val,
+                    "def_type":def_type
+                }
             else:
                 # Type identifier already used
                 ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, symbol_table.type_syns[val.type_id.val]])
 
-    ERROR_HANDLER.checkpoint()
+    #ERROR_HANDLER.checkpoint()
 
     #print("--------------------------")
     #print(symbol_table.repr_short())
@@ -714,7 +743,7 @@ g (x) {
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             # Get all external symbols
-            external_symbol_table = getExternalSymbols(x, headerfiles)
+            external_symbol_table, all_import_modnames = getExternalSymbols(x, headerfiles)
             external_symbol_table = enrichExternalTable(external_symbol_table)
             ERROR_HANDLER.checkpoint()
 
@@ -726,8 +755,11 @@ g (x) {
             exit()
         else:
             symbol_table = buildSymbolTable(x, compiler_target['header'])
-            forbid_illegal_types(symbol_table)
-            analyseFunc(symbol_table)
+            print(symbol_table)
+            normalizeAllTypes(symbol_table, enrichExternalTable(ExternalTable()), full_normalize=False)
+            exit()
+            #forbid_illegal_types(symbol_table)
+            #analyseFunc(symbol_table)
             #normalizeAllTypes(symbol_table)
 
             header_json = export_headers(symbol_table)

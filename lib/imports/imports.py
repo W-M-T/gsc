@@ -333,4 +333,4 @@ def getExternalSymbols(ast, headerfiles):
 
         #ERROR_HANDLER.checkpoint()
 
-    return ext_symbol_table
+    return ext_symbol_table, unique_names
