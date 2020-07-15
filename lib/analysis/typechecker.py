@@ -86,10 +86,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
 
         return True, expr
     elif type(expr) is AST.FUNCALL:
-        if func is None:
-            ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
-            return True, expr
-
         identifier = (FunKindToUniq(expr.kind), expr.id.val)
         if identifier not in symbol_table.functions and identifier not in ext_table.functions:
             ERROR_HANDLER.addError(ERR.UndefinedFun, [expr.id.val, expr.id])
@@ -176,6 +172,10 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 # TODO: Different error for ops
                 ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
             return False, expr
+        else:
+            if func is None and matches[0]['module'] != 'builtins' or expr.kind == FunKind.FUNC:
+                ERROR_HANDLER.addError(ERR.GlobalDefMustBeConstant, [expr.id])
+                return True, expr
 
         return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=matches[0]['args'], oid=matches[0]['id'],
                                            module=matches[0]['module'])
