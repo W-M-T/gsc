@@ -1,14 +1,13 @@
 // These functions do not always return values.
 // Each of them should be rejected by the type checker.
 
-void_prod () :: -> Void {
-    return;
+infixl 3 = (a, b) :: Char Char -> Char {
+    return b;
 }
 
-
 main ( ) :: -> Int {
-    Int x = void_prod();
+    Bool x = 'a' = '\n' = '\\';
     print(x);
 
-    return x;
+    return 0;
 }

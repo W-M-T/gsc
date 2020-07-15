@@ -18,8 +18,8 @@ BUILTIN_FUNCTIONS = OrderedDict([
         ]),
     ("isEmpty",
         [
-            ("[Int] -> Bool", ["nop"]),
-            ("[Bool] -> Bool", ["nop"]),
-            ("[Char] -> Bool", ["nop"])
+            ("[Int] -> Bool", ["LDC 00", "EQ"]),
+            ("[Bool] -> Bool", ["LDC 00", "EQ"]),
+            ("[Char] -> Bool", ["LDC 00", "EQ"])
         ])
 ])

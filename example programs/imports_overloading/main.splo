@@ -5,20 +5,6 @@
 BRA main
 // GLOBAL SECTION:
 // FUNCTION SECTION:
-main_func_main_0: LINK 00
-BSR main_func_bar_0
-LDR RR
-BSR main_func_bar_0
-LDR RR
-BSR main_func_foo_0
-AJS -2
-LDR RR
-main_func_main_0_exit: UNLINK
-RET
-main_func_bar_0: LINK 00
-BRA main_func_bar_0_exit
-main_func_bar_0_exit: UNLINK
-RET
 head: LINK 00
 LDL -2
 LDC 00
@@ -29,10 +15,6 @@ LDH -1
 STR RR
 unlink
 ret
-main_func_foo_0: LINK 00
-BRA main_func_foo_0_exit
-main_func_foo_0_exit: UNLINK
-RET
 tail: LINK 00
 LDL -2
 LDC 00
@@ -43,6 +25,22 @@ LDH 00
 STR RR
 unlink
 ret
+main_func_main_0: LINK 00
+LDC 00
+LDL 1
+LDC 00
+EQ
+BRT main_func_main_0_1
+BRA main_func_main_0_2
+main_func_main_0_1: LDC 10
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_2: LDC 00
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_3: nop
+main_func_main_0_exit: UNLINK
+RET
 // ENTRYPOINT:
 main: BSR main_func_main_0
 LDR RR

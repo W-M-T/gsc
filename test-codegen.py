@@ -79,6 +79,9 @@ def main():
     # normalizeAllTypes(symbol_table, external_table)
     # ERROR_HANDLER.checkpoint()
 
+    forbid_illegal_types(symbol_table)
+    ERROR_HANDLER.checkpoint()
+
     # Resolve Expr names
     resolveNames(symbol_table)
     ERROR_HANDLER.checkpoint()
