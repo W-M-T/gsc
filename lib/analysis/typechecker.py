@@ -81,9 +81,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 return True, expr
 
             if not AST.equalVals(typ, exp_type):
-                print(typ)
-                print(exp_type)
-                print("NEQ")
                 if r == 0 and not noErrors:
                     ERROR_HANDLER.addError(ERR.UnexpectedType, [subprint_type(typ), subprint_type(exp_type), expr])
                 return False, expr

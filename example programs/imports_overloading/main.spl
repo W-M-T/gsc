@@ -1,0 +1,15 @@
+from importA import sum
+from importB import sum
+
+main() :: -> Int {
+    Char a = 'a';
+    Char b = 'b';
+    Int c = 1;
+    Int d = 2;
+
+    print(sum(a, b));
+
+    print(sum(c, d));
+
+    return 0;
+}

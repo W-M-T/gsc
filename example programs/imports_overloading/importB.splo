@@ -1,0 +1,17 @@
+// DEPENDENCIES:
+// INIT SECTION
+
+// ENTRYPOINT
+BRA main
+// GLOBAL SECTION
+// FUNCTION SECTION
+importB_func_sum_0: LINK 00
+LDC 99
+STR RR
+BRA importB_func_sum_0_exit
+importB_func_sum_0_exit: UNLINK
+RET
+// MAIN
+main: BSR importB_func_main_0
+LDR RR
+TRAP 00

@@ -1,0 +1,19 @@
+{
+  "functions": [
+    [
+      [
+        "FUNC",
+        "sum"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Char\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Char\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Char\"))"
+    ]
+  ],
+  "globals": [],
+  "typesyns": []
+}

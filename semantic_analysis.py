@@ -396,6 +396,7 @@ def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_lo
     return assignment
 
 # TODO: Really check if all expression types are handled correctly here.
+# TODO: Fix bug where you get multiple errors for variable undefined when using nested functions.
 '''
 Resolve an expression with the following globals in scope
 Functions are always in scope
