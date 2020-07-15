@@ -1,0 +1,20 @@
+{
+  "depends": {
+    "Amod": {
+      "importall": true,
+      "type_imports": []
+    },
+    "Cmod": {
+      "importall": true,
+      "type_imports": []
+    }
+  },
+  "functions": [],
+  "globals": [],
+  "typesyns": [
+    [
+      "B",
+      "TYPE(val=\"C\")"
+    ]
+  ]
+}

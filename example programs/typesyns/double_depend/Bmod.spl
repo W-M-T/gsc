@@ -1,0 +1,5 @@
+importall Amod
+importall Cmod
+
+type B = C
+//type B = Int

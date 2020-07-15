@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import export_headers, import_headers, getImportFiles, getExternalSymbols, HEADER_EXT, SOURCE_EXT, IMPORT_DIR_ENV_VAR_NAME
+from lib.imports.imports import export_headers, import_headers, getImportFiles, getHeaders, getExternalSymbols, HEADER_EXT, SOURCE_EXT, IMPORT_DIR_ENV_VAR_NAME
 from lib.analysis.error_handler import *
 from lib.datastructure.AST import AST, FunKind, FunUniq, FunKindToUniq
 from lib.datastructure.token import Token, TOKEN
@@ -29,12 +29,6 @@ Replace all type synonyms in type with their definition, until the base case.
 '''
 def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normalize=True):
     # Sadly we cannot just merge the typesyns in symbol_table and ext_table, because we need to overwrite them in each table and the pointers do not work out to accomplish that
-
-    if type_id in symbol_table.type_syns:
-        def_type = symbol_table.type_syns[type_id]['def_type']
-    else:
-        def_type = ext_table.type_syns[type_id]['def_type']
-    #print("DEF_TYPE",def_type)
     def replace_other(x):
         #print(x)
         if type(x.val) is Token:
@@ -44,7 +38,7 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
                 if type_id in symbol_table.type_syns:
                     ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, symbol_table.type_syns[type_id]['decl']])
                 else:
-                    ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, ""])
+                    ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, print_node(ext_table.type_syns[type_id]['def_type'])])
             else:
                 print(ext_table)
                 if found_typesyn in symbol_table.type_syns:
@@ -52,53 +46,28 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
                     #print("with def",symbol_table.type_syns[found_typesyn]['def_type'])
                     x.val = symbol_table.type_syns[found_typesyn]['def_type']
                 elif found_typesyn in ext_table.type_syns: # other type was in external table
-                    ERROR_HANDLER.addError(ERR.CyclicTypeSynExternal, [type_id])
+                    ERROR_HANDLER.addError(ERR.CyclicTypeSynExternal, [type_id, print_node(ext_table.type_syns[found_typesyn]['def_type'])])
                 elif full_normalize:
                     if x not in err_produced:
                         err_produced.append(x)
                         ERROR_HANDLER.addError(ERR.UndefinedTypeId, [found_typesyn, x])
         return x
 
-    symbol_table.type_syns[type_id]['def_type'] = treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
-    #print(def_type)
-
-    #treemap
-    #selectiveApply
-
-    '''
-    if type(inputtype) is AST.TYPE:
-        inputtype.val = normalizeType(inputtype.val, symbol_table, ext_table, full_normalize=full_normalize)
-        if type(inputtype.val) is AST.TYPE: # Unwrap so we don't have double occurrences of TYPE nodes
-            return inputtype.val
-        else:
-            return inputtype
-    if type(inputtype) is AST.BASICTYPE:
-        return inputtype
-    elif type(inputtype) is AST.TUPLETYPE:
-        inputtype.a = normalizeType(inputtype.a, symbol_table, ext_table, full_normalize=full_normalize)
-        inputtype.b = normalizeType(inputtype.b, symbol_table, ext_table, full_normalize=full_normalize)
-        return inputtype
-    elif type(inputtype) is AST.LISTTYPE:
-        inputtype.type = normalizeType(inputtype.type, symbol_table)
-        return inputtype
-    elif type(inputtype) is AST.FUNTYPE:
-        inputtype.from_types = list(map(lambda x: normalizeType(x, symbol_table, ext_table, full_normalize=full_normalize), inputtype.from_types))
-        inputtype.to_type = normalizeType(inputtype.to_type, symbol_table, ext_table, full_normalize=full_normalize)
-        return inputtype
-    elif type(inputtype) is Token: # TODO If we decide to implement polymorphism, if it is not found here it, is a forall type
-        if inputtype.val in symbol_table.type_syns:
-            normalized_type = symbol_table.type_syns[inputtype.val]
-            return normalized_type
-        elif inputtype.val == VOID_TYPE:
-            return inputtype
-        else:
-            ERROR_HANDLER.addError(ERR.UndefinedTypeId, [inputtype.val]) # TODO hugely improve this
+    if type_id in symbol_table.type_syns:
+        def_type = symbol_table.type_syns[type_id]['def_type']
+        symbol_table.type_syns[type_id]['def_type'] = treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
     else:
-        print("Case not captured:",inputtype)
-        exit()
-    '''
+        def_type = ext_table.type_syns[type_id]['def_type']
+        ext_table.type_syns[type_id]['def_type'] = treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+    #print("DEF_TYPE",def_type)
+
+
+
+
 
 def getTypeDependencies(type_id, symbol_table, ext_table):
+    print("getTypeDependencies not implemented!!!!!!")
+    exit()
     if type_id in symbol_table.type_syns:
         def_type = symbol_table.type_syns[type_id]['def_type']
     else:
@@ -124,18 +93,17 @@ def normalizeAllTypes(symbol_table, ext_table, full_normalize=True):
     # Get type syn dependencies and do topological sort:
     type_graph = {}
     
-    for type_id, def_type in symbol_table.type_syns.items():
-        type_graph[type_id] = getTypeDependencies(type_id, symbol_table, ext_table)
     for type_id, def_type in ext_table.type_syns.items():
         type_graph[type_id] = getTypeDependencies(type_id, symbol_table, ext_table)
     #print(type_graph)
     topo = iterative_topological_sort(type_graph, list(symbol_table.type_syns)[0])
     print(topo)
+    ERROR_HANDLER.checkpoint()
+    exit()
 
     err_produced = []
     for type_id in reversed(topo):
-        pass
-        #normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
+        normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
     #TODO for exponential types this is still slow because after replacing, the entire subtree is traversed. This should not be necessary
 
 
@@ -143,50 +111,6 @@ def normalizeAllTypes(symbol_table, ext_table, full_normalize=True):
     ERROR_HANDLER.checkpoint()
         
 
-    '''
-    # Normalize global var types
-    for glob_var in symbol_table.global_vars.items():
-        glob_var[1].type = normalizeType(glob_var[1].type, symbol_table, ext_table, full_normalize=full_normalize)
-
-    # Normalize function types and find duplicates
-    flag = False # Handle this in the error handler
-    for key, func_list in symbol_table.functions.items():
-        found_typesigs = []
-        #print(len(func_list))
-        for func in func_list:
-            func['type'] = normalizeType(func['type'], symbol_table, ext_table, full_normalize=full_normalize)
-            found_typesigs.append((func['type'], func))
-
-        # Test if multiple functions have the same (normalized) type
-        
-        while len(found_typesigs) > 0:
-            cur = found_typesigs.pop()
-
-            find_match = [x for x in found_typesigs if AST.equalVals(x[0],cur[0])]
-            if find_match: # TODO error handler collect + have it show it in order
-                flag = True
-                print('[ERROR] Overloaded function "{}" has multiple definitions with the same type:'.format(key[1]))
-                print(cur[1]["def"].id)
-                for el in find_match:
-                    print(el[1]["def"].id)
-                    found_typesigs.remove(el)
-
-    if flag:
-        exit()
-    '''
-    '''
-    # Normalize local vars and args (should prolly do this in the first iteration on this, i.e. higher in this function)
-    for key, func_list in symbol_table.functions.items():
-        #print(len(func_list))
-        for func in func_list:
-            #print("FUNCTION LOCAL VARS OF", func['def'].id.val)
-            for local_var_key, local_var in func['local_vars'].items():
-                local_var.type = normalizeType(local_var.type, symbol_table, ext_table, full_normalize=full_normalize)
-            #print("FUNCTION ARG VARS OF", func['def'].id.val)
-            # As a result of already normalising the type of the function signature, the types of arguments should already be normalised. (because of the magic of pointers!)
-            #print(func['arg_vars'])
-    ERROR_HANDLER.checkpoint()
-    '''
 
 '''
 Give an error for types containing Void in their input, or Void as a non-base type in the output
@@ -304,7 +228,7 @@ def buildFuncEntry(val):
     return temp_entry
 
 
-def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
+def buildSymbolTable(ast, modname, just_for_headerfile=True, ext_symbol_table=None):
     symbol_table = SymbolTable()
 
     if ext_symbol_table is None: # If not running with imports, at least use builtins
@@ -374,40 +298,29 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
             type_id = val.type_id.val
             def_type = val.def_type
 
-            if type_id in ext_symbol_table.type_syns:
-                if ext_symbol_table.type_syns[type_id]['module'] == BUILTINS_NAME:
+
+
+            if (type_id, BUILTINS_NAME) in ext_symbol_table.type_syns:
                     # Type identifier is reserved (builtin typesyn)
                     ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
-
             elif type_id in BUILTIN_TYPES:
                 # Type identifier is reserved (basic type)
                 ERROR_HANDLER.addError(ERR.ReservedTypeId, [val.type_id])
-
-
-            if not type_id in symbol_table.type_syns:
-                if not just_for_headerfile:
-                    # Test if it exists in another module
-                    if type_id in ext_symbol_table.type_syns:
-                        if ext_symbol_table.type_syns[type_id]['module'] != BUILTINS_NAME:
-                            # External type identifier is shadowed
-                            # TODO this should be possible, but it is easier for now to forbid it.
-                            ERROR_HANDLER.addError(ERR.ImportTypeClash, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
-                            #ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [type_id, ext_symbol_table.type_syns[type_id]['module'], val.type_id])
-
-                #normalized_type = normalizeType(def_type, symbol_table, ext_symbol_table) # TODO dit gaat nog niet goed
-                symbol_table.type_syns[type_id] = {
-                    "decl":val,
-                    "def_type":def_type
-                }
-            else:
+            elif (type_id, modname) in ext_symbol_table.type_syns:
                 # Type identifier already used
-                ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, symbol_table.type_syns[val.type_id.val]])
+                ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, ext_symbol_table.type_syns[(val.type_id.val, modname)]['decl']])
+            else:
+                ext_symbol_table.type_syns[(type_id, modname)] = OrderedDict([
+                    ("def_type", def_type),
+                    ("orig_id", type_id),
+                    ("decl", val),
+                ])
 
-    #ERROR_HANDLER.checkpoint()
+    ERROR_HANDLER.checkpoint()
 
     #print("--------------------------")
     #print(symbol_table.repr_short())
-    return symbol_table
+    return symbol_table, ext_symbol_table
 
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
@@ -704,6 +617,9 @@ if __name__ == "__main__":
         print("Input file needs to be {}".format(SOURCE_EXT))
         exit()
 
+    main_mod_path = os.path.splitext(args.infile)[0]
+    main_mod_name = os.path.basename(main_mod_path)
+
     compiler_target = {
         'header' : args.H,
         'object' : not args.H
@@ -787,12 +703,15 @@ g (x) {
         #print(ERROR_HANDLER)
 
         if compiler_target['object']: # We need to actually read the headerfiles of the imports:
-            headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
+            headerfiles, typesyn_headerfiles = getHeaders(x,
+                main_mod_name,
+                HEADER_EXT,
+                os.path.dirname(args.infile),
                 file_mapping_arg=import_mapping,
                 lib_dir_path=args.lp,
                 lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
             # Get all external symbols
-            external_symbol_table, all_import_modnames = getExternalSymbols(x, headerfiles)
+            external_symbol_table, all_import_modnames = getExternalSymbols(x, headerfiles, typesyn_headerfiles)
             external_symbol_table = enrichExternalTable(external_symbol_table)
             ERROR_HANDLER.checkpoint()
 

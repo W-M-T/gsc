@@ -1,0 +1,3 @@
+importall Amod
+
+type C = A

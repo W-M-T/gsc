@@ -1,0 +1,25 @@
+{
+  "depends": {
+    "Bmod": {
+      "importall": false,
+      "type_imports": [
+        {
+          "effective_id": "B2",
+          "orig_id": "B"
+        }
+      ]
+    },
+    "Cmod": {
+      "importall": true,
+      "type_imports": []
+    }
+  },
+  "functions": [],
+  "globals": [],
+  "typesyns": [
+    [
+      "A",
+      "TYPE(val=\"B\")"
+    ]
+  ]
+}
