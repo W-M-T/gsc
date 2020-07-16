@@ -10,6 +10,7 @@ BUILTIN_FUNCTIONS = OrderedDict([
             ("Int -> Void", ["TRAP 00"]),
             ("Char -> Void", ["TRAP 1"]),
             ("Bool -> Void", ["TRAP 00"]),
+            ("[Char] -> Void", ["BSR print_string"])
         ]),
     ("read",
         [

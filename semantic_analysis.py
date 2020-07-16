@@ -534,7 +534,6 @@ def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals
 
 ''' Parse expression atoms (literals, identifiers, func call, subexpressions, prefixes) '''
 def parseAtom(exp, symbol_table, ext_table, exp_index):
-
     if type(exp[exp_index]) is AST.RES_VARREF or type(exp[exp_index]) is Token or type(exp[exp_index]) is AST.TUPLE: # Literal / identifier
         res = exp[exp_index]
         return res, exp_index + 1

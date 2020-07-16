@@ -1,5 +1,6 @@
-[Int] a = 2 : 3 : [];
+from main import flip
 
-g(a) :: Int -> Int {
-   return a * 3;
+flop(n, l) :: Int [Int] -> [Int]
+{
+    return 0:flip(n, l);
 }

@@ -1,14 +1,10 @@
-from main import a
-
-Int a = 3;
-
-f(a) :: Int -> Int {
-   return a * 2;
-}
-
 main() :: -> Int
 {
+    Int x = 5;
+    [Char] a = "Hello world!\n";
+    Int y = 7;
+
     print(a);
 
-    return f(5);
+    return x + y;
 }

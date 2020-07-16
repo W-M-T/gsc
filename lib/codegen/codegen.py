@@ -24,7 +24,16 @@ def generate_expr(expr, module_name, mappings, ext_table):
         elif expr.typ is TOKEN.EMPTY_LIST:
             return ['LDC 00']
         elif expr.typ is TOKEN.STRING:
-            raise Exception('Token STRING not yet supported.')
+            print(expr.val)
+            code = []
+            for c in expr.val:
+                code.append('LDC ' + str(ord(c)))
+            code.append('LDC 00')
+            for _ in expr.val:
+                code.append('STMH 2')
+
+            print(code)
+            return code
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:
@@ -64,7 +73,6 @@ def generate_expr(expr, module_name, mappings, ext_table):
             return res
         else:
             res = []
-
 
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 var_offset = mappings['vars'][expr.val.id.val][0]
@@ -302,13 +310,13 @@ def generate_stmts(stmts, label, module_name, mappings, ext_table, index = 0, lo
                 code.append("BRF " + label + "_" + str(start_index) + "_exit")
 
             # Statements
-            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, ext_table, mappings, index, loop_label)
+            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, mappings, ext_table, index, loop_label)
             code.extend(branch_stmt)
 
             # Update
             code.append(label + "_" + str(start_index) + "_update: nop")
             if stmt.val.update is not None:
-                generate_actstmt(stmt.val.update, code, module_name, mappings, label)
+                generate_actstmt(stmt.val.update, code, module_name, mappings, ext_table, label)
 
             # Exit
             code.append('BRA ' + label + '_' + str(start_index))

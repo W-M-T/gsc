@@ -22,8 +22,8 @@ BUILTIN_FUNC_BODIES = {
             'LDL -2',
             'LDH -1',
             'STR RR',
-            'unlink',
-            'ret'
+            'UNLINK',
+            'RET'
         ],
     'tail':
         [
@@ -35,8 +35,37 @@ BUILTIN_FUNC_BODIES = {
             'LDL -2',
             'LDH 00',
             'STR RR',
-            'unlink',
-            'ret',
+            'UNLINK',
+            'RET',
+        ],
+    'print_string':
+        [
+            'LINK 00',
+            'BRA print_string_loop'
+        ],
+    'print_string_loop':
+        [
+            'LDL -2',
+            'LDC 00',
+            'EQ',
+            'NOT',
+            'BRF print_string_exit',
+            'LDL -2',
+            'BSR head',
+            'AJS -1',
+            'LDR RR',
+            'TRAP 1',
+            'LDL -2',
+            'BSR tail',
+            'AJS -1',
+            'LDR RR',
+            'STL -2',
+            'BRA print_string_loop',
+        ],
+    'print_string_exit':
+        [
+            'UNLINK',
+            'RET'
         ]
 }
 
