@@ -65,6 +65,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
         else:
             res = []
 
+
             if expr.val.scope == NONGLOBALSCOPE.LocalVar:
                 var_offset = mappings['vars'][expr.val.id.val][0]
             else:
@@ -122,7 +123,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
             # TODO: Check this for void functions
-            #res.append('LDR RR')
+            res.append('LDR RR')
 
         return res
     elif type(expr) is AST.TUPLE:
@@ -258,7 +259,7 @@ def generate_stmts(stmts, label, module_name, mappings, ext_table, index = 0, lo
 
                 # If or elif
                 if b.expr is not None:
-                    code.extend(generate_expr(b.expr, module_name, ext_table, mappings))
+                    code.extend(generate_expr(b.expr, module_name, mappings, ext_table))
                     code.append("BRT " + label + "_" + str(index))
                 else: # Else
                     code.append("BRA " + label + "_" + str(index))

@@ -1,1 +1,5 @@
-Int globalVar = 7;
+[Int] a = 2 : 3 : [];
+
+g(a) :: Int -> Int {
+   return a * 3;
+}

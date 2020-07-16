@@ -1,13 +1,14 @@
-from importC import globalVar as gVar
+from main import a
+
+Int a = 3;
+
+f(a) :: Int -> Int {
+   return a * 2;
+}
 
 main() :: -> Int
 {
-    print(gVar);
+    print(a);
 
-    gVar = 10;
-
-    print(gVar);
-    print('\n');
-
-    return gVar;
+    return f(5);
 }

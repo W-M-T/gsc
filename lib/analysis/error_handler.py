@@ -51,7 +51,7 @@ class ERR(IntEnum):
     UndefinedPrefixOp = 32
     NoOpDefWithType = 33
     NoOpDefWithInputType = 34
-    AmbiguousPrefixOp = 35
+    AmbiguousOp = 35
     InconsistentOpDecl = 36
     DuplicateOpDef = 37
     UnexpectedEmptyList = 38
@@ -132,7 +132,7 @@ ERRMSG = {
     ERR.UndefinedPrefixOp: 'Prefix operator "{}" is not defined\n{}',
     ERR.NoOpDefWithType: 'No operator definition for "{}" with type {}\n{}',
     ERR.NoOpDefWithInputType: 'No definition of operator "{}" which has the given argument type\n{}',
-    ERR.AmbiguousPrefixOp: 'Ambigious usage of prefix operator "{}", multiple matches on given input type\n{}',
+    ERR.AmbiguousOp: 'Ambigious usage of operator "{}", multiple matches on given input type\n{}',
     ERR.InconsistentOpDecl: 'Inconsistent declaration of operator {}, fixity and precedence have to be equal to initial definition\n{}',
     ERR.DuplicateOpDef: 'Duplicate operator definition for operator {}, operator with the exact same type was already defined\n{}',
     ERR.UnexpectedEmptyList: 'Unexpected empty list encountered\n{}',

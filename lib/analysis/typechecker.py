@@ -160,6 +160,20 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                                 'args': args,
                             })
 
+        if len(matches) > 0:
+            current_module_matches = 0
+            prefered_match = None
+            for m in matches:
+                if m['module'] == None:
+                    current_module_matches += 1
+                    if current_module_matches > 1:
+                        break
+                    else:
+                        prefered_match = m
+
+            if current_module_matches == 1:
+                matches = [prefered_match]
+
         if len(matches) == 0:
             if not noErrors:
                 if expr.kind == FunKind.FUNC:
@@ -169,13 +183,17 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
             return False, expr
         elif len(matches) > 1 and exp_type is None:
             if not noErrors:
-                # TODO: Different error for ops
-                ERROR_HANDLER.addError(ERR.AmbiguousFunCall, [expr.id.val, expr.id])
+                if expr.kind == FunKind.FUNC:
+                    ERROR_HANDLER.addError(ERR.AmbiguousFunCall, [expr.id.val, expr.id])
+                else:
+                    ERROR_HANDLER.addError(ERR.AmbiguousOp, [expr.id.val, expr.id])
             return False, expr
         elif len(matches) > 1:
             if not noErrors:
-                # TODO: Different error for ops
-                ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
+                if expr.kind == FunKind.FUNC:
+                    ERROR_HANDLER.addError(ERR.AmbiguousNestedFunCall, [expr.id.val, expr.id])
+                else:
+                    ERROR_HANDLER.addError(ERR.AmbiguousOp, [expr.id.val, expr.id])
             return False, expr
         else:
             if func is None and (matches[0]['module'] != 'builtins' or expr.kind == FunKind.FUNC):
@@ -206,7 +224,7 @@ def getSubType(typ, fields, expr):
         field = fields.pop()
         if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val]  == Accessor.SND:
             if type(typ) is AST.TUPLETYPE:
-                if  Accessor_lookup[field.val] == Accessor.FST:
+                if Accessor_lookup[field.val] == Accessor.FST:
                     typ = typ.a.val
                 else:
                     typ = typ.b.val

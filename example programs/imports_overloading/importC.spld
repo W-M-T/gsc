@@ -1,10 +1,23 @@
 {
   "depends": {},
-  "functions": [],
+  "functions": [
+    [
+      [
+        "FUNC",
+        "g"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ],
   "globals": [
     [
-      "globalVar",
-      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      "a",
+      "TYPE(val=LISTTYPE(type=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
     ]
   ],
   "typesyns": []
