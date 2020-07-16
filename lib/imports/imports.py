@@ -245,6 +245,7 @@ def getExternalSymbols(ast, modname, headerfiles, type_headers):
     unique_names = OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))
     try:
         del unique_names[modname] # Do not read this module if it is in imports
+        ERROR_HANDLER.addError(ERR.ImportSameName, [modname])
     except KeyError:
         pass
     unique_names = list(unique_names)
