@@ -12,7 +12,7 @@ from lib.parser.lexer import tokenize, REG_FIL
 from lib.parser.parser import parseTokenStream
 
 # TODO do not import all of this but just use analyse instead or something
-from semantic_analysis import analyse, buildSymbolTable, normalizeAllTypes
+from semantic_analysis import analyse, buildSymbolTable, forbid_illegal_types, normalizeAllTypes
 from lib.analysis.typechecker import typecheck_globals, typecheck_functions
 
 
@@ -115,6 +115,8 @@ def main():
         ERROR_HANDLER.checkpoint()
 
         symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
+
+        forbid_illegal_types(symbol_table, ext_table)
 
         #print(symbol_table)
         #print(ext_table)

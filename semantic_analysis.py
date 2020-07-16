@@ -118,9 +118,12 @@ Also produce an error for undefined types (should probably be a separate functio
 It is not necessary for types to be normalised yet, since type syns are checked for void before anything else
 Also forbid multiple instances of main and require it to be of type "-> Int" (maybe should be a function called on the symbol table after normalisation?)
 '''
-def forbid_illegal_types(symbol_table):
+def forbid_illegal_types(symbol_table, ext_table):
     # Require type syns to not contain Void
-    for type_id, type_syn in symbol_table.type_syns.items():
+    for (type_id, modname), type_dict in ext_table.type_syns.items():
+        if type_dict['decl'] is None:
+            continue
+        type_syn = type_dict['decl']
         #print(type_syn)
         #print("  a  ")
         def killVoidType(node):
