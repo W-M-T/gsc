@@ -1,5 +1,5 @@
 //===================================================
-// SSM ASSEMBLY GENERATED ON THU JUL 16 20:39:27 2020
+// SSM ASSEMBLY GENERATED ON THU JUL 16 21:08:39 2020
 // © Ward Theunisse & Ischa Stork 2020
 //===================================================
 // INIT SECTION:
@@ -9,56 +9,38 @@ BRA main
 // GLOBAL SECTION:
 
 // FUNCTION SECTION:
+main_func_main_0: LINK 00
+LDC 3
+LDC 2
+LDC 00
+STMH 2
+LDL 2
+BSR head
+AJS -1
+LDR RR
+LDC 5
+LDL 2
+STA -1
+LDL 2
+BSR head
+AJS -1
+LDR RR
+LDL 3
+ADD
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_exit: UNLINK
+RET
 main_func_f_1: LINK 00
 LDL -2
 STR RR
 BRA main_func_f_1_exit
 main_func_f_1_exit: UNLINK
 RET
-main_func_main_0: LINK 00
-LDC 1
-LDC 1
-NEG
-LDC 1
-STL 1
-main_func_main_0_1: nop
-LDL 1
-LDC 2
-LE
-BRF main_func_main_0_1_exit
-LDL 1
-BSR main_func_f_1
-AJS -1
-main_func_main_0_1_update: nop
-LDL 1
-LDC 1
-ADD
-STL 1
-BRA main_func_main_0_1
-main_func_main_0_1_exit: nop
-LDL 1
-TRAP 00
-LDL 1
-LDL 2
-ADD
-STR RR
-BRA main_func_main_0_exit
-main_func_main_0_exit: UNLINK
-RET
 main_func_f_0: LINK 00
 LDL -2
 BSR print_string
 main_func_f_0_exit: UNLINK
-RET
-tail:LINK 00
-LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH 00
-STR RR
-UNLINK
 RET
 head:LINK 00
 LDL -2
@@ -70,10 +52,6 @@ LDH -1
 STR RR
 UNLINK
 RET
-print_string_exit:UNLINK
-RET
-print_string:LINK 00
-BRA print_string_loop
 print_string_loop:LDL -2
 LDC 00
 EQ
@@ -90,9 +68,54 @@ AJS -1
 LDR RR
 STL -2
 BRA print_string_loop
+tail:LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH 00
+STR RR
+UNLINK
+RET
+print_string:LINK 00
+BRA print_string_loop
+print_string_exit:UNLINK
+RET
 // ENTRYPOINT:
 main: BSR main_func_main_0
 LDR RR
 TRAP 00
 HALT
-program_crash: NOP
+program_crash: LDC 67
+LDC 82
+LDC 65
+LDC 83
+LDC 72
+LDC 58
+LDC 32
+LDC 68
+LDC 69
+LDC 82
+LDC 69
+LDC 70
+LDC 32
+LDC 91
+LDC 93
+LDC 00
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+STMH 2
+BSR print_string

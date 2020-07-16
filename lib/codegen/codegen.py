@@ -174,6 +174,7 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                         code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
                     else:
                         code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
+                    first = fields[0]
                     while len(fields) > 1:
                         field = fields.pop()
                         if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
@@ -182,7 +183,7 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                             else:
                                 code.append('LDH 00')
                         else:
-                            if field == Accessor_lookup[field.val] == Accessor.HD:
+                            if Accessor_lookup[field.val] == Accessor.HD:
                                 code.append('BSR head')
                                 code.append('AJS -1')
                                 code.append('LDR RR')
@@ -190,7 +191,7 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                                 code.append('BSR tail')
                                 code.append('AJS -1')
                                 code.append('LDR RR')
-                    if Accessor_lookup[fields[0].val] == Accessor.FST or Accessor_lookup[fields[0].val] == Accessor.HD:
+                    if Accessor_lookup[first.val] == Accessor.FST or Accessor_lookup[first.val] == Accessor.HD:
                         code.append('STA -1')
                     else:
                         code.append('STA 00')

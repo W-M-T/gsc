@@ -8,14 +8,11 @@ f(x) :: Int -> Int {
 
 main() :: -> Int
 {
-    Int x = 1;
-    Int y = -1;
+    Int x = 3;
+    [Int] a = 2 : [];
+    Int y = a.hd;
 
-    for(x=1;x<=2;x=x+1) {
-        f(x);
-    }
+    a.hd = 5;
 
-    print(x);
-
-    return x + y;
+    return a.hd + y;
 }
