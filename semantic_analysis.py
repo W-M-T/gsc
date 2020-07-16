@@ -65,25 +65,23 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
 
 
 
-def getTypeDependencies(type_id, symbol_table, ext_table):
-    print("getTypeDependencies not implemented!!!!!!")
-    exit()
-    if type_id in symbol_table.type_syns:
-        def_type = symbol_table.type_syns[type_id]['def_type']
-    else:
-        def_type = ext_table.type_syns[type_id]['def_type']
+def getTypeDependencies(type_id, ext_table):
+    def_type = ext_table.type_syns[type_id]['def_type']
 
     children = OrderedDict()
     def get_child(x):
         if type(x.val) is Token:
             found_typesyn = x.val.val
             if type_id == found_typesyn:
+                print(type_id)
+                '''
                 if found_typesyn in symbol_table.type_syns:
                     ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, symbol_table.type_syns[type_id]['decl']])
                 else: # other type was in external table
                     ERROR_HANDLER.addError(ERR.CyclicTypeSynExternal, [type_id])
+                '''
             else:
-                if found_typesyn in symbol_table.type_syns or found_typesyn in ext_table.type_syns:
+                if found_typesyn in ext_table.type_syns:
                     children[found_typesyn] = None
 
     treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, get_child), replace=False)
@@ -94,9 +92,10 @@ def normalizeAllTypes(symbol_table, ext_table, full_normalize=True):
     type_graph = {}
     
     for type_id, def_type in ext_table.type_syns.items():
-        type_graph[type_id] = getTypeDependencies(type_id, symbol_table, ext_table)
-    #print(type_graph)
-    topo = iterative_topological_sort(type_graph, list(symbol_table.type_syns)[0])
+        type_graph[type_id] = getTypeDependencies(type_id, ext_table)
+    print("Type graph",type_graph)
+    exit()
+    topo = iterative_topological_sort(type_graph, list(ext_table.type_syns)[0])
     print(topo)
     ERROR_HANDLER.checkpoint()
     exit()
@@ -668,7 +667,7 @@ def analyseFunc(symbol_table):
 symbol table bevat:
 functiedefinities, typenamen en globale variabelen, zowel hier gedefinieerd als in imports
 '''
-
+'''
 def analyse(ast, filename):
     return ast
     #file_mappings = resolveImports(ast, filename)
@@ -679,7 +678,7 @@ def analyse(ast, filename):
 
     #ast = resolveNames(ast, symbol_table)
     ast = fixExpression(ast, symbol_table)
-
+'''
 
 if __name__ == "__main__":
     from argparse import ArgumentParser

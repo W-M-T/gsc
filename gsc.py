@@ -10,7 +10,7 @@ from lib.parser.lexer import tokenize, REG_FIL
 from lib.parser.parser import parseTokenStream
 
 # TODO do not import all of this but just use analyse instead or something
-from semantic_analysis import analyse, buildSymbolTable, forbid_illegal_types, fixate_operator_properties, check_functype_clashes, normalizeAllTypes
+from semantic_analysis import buildSymbolTable, forbid_illegal_types, fixate_operator_properties, check_functype_clashes, normalizeAllTypes, resolveNames, analyseFunc, fixExpression
 from lib.analysis.typechecker import typecheck_globals, typecheck_functions
 from lib.builtins.builtin_mod import enrichExternalTable
 from lib.codegen.codegen import generate_object_file
@@ -20,8 +20,7 @@ from lib.imports.imports import validate_modname, get_type_dependencies, IMPORT_
 from lib.imports.objectfile_imports import getObjectFiles
 from lib.parser.lexer import tokenize
 from lib.parser.parser import parseTokenStream
-# TODO do not import all of this but just use analyse instead or something
-from semantic_analysis import buildSymbolTable, fixExpression, analyseFunc, resolveNames
+
 
 
 def generateObjectFile(ast, args, main_mod_name, import_mapping):
@@ -39,6 +38,8 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
 
     symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
 
+    normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+    exit()
     fixate_operator_properties(symbol_table, ext_table)
     check_functype_clashes(symbol_table, ext_table)
     #exit()
@@ -47,7 +48,7 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
 
     #print(symbol_table)
     #print(ext_table)
-    #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+    #
 
     # Resolve Expr names
     resolveNames(symbol_table, ext_table)
@@ -63,6 +64,7 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
 
     typecheck_globals(symbol_table, ext_table)
     typecheck_functions(symbol_table, ext_table)
+    ERROR_HANDLER.checkpoint()
 
     gen_code = generate_object_file(symbol_table, ext_table, headerfiles, main_mod_name, dependency_names)
 
