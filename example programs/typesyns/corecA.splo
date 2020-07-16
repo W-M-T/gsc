@@ -1,0 +1,34 @@
+// DEPENDENCIES:
+// DEPEND corecB
+// DEPEND corecC
+// INIT SECTION:
+// BOOTSTRAP:
+BRA main
+// GLOBAL SECTION:
+// FUNCTION SECTION:
+corecA_infix_0_1: LINK 00
+LDL -3
+TRAP 00
+LDC 104
+STR RR
+BRA corecA_infix_0_1_exit
+corecA_infix_0_1_exit: UNLINK
+RET
+corecA_func_main_0: LINK 00
+LDC 107
+TRAP 1
+LDC 1
+STR RR
+BRA corecA_func_main_0_exit
+corecA_func_main_0_exit: UNLINK
+RET
+corecA_infix_0_0: LINK 00
+LDL -3
+TRAP 00
+LDL -3
+STR RR
+BRA corecA_infix_0_0_exit
+corecA_infix_0_0_exit: UNLINK
+RET
+// ENTRYPOINT:
+main: nop

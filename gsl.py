@@ -40,9 +40,12 @@ BUILTIN_FUNC_BODIES = {
         ]
 }
 
+def getEntryPointName(module_name):
+    return "{}_func_main_0".format(module_name)
+
 def makeEntryPoint(module_name):
     temp = "\n".join([
-        'main: BSR {}_func_main_0\n'.format(module_name),
+        'main: BSR {}'.format(getEntryPointName(module_name)),
         'LDR RR',
         'TRAP 00',
         'HALT',
@@ -55,7 +58,7 @@ def buildSection(mod_dicts, section_name):
     res = ""
     if section_name in SECTION_COMMENT_LOOKUP:
         res += OBJECT_COMMENT_PREFIX + SECTION_COMMENT_LOOKUP[section_name] + "\n"
-    res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
+    res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))).lstrip() + "\n"
     if section_name == "functions":
         for func_name, instructions in BUILTIN_FUNC_BODIES.items():
             res += func_name + ":" + "\n".join(instructions) + "\n"
@@ -75,6 +78,12 @@ SECTION_COMMENT_LOOKUP = {
 }
 def linkObjectFiles(mod_dicts, main_mod_name):
     head = ("// SSM ASSEMBLY GENERATED ON {}".format(datetime.now().strftime("%c"))).upper()
+    func_text = buildSection(mod_dicts, 'functions')
+    right_main_present = func_text.find(getEntryPointName(main_mod_name)) != -1
+    if not right_main_present:
+        ERROR_HANDLER.addError(ERR.CompilerNoEntrypointPresent, [main_mod_name])
+        ERROR_HANDLER.checkpoint()
+
     sep_line = "//" + "="*(len(head)-2)+"\n"
     result = ""
     result += sep_line
@@ -85,7 +94,7 @@ def linkObjectFiles(mod_dicts, main_mod_name):
     result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + "\n"
     result += "BRA main\n"
     result += buildSection(mod_dicts, 'global_mem')
-    result += buildSection(mod_dicts, 'functions')
+    result += func_text
     result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + "\n"
     result += makeEntryPoint(main_mod_name)
     return result

@@ -234,13 +234,20 @@ def getHeaders(ast, modname, extension, local_dir, file_mapping_arg={}, lib_dir_
 '''
 Parse a list of headerfiles to json and subset the symbols that are in scope
 '''
-def getExternalSymbols(ast, headerfiles, type_headers):
+def getExternalSymbols(ast, modname, headerfiles, type_headers):
     importlist = ast.imports
+    print("TYPE HEADERS:",type_headers)
     # Add the desired imports to a datastructure
     ext_symbol_table = ExternalTable()
 
     # Collect all imports for the same module and give warnings
-    unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
+    unique_names = OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))
+    try:
+        del unique_names[modname] # Do not read this module if it is in imports
+    except KeyError:
+        pass
+    unique_names = list(unique_names)
+
     for modname in unique_names:
         cur_imports = list(filter(lambda x: x.name.val == modname, importlist))
         importall_present = False

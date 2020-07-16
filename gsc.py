@@ -10,7 +10,7 @@ from lib.parser.lexer import tokenize, REG_FIL
 from lib.parser.parser import parseTokenStream
 
 # TODO do not import all of this but just use analyse instead or something
-from semantic_analysis import analyse, buildSymbolTable, forbid_illegal_types, fixate_operator_properties, check_functype_clashes, normalizeAllTypes
+from semantic_analysis import buildSymbolTable, forbid_illegal_types, fixate_operator_properties, check_functype_clashes, normalizeAllTypes, resolveNames, analyseFunc, fixExpression
 from lib.analysis.typechecker import typecheck_globals, typecheck_functions
 from lib.builtins.builtin_mod import enrichExternalTable
 from lib.codegen.codegen import generate_object_file
@@ -20,8 +20,7 @@ from lib.imports.imports import validate_modname, get_type_dependencies, IMPORT_
 from lib.imports.objectfile_imports import getObjectFiles
 from lib.parser.lexer import tokenize
 from lib.parser.parser import parseTokenStream
-# TODO do not import all of this but just use analyse instead or something
-from semantic_analysis import buildSymbolTable, fixExpression, analyseFunc, resolveNames
+
 
 
 def generateObjectFile(ast, args, main_mod_name, import_mapping):
@@ -33,12 +32,14 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
         lib_dir_path=args.lp,
         lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
 
-    ext_table, dependency_names = getExternalSymbols(ast, headerfiles, typesyn_headerfiles)
+    ext_table, dependency_names = getExternalSymbols(ast, main_mod_name, headerfiles, typesyn_headerfiles)
     ext_table = enrichExternalTable(ext_table)
     ERROR_HANDLER.checkpoint()
 
     symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
 
+    #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+    #exit()
     fixate_operator_properties(symbol_table, ext_table)
     check_functype_clashes(symbol_table, ext_table)
     #exit()
@@ -47,7 +48,7 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
 
     #print(symbol_table)
     #print(ext_table)
-    #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+    #
 
     # Resolve Expr names
     resolveNames(symbol_table, ext_table)
@@ -144,9 +145,6 @@ def main():
             write_out(header_json, outfile_name, "headerfile")
         else:
             print(header_json)
-    else:
-        # Check if 
-        pass
 
     if compiler_target['object']: # Generate an object file
         gen_code = generateObjectFile(ast, args, main_mod_name, import_mapping)
@@ -155,11 +153,7 @@ def main():
             outfile_name = outfile_base + OBJECT_EXT
             write_out(gen_code, outfile_name, "objectfile")
         else:
-            print(header_json)
-        #'''
-        '''
-        symbol_table = analyse(ast, main_mod_name)
-        '''
+            print(gen_code)
 
     if compiler_target['binary']: # Generate a binary
         gen_code = generateObjectFile(ast, args, main_mod_name, import_mapping)

@@ -352,7 +352,7 @@ def build_object_file(dependencies, global_code, global_labels, function_code):
     # Init section
     object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['init'] + '\n'
     object_file += '\n'.join(global_code)
-    object_file += '\n'
+    object_file += '\n' if len(global_code) > 0 else ''
 
     # Entry point
     object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + '\n'

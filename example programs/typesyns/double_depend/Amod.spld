@@ -8,10 +8,6 @@
           "orig_id": "B"
         }
       ]
-    },
-    "Cmod": {
-      "importall": true,
-      "type_imports": []
     }
   },
   "functions": [],

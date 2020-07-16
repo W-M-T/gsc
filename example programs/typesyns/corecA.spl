@@ -2,7 +2,9 @@ from corecB import -- as ---, pi as fa
 importall corecC
 //from corecC import foo
 
+Int pi = - -5;
 
+/*
 type A = B
 type OtherInt = Int
 //type B = Int
@@ -16,3 +18,9 @@ infixl 2 -- (a,b) :: Int Int -> Char {
 	print(a);
 	return 'h';
 }
+*/
+main() :: -> Int {
+	print(pi);
+	return 1;
+}
+//*/
