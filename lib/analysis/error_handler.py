@@ -191,10 +191,11 @@ class WARN(IntEnum):
     DuplicateTypeSameModuleImport = 11
     ShadowFuncIdType = 12
 
+
 WARNMSG = {
     WARN.ShadowGlobalOtherModule: 'Shadowing global variable "{}" from module "{}":\n{}',
     WARN.ShadowFuncOtherModule: 'Function ({}) {} with type "{}" was already defined in another module, which is now shadowed', # Unused as of yet
-    WARN.ShadowTypeOtherModule: 'Shadowing type synonym "{}" from module "{}":\n{}',
+    WARN.ShadowTypeOtherModule: 'Shadowing type identifier "{}" from module(s) {}:\n{}',
     WARN.ShadowFunArg: 'Shadowing function argument\n{}',
     WARN.UnreachableStmtBranches: 'Statement(s) can never be reached because all preceding branches return.\n{}',
     WARN.UnreachableStmtContBreak: 'Statement(s) can never be reached because of a continue or break statement\n{}',

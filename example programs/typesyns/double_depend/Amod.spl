@@ -4,4 +4,4 @@ from Bmod import B as B2
 
 type A = [B2]
 type Another = Int
-//type B = Int
+type B = Int

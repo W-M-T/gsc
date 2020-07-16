@@ -1,4 +1,4 @@
 importall Amod
 
-type C = A
+type C = Int
 type B = Int

@@ -10,7 +10,7 @@
   "typesyns": [
     [
       "C",
-      "TYPE(val=\"A\")"
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ],
     [
       "B",

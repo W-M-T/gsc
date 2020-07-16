@@ -65,24 +65,13 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
 
 
 
-def getTypeDependencies(type_id, ext_table):
-    def_type = ext_table.type_syns[type_id]['def_type']
-
+def getTypeDependencies(def_type):
     children = OrderedDict()
     def get_child(x):
-        if type(x.val) is Token:
-            found_typesyn = x.val.val
-            if type_id == found_typesyn:
-                print(type_id)
-                '''
-                if found_typesyn in symbol_table.type_syns:
-                    ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, symbol_table.type_syns[type_id]['decl']])
-                else: # other type was in external table
-                    ERROR_HANDLER.addError(ERR.CyclicTypeSynExternal, [type_id])
-                '''
-            else:
-                if found_typesyn in ext_table.type_syns:
-                    children[found_typesyn] = None
+        if type(x.val) is AST.MOD_TYPE:
+            found_mod = x.val.module
+            found_orig = x.val.orig_id
+            children[(found_mod, found_orig)] = None
 
     treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, get_child), replace=False)
     return list(children)
@@ -117,7 +106,6 @@ def resolveTypeDependency(type_entry, modname, own_typesyns, imported_typesyns):
     treemap(typedef, lambda x: selectiveApply(AST.TYPE, x, resolveChild), replace=False)
 
 
-# TODO give warning if local typesyn shadows imported one
 def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normalize=True, headerfiles=[], typesyn_headerfiles=[]): # What a despicable function
     # Make an overview of the types in scope per module
     all_regular_modnames = list(OrderedDict.fromkeys(list(map(lambda x: x[1], ext_table.type_syns.keys())) + [main_mod_name] + list(headerfiles.keys())))
@@ -220,25 +208,37 @@ def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normaliz
 
         for type_entry in type_entries.items():
             resolveTypeDependency(type_entry, modname, own_defined_typesyns, my_typesyn_imports)
-            print(type_entry)
+            #print(type_entry)
     ERROR_HANDLER.checkpoint()
 
     # Get type syn dependencies and do topological sort:
     type_graph = {}
-    for type_id, def_type in my_typesyn_imports.items():
-        pass
+    for modname, type_entries in own_defined_typesyns.items():
+        #print(modname)
+        for type_entry in type_entries.items():
+            #print((modname,type_entry[0]))
+            #print(type_entry[1])
+            type_graph[(modname,type_entry[0])] = getTypeDependencies(type_entry[1])
         #type_graph[type_id] = getTypeDependencies(type_id, ext_table)
-    exit()
-    print("Type graph",type_graph)
-    exit()
-    topo = iterative_topological_sort(type_graph, list(ext_table.type_syns)[0])
-    print(topo)
-    ERROR_HANDLER.checkpoint()
-    exit()
 
-    err_produced = []
-    for type_id in reversed(topo):
-        normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
+    # Connected components are possible :(
+    to_see = list(type_graph.keys())
+    components = []
+    #print("Type graph",type_graph)
+    while len(to_see) > 0:
+        start_node = to_see[0] # For every possible starting node
+        topo = iterative_topological_sort(type_graph, start_node)
+        for top in topo:
+            if top in to_see:
+                to_see.remove(top)
+        components.append(topo)
+
+    for topo in components:
+        print("Comp")
+        err_produced = []
+        for type_node in reversed(topo):
+            print(type_node)
+            #normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
     #TODO for exponential types this is still slow because after replacing, the entire subtree is traversed. This should not be necessary
 
 
@@ -520,6 +520,9 @@ def buildSymbolTable(ast, modname, just_for_headerfile=True, ext_symbol_table=No
             elif (type_id, modname) in ext_symbol_table.type_syns:
                 # Type identifier already used
                 ERROR_HANDLER.addError(ERR.DuplicateTypeId, [val.type_id, ext_symbol_table.type_syns[(val.type_id.val, modname)]['decl']])
+            elif type_id in list(map(lambda x: x[0], ext_symbol_table.type_syns.keys())):
+                other = list(map(lambda y: '"{}"'.format(y[1]), filter(lambda x: x[0] == type_id, ext_symbol_table.type_syns.keys())))
+                ERROR_HANDLER.addWarning(WARN.ShadowTypeOtherModule, [val.type_id.val, ", ".join(other), val.type_id])
             else:
                 ext_symbol_table.type_syns[(type_id, modname)] = OrderedDict([
                     ("def_type", def_type),
