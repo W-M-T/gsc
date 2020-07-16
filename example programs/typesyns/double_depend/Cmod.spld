@@ -11,6 +11,10 @@
     [
       "C",
       "TYPE(val=\"A\")"
+    ],
+    [
+      "B",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ]
 }

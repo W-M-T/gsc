@@ -236,7 +236,6 @@ Parse a list of headerfiles to json and subset the symbols that are in scope
 '''
 def getExternalSymbols(ast, modname, headerfiles, type_headers):
     importlist = ast.imports
-    print("TYPE HEADERS:",type_headers)
 
     # Add the desired imports to a datastructure
     ext_symbol_table = ExternalTable()
@@ -473,7 +472,7 @@ def getExternalSymbols(ast, modname, headerfiles, type_headers):
             if importall_present:
                 found = cur_symbols['typesyns'][uq_type_id]
 
-                if uq_type_id not in ext_symbol_table.type_syns: # New name
+                if uq_type_id not in list(map(lambda x: x[0], ext_symbol_table.type_syns.keys())): # New name
                     ext_symbol_table.type_syns[(uq_type_id, modname)] = OrderedDict([
                         ('def_type', found),
                         ('orig_id', uq_type_id),
@@ -490,7 +489,7 @@ def getExternalSymbols(ast, modname, headerfiles, type_headers):
                 if match_orig in cur_symbols['typesyns']:
                     found = cur_symbols['typesyns'][match_orig]
 
-                    if effective_id not in ext_symbol_table.type_syns: # New name
+                    if effective_id not in list(map(lambda x: x[0], ext_symbol_table.type_syns.keys())): # New name
                         ext_symbol_table.type_syns[(effective_id, modname)] = OrderedDict([
                             ('def_type', found),
                             ('orig_id', match_orig),

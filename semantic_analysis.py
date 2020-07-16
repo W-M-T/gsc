@@ -87,17 +87,148 @@ def getTypeDependencies(type_id, ext_table):
     treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, get_child), replace=False)
     return list(children)
 
-def normalizeAllTypes(symbol_table, ext_table, full_normalize=True, typesyn_headerfiles=[]):
+def resolveTypeDependency(type_entry, modname, own_typesyns, imported_typesyns):
+    type_id = type_entry[0]
+    typedef = type_entry[1]
+
+    children = OrderedDict()
+    def resolveChild(x):
+        if type(x.val) is Token:
+            found_typesyn = x.val.val
+            if type_id == found_typesyn:
+                #print("Cyclic",type_id)
+                ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_id, modname, "type {} = {}".format(type_id, print_node(typedef))])
+            else: # Found a name to resolve
+                #print("Found in def", type_id ,"was",found_typesyn)
+                if found_typesyn in own_typesyns[modname]: # Local definition found, choose that
+                    #print("FOUND LOCAL DEF")
+                    x.val = AST.MOD_TYPE(module=modname, orig_id=found_typesyn)
+                else:
+                    flag_found = False
+                    for other_mod, other_typesyns in imported_typesyns[modname].items():
+                        #print(other_typesyns)
+                        matches = list(filter(lambda x: x['effective_id'] == found_typesyn, other_typesyns))
+                        if len(matches) > 0:
+                            flag_found = True
+                            x.val = AST.MOD_TYPE(module=other_mod, orig_id = matches[0]['orig_id'])
+                            break
+                    if not flag_found:
+                        ERROR_HANDLER.addError(ERR.TypeIdNotFound, [found_typesyn, type_id, modname])
+    treemap(typedef, lambda x: selectiveApply(AST.TYPE, x, resolveChild), replace=False)
+
+
+# TODO give warning if local typesyn shadows imported one
+def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normalize=True, headerfiles=[], typesyn_headerfiles=[]): # What a despicable function
     # Make an overview of the types in scope per module
-    in_scope_typesyns = OrderedDict()
+    all_regular_modnames = list(OrderedDict.fromkeys(list(map(lambda x: x[1], ext_table.type_syns.keys())) + [main_mod_name] + list(headerfiles.keys())))
+    all_recursive_modnames = list(OrderedDict.fromkeys(list(typesyn_headerfiles.keys())))
 
+    all_modnames = list(OrderedDict.fromkeys(all_regular_modnames + all_recursive_modnames))
 
+    #print(headerfiles)
+
+    # Get list of all defined type syns per module
+    own_defined_typesyns = OrderedDict()
+    for modname in all_modnames:
+        #print(modname)
+        if modname in typesyn_headerfiles:
+            # Own defined types from typesyn_headerfiles
+            temp_me = list(typesyn_headerfiles[modname]["symbols"]["typesyns"].items())
+            temp_me = OrderedDict(list(map(lambda x: (x[0], x[1]), temp_me))) # tuple of original id and type_def
+            own_defined_typesyns[modname] = temp_me
+        else:
+            temp_me = OrderedDict(list(map(lambda y: (y[1]['orig_id'], y[1]['def_type']), filter(lambda x: x[0][1] == modname, ext_table.type_syns.items()))))
+            own_defined_typesyns[modname] = temp_me
+    
+
+    # Get list of effective type syns per module + what their original id was
+    my_typesyn_imports = OrderedDict()
+    for modname in all_modnames:
+        if modname == BUILTINS_NAME:
+            my_typesyn_imports[modname] = {}
+
+        elif modname == main_mod_name:
+            my_typesyn_imports[modname] = {}
+            #print("internal")
+            all_imports = OrderedDict.fromkeys(map(lambda x: x.name.val, ast.imports))
+            try:
+                del all_imports[modname]
+            except KeyError:
+                pass
+            all_imports = list(all_imports)
+            for importname in all_imports:
+                cur_imports = list(filter(lambda x: x.name.val == importname, ast.imports))
+
+                importall_present = any(map(lambda x: x.importlist is None, cur_imports))
+
+                all_cur_imports = [item for x in cur_imports if x.importlist is not None for item in x.importlist]
+                all_type_imports = list(filter(lambda x: x.name.typ == TOKEN.TYPE_IDENTIFIER, all_cur_imports))
+
+                type_import_list = []
+                for import_statement in all_type_imports:
+                    effective_id = import_statement.name.val if import_statement.alias is None else import_statement.alias.val
+                    orig_id = import_statement.name.val
+                    type_import_list.append({
+                        'effective_id': effective_id,
+                        'orig_id': orig_id
+                    })
+                #print(all_type_imports)
+                my_typesyn_imports[modname][importname] = {
+                    'importall': importall_present,
+                    'type_imports': type_import_list
+                }
+            #print(my_typesyn_imports[modname])
+
+        elif modname in all_regular_modnames:
+            #print("regular",modname)
+            my_typesyn_imports[modname] = headerfiles[modname]["symbols"]["depends"]
+            #print(my_typesyn_imports[modname])
+
+        else:
+            #print("recursive",modname)
+            my_typesyn_imports[modname] = typesyn_headerfiles[modname]["symbols"]["depends"]
+           # print(my_typesyn_imports[modname])
+
+    # Rewrite importall to specific names
+    for source_modname, target_mod_dict in my_typesyn_imports.items():
+        #print("Source",source_modname)
+        #print("My own",own_defined_typesyns)
+        for target_modname, target_info in target_mod_dict.items():
+            #print("target",target_modname)
+            #print(target_info['type_imports'])
+            #print(target_info['importall'])
+
+            if target_info['importall']:
+                #print("SHOULD IMPORT ALL")
+                extra_typesyns = list(map(lambda x: {
+                    'effective_id': x[0],
+                    'orig_id': x[0]
+                }, own_defined_typesyns[target_modname].items()))
+                target_info['type_imports'].extend(extra_typesyns)
+                #print(own_defined_typesyns[target_modname])
+            target_mod_dict[target_modname] = target_info['type_imports']
+    '''
+    #print(my_typesyn_imports)
+    for k,v in my_typesyn_imports.items():
+        #print("+",k)
+        #print(v)
+        pass
+    '''
+    # Resolve the types in typesyns
+    for modname, type_entries in own_defined_typesyns.items():
+        #print(modname)
+
+        for type_entry in type_entries.items():
+            resolveTypeDependency(type_entry, modname, own_defined_typesyns, my_typesyn_imports)
+            print(type_entry)
+    ERROR_HANDLER.checkpoint()
 
     # Get type syn dependencies and do topological sort:
     type_graph = {}
-    
-    for type_id, def_type in ext_table.type_syns.items():
-        type_graph[type_id] = getTypeDependencies(type_id, ext_table)
+    for type_id, def_type in my_typesyn_imports.items():
+        pass
+        #type_graph[type_id] = getTypeDependencies(type_id, ext_table)
+    exit()
     print("Type graph",type_graph)
     exit()
     topo = iterative_topological_sort(type_graph, list(ext_table.type_syns)[0])

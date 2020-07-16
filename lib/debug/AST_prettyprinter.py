@@ -142,6 +142,9 @@ LOOKUP = {
     AST.FUNTYPE : (lambda x:
             "{} -> {}".format(" ".join(map_print(x.from_types)), subprint_type(x.to_type))
         ),
+    AST.MOD_TYPE : (lambda x:
+            "modtype {} {}".format(x.module, x.orig_id)
+        ),
     AST.STMT : (lambda x:
             print_node(x.val)
         ),

@@ -209,7 +209,8 @@ class AST:
     # from_types :: [AST.TYPE], to_type :: AST.TYPE
     FUNTYPE = syntaxnode("FUNTYPE", "from_types", "to_type")
 
-    MOD_TYPE = syntaxnode("MOD_TYPE", "module", "val")
+    # Only used in type synonym rewriting:
+    MOD_TYPE = syntaxnode("MOD_TYPE", "module", "orig_id")
 
     # val :: AST.IFELSE or AST.LOOP or AST.ACTSTMT or AST.RETURN or AST.BREAK or AST.CONTINUE
     STMT = syntaxnode("STMT", "val")
@@ -279,6 +280,7 @@ class AST:
         TUPLETYPE,
         LISTTYPE,
         FUNTYPE,
+        MOD_TYPE,
         STMT,
         IFELSE,
         CONDBRANCH,

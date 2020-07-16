@@ -85,7 +85,7 @@ class ERR(IntEnum):
     WrongMainType = 63
     UndefinedTypeId = 64
     CyclicTypeSyn = 65
-    CyclicTypeSynExternal = 66
+    TypeIdNotFound = 66
     #ImportTypeClash = 67
     RecursiveImportNotFound = 68
     MultipleOpIdPropertiesFound = 69
@@ -164,8 +164,8 @@ ERRMSG = {
     ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
     ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}',
     ERR.UndefinedTypeId: 'Type identifier "{}" is not defined:\n{}',
-    ERR.CyclicTypeSyn: 'Type synonym "{}" has cyclical definition:\n{}',
-    ERR.CyclicTypeSynExternal: 'Imported type synonym "{}" has cyclical definiton:\n{}',
+    ERR.CyclicTypeSyn: 'Type synonym "{}" from module "{}" has cyclical definition:\n{}',
+    ERR.TypeIdNotFound: 'Definition for type identifier "{}" in definition of "{}" not found (in module "{}")',
     #ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
     ERR.RecursiveImportNotFound: 'Failed to import module header required by dependency: {}\n{}',
     ERR.MultipleOpIdPropertiesFound: 'The infix operator identifier "{}" has ambiguous associativity / precedence:\nFound declarations of the following combinations:\n{}',

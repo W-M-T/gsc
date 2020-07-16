@@ -1,5 +1,6 @@
 importall Amod
-importall Cmod
+from Cmod import C
 
 type B = C
 //type B = Int
+//type C = Char
