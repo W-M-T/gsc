@@ -94,6 +94,7 @@ class ERR(IntEnum):
     FuncTypeBuiltinShadow = 71
     FuncTypeBuiltinShadowImport = 72
     FuncTypeLocalClash = 73
+    CompilerNoEntrypointPresent = 74
 
 
 
@@ -170,7 +171,8 @@ ERRMSG = {
     ERR.FuncTypeImportClash: 'There are multiple clashing imports for function "{}"({}) with the same type "{}" from modules "{}" and "{}"',
     ERR.FuncTypeBuiltinShadow: 'Function definition of "{}"({}) has same type "{}" as a builtin function with the same fixity and identifier, which is forbidden: builtins cannot be shadowed:\n{}',
     ERR.FuncTypeBuiltinShadowImport: 'Imported function "{}"({}) has same type "{}" as a builtin function with the same fixity and identifier, which is forbidden: builtins cannot be shadowed',
-    ERR.FuncTypeLocalClash: 'There are multiple clashing definitions for function "{}"({}) with the same type "{}":\n{}\n{}'
+    ERR.FuncTypeLocalClash: 'There are multiple clashing definitions for function "{}"({}) with the same type "{}":\n{}\n{}',
+    ERR.CompilerNoEntrypointPresent: 'No entrypoint function "{}"'.format(ENTRYPOINT_FUNCNAME) + ' found in input module "{}"',
 }
 
 class WARN(IntEnum):

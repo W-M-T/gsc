@@ -40,9 +40,12 @@ BUILTIN_FUNC_BODIES = {
         ]
 }
 
+def getEntryPointName(module_name):
+    return "{}_func_main_0".format(module_name)
+
 def makeEntryPoint(module_name):
     temp = "\n".join([
-        'main: BSR {}_func_main_0\n'.format(module_name),
+        'main: BSR {}'.format(getEntryPointName(module_name)),
         'LDR RR',
         'TRAP 00',
         'HALT',
@@ -75,6 +78,12 @@ SECTION_COMMENT_LOOKUP = {
 }
 def linkObjectFiles(mod_dicts, main_mod_name):
     head = ("// SSM ASSEMBLY GENERATED ON {}".format(datetime.now().strftime("%c"))).upper()
+    func_text = buildSection(mod_dicts, 'functions')
+    right_main_present = func_text.find(getEntryPointName(main_mod_name)) != -1
+    if not right_main_present:
+        ERROR_HANDLER.addError(ERR.CompilerNoEntrypointPresent, [main_mod_name])
+        ERROR_HANDLER.checkpoint()
+
     sep_line = "//" + "="*(len(head)-2)+"\n"
     result = ""
     result += sep_line
@@ -85,11 +94,9 @@ def linkObjectFiles(mod_dicts, main_mod_name):
     result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['entrypoint'] + "\n"
     result += "BRA main\n"
     result += buildSection(mod_dicts, 'global_mem')
-    result += buildSection(mod_dicts, 'functions')
+    result += func_text
     result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + "\n"
-    result += "main: BSR {}_func_main_0\n".format(main_mod_name)
-    result += "LDR RR\n"
-    result += "TRAP 00\n"
+    result += makeEntryPoint(main_mod_name)
     return result
 
 def write_out(data, outfile_name, type_name):

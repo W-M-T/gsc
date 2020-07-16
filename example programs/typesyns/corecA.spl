@@ -16,3 +16,9 @@ infixl 2 -- (a,b) :: Int Int -> Char {
 	print(a);
 	return 'h';
 }
+/*
+main() :: -> Int {
+	print('k');
+	return 1;
+}
+*/

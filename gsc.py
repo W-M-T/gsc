@@ -143,9 +143,6 @@ def main():
             write_out(header_json, outfile_name, "headerfile")
         else:
             print(header_json)
-    else:
-        # Check if 
-        pass
 
     if compiler_target['object']: # Generate an object file
         gen_code = generateObjectFile(ast, args, main_mod_name, import_mapping)
