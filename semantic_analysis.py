@@ -202,21 +202,23 @@ def forbid_illegal_types(symbol_table, ext_table):
 def fixate_operator_properties(symbol_table, ext_table):
     op_keys = OrderedDict.fromkeys(list(filter(lambda x: x[0] == FunUniq.INFIX, list(symbol_table.functions.keys()) + list(ext_table.functions.keys()))))
 
+    def getProp(func_entry):
+        if "fixity" in func_entry.keys(): # External symbol
+            return (func_entry["fixity"], func_entry["kind"])
+        else: # Internal symbol
+            return (func_entry["def"].fixity.val, func_entry["def"].kind)
+
+
     for (uq, op_id) in op_keys:
         #print(uq, op_id)
         cur_ops = symbol_table.functions.get((uq, op_id), []) + ext_table.functions.get((uq, op_id), [])
 
-        def getProp(func_entry):
-            if "fixity" in func_entry.keys(): # External symbol
-                return (func_entry["fixity"], func_entry["kind"])
-            else: # Internal symbol
-                return (func_entry["def"].fixity, func_entry["def"].kind)
         #print(op_id)
         all_props = OrderedDict.fromkeys(list(map(getProp, cur_ops)))
         if len(all_props) > 1:
-            prop_strings = map(lambda x: "{} {}".format(x[1].name, x[0]), all_props)
+            prop_strings = map(lambda x: "{} {}".format(x[1].name.lower(), x[0]), all_props)
             ERROR_HANDLER.addError(ERR.MultipleOpIdPropertiesFound, [op_id, "\n".join(prop_strings)])
-    ERROR_HANDLER.checkpoint()
+    #ERROR_HANDLER.checkpoint()
 
 '''
 Requires types to have been normalized
@@ -224,28 +226,51 @@ Requires types to have been normalized
 def check_functype_clashes(symbol_table, ext_table):
     func_keys = OrderedDict.fromkeys(list(symbol_table.functions.keys()) + list(ext_table.functions.keys()))
 
+    def getSourceMod(func_entry):
+        if "module" in func_entry.keys(): # External symbol
+            return func_entry["module"]
+        else: # Internal symbol
+            return None
+
     for (uq, f_id) in func_keys:
-        print(uq, f_id)
-        #error_pairs = []
+        #print(uq, f_id)
+        error_pairs = []
         cur_funcs = list(enumerate(symbol_table.functions.get((uq, f_id), []) + ext_table.functions.get((uq, f_id), [])))
-        continue
-        for ix, op in cur_ops:
-            my_type = op['type']
-            '''
 
-            same_types = list(filter(lambda x: AST.equalVals(x[1]['type'], my_type), cur_ops))
+        for ix, func in cur_funcs:
+            my_type = func['type']
+
+            same_types = list(filter(lambda x: AST.equalVals(x[1]['type'], my_type), cur_funcs))
             for sam in same_types:
-                if ix != sam: # Other operator with same type
-                    error_pairs.append
-            #print(print_node())
-            '''
+                if ix != sam[0]: # Other operator with same type
+                    func_combo = sorted((ix,sam[0]))
+                    if not func_combo in error_pairs: # Pair of functions with same type not seen yet
+                        error_pairs.append(func_combo)
 
-'''
-for (u, op_id)
-FunUniq.INFIX
-symbol_table.functions
-ext_table.functions
-'''
+        for (a,b) in error_pairs:
+            a_mod, b_mod = list(map(lambda x: getSourceMod(cur_funcs[x][1]), (a,b)))
+            if a_mod is None and b_mod is None: # Two function defintions in this file with same type
+                ERROR_HANDLER.addError(ERR.FuncTypeLocalClash, [f_id, uq.name, print_node(cur_funcs[a][1]['type']), cur_funcs[a][1]['def'].id, cur_funcs[b][1]['def'].id])
+
+            if a_mod is not None and b_mod is not None: # Two imported function definition imports with same type
+                if not any(map(lambda x: x == BUILTINS_NAME, [a_mod, b_mod])):
+                    ERROR_HANDLER.addError(ERR.FuncTypeImportClash, [f_id, uq.name, print_node(cur_funcs[a][1]['type']), a_mod, b_mod])
+
+            if a_mod == BUILTINS_NAME or b_mod == BUILTINS_NAME: # Function trying to shadow builtin
+                you, you_mod = (a, a_mod) if b_mod == BUILTINS_NAME else (b, b_mod)
+                if you_mod is None: # Internal
+                    ERROR_HANDLER.addError(ERR.FuncTypeBuiltinShadow, [f_id, uq.name, print_node(cur_funcs[you][1]['type']), cur_funcs[you][1]['def'].id])
+                else: # External
+                    ERROR_HANDLER.addError(ERR.FuncTypeBuiltinShadowImport, [f_id, uq.name, print_node(cur_funcs[you][1]['type'])])
+
+            if None in [a_mod, b_mod] and not all(map(lambda x: x is None, [a_mod, b_mod])): # Internal def shadowing import
+                other = list(filter(lambda x: x is not None, [a_mod, b_mod]))[0]
+                you = list(filter(lambda x: x[0] is None, [(a_mod,a), (b_mod,b)]))[0][1]
+                if not any(map(lambda x: x == BUILTINS_NAME, [a_mod, b_mod])): # Not builtin
+                    ERROR_HANDLER.addWarning(WARN.ShadowFuncIdType, [f_id, uq.name, other, print_node(cur_funcs[a][1]['type']), cur_funcs[you][1]['def'].id])
+
+    ERROR_HANDLER.checkpoint()
+
 '''
 Helper function for symbol table building
 Return a dict with function info (insertion order is meaningful)
