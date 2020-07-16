@@ -14,11 +14,11 @@ def tokenToNode(token):
         node._start_pos = Position()
         return node
     elif token.typ == TOKEN.CHAR:
-        node = val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Char"))
+        node = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Char"))
         node._start_pos = Position()
         return node
     elif token.typ == TOKEN.BOOL:
-        node = val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
+        node = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Bool"))
         node._start_pos = Position()
         return node
     elif token.typ == TOKEN.STRING:
@@ -26,7 +26,7 @@ def tokenToNode(token):
         node._start_pos = Position()
         return node
     elif token.typ == TOKEN.EMPTY_LIST:
-        node = val=AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "[]"))
+        node = AST.BASICTYPE(type_id=Token(Position(), TOKEN.TYPE_IDENTIFIER, "[]"))
         node._start_pos = Position()
         return node
     else:
@@ -121,6 +121,7 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                             'id': k,
                             'module': None,
                             'args': args,
+                            'returns': not AST.equalVals(o['type'].to_type, AST.TYPE(val=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Void"))),
                         })
 
         if identifier in ext_table.functions:
@@ -158,13 +159,15 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                                 'id': oid,
                                 'module': module,
                                 'args': args,
+                                'returns': not AST.equalVals(of['type'].to_type, AST.TYPE(val=Token(Position(), TOKEN.TYPE_IDENTIFIER, "Void"))),
                             })
 
+        # Give preference to functions defined in current module if type is exactly the same.
         if len(matches) > 0:
             current_module_matches = 0
             prefered_match = None
             for m in matches:
-                if m['module'] == None:
+                if m['module'] is None:
                     current_module_matches += 1
                     if current_module_matches > 1:
                         break
@@ -201,7 +204,7 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                 return True, expr
 
         return True, AST.TYPED_FUNCALL(id=expr.id, uniq=FunKindToUniq(expr.kind), args=matches[0]['args'], oid=matches[0]['id'],
-                                           module=matches[0]['module'])
+                                           module=matches[0]['module'], returns=matches[0]['returns'])
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:

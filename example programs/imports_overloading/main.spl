@@ -1,10 +1,21 @@
+f (string) :: [Char] -> Void {
+    print(string);
+}
+
+f(x) :: Int -> Int {
+    return x;
+}
+
 main() :: -> Int
 {
-    Int x = 5;
-    [Char] a = "Hello world!\n";
-    Int y = 7;
+    Int x = 1;
+    Int y = -1;
 
-    print(a);
+    for(x=1;x<=2;x=x+1) {
+        f(x);
+    }
+
+    print(x);
 
     return x + y;
 }

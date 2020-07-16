@@ -24,7 +24,6 @@ def generate_expr(expr, module_name, mappings, ext_table):
         elif expr.typ is TOKEN.EMPTY_LIST:
             return ['LDC 00']
         elif expr.typ is TOKEN.STRING:
-            print(expr.val)
             code = []
             for c in expr.val:
                 code.append('LDC ' + str(ord(c)))
@@ -32,7 +31,6 @@ def generate_expr(expr, module_name, mappings, ext_table):
             for _ in expr.val:
                 code.append('STMH 2')
 
-            print(code)
             return code
         else:
             raise Exception("Unknown type")
@@ -131,7 +129,8 @@ def generate_expr(expr, module_name, mappings, ext_table):
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
             # TODO: Check this for void functions
-            res.append('LDR RR')
+            if expr.returns:
+                res.append('LDR RR')
 
         return res
     elif type(expr) is AST.TUPLE:
@@ -157,6 +156,8 @@ def generate_ret(stmt, code, module_name, mappings, ext_table, label):
 
 def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
     if type(stmt.val) == AST.TYPED_FUNCALL:
+        print(stmt.val)
+        stmt.val.returns = False
         code.extend(generate_expr(stmt.val, module_name, mappings, ext_table))
     else:
         code.extend(generate_expr(stmt.val.expr, module_name, mappings, ext_table))
