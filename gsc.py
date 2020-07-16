@@ -5,6 +5,15 @@ from argparse import ArgumentParser
 
 from gsl import linkObjectFiles, write_out, make_import_mapping
 from lib.analysis.error_handler import *
+<<<<<<< HEAD
+=======
+
+from lib.parser.lexer import tokenize, REG_FIL
+from lib.parser.parser import parseTokenStream
+
+# TODO do not import all of this but just use analyse instead or something
+from semantic_analysis import analyse, buildSymbolTable, forbid_illegal_types, fixate_operator_properties, check_functype_clashes, normalizeAllTypes
+>>>>>>> d27f4eb6f75d1269af9287954ae2caa16658d188
 from lib.analysis.typechecker import typecheck_globals, typecheck_functions
 from lib.builtins.builtin_mod import enrichExternalTable
 from lib.codegen.codegen import generate_object_file
@@ -109,6 +118,16 @@ def main():
         ERROR_HANDLER.checkpoint()
 
         symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
+
+        fixate_operator_properties(symbol_table, ext_table)
+        #check_functype_clashes(symbol_table, ext_table)
+        #exit()
+
+        forbid_illegal_types(symbol_table, ext_table)
+
+        #print(symbol_table)
+        #print(ext_table)
+        #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
 
         # Resolve Expr names
         resolveNames(symbol_table, ext_table)

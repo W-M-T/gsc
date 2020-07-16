@@ -1,5 +1,6 @@
-from corecB import --, foo, pi as fa
+from corecB import -- as --, pi as fa
 importall corecC
+//from corecC import foo
 
 
 type A = B

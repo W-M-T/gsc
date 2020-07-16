@@ -285,7 +285,8 @@ def getExternalSymbols(ast, headerfiles, type_headers):
             unique_op_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, op_imports)))
             unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
         else:
-            unique_ids = cur_symbols["globals"]
+            fun_ids = list(map(lambda x: x[1], list(cur_symbols["functions"])))
+            unique_ids = list(OrderedDict.fromkeys(list(cur_symbols["globals"]) + fun_ids))
             unique_op_ids = list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.PREFIX or x[0][0] == FunUniq.INFIX, cur_symbols["functions"].items())))
             unique_type_ids = list(cur_symbols["typesyns"])
 
