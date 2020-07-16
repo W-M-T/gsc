@@ -151,11 +151,7 @@ def main():
             outfile_name = outfile_base + OBJECT_EXT
             write_out(gen_code, outfile_name, "objectfile")
         else:
-            print(header_json)
-        #'''
-        '''
-        symbol_table = analyse(ast, main_mod_name)
-        '''
+            print(gen_code)
 
     if compiler_target['binary']: # Generate a binary
         gen_code = generateObjectFile(ast, args, main_mod_name, import_mapping)

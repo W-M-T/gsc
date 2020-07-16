@@ -58,7 +58,7 @@ def buildSection(mod_dicts, section_name):
     res = ""
     if section_name in SECTION_COMMENT_LOOKUP:
         res += OBJECT_COMMENT_PREFIX + SECTION_COMMENT_LOOKUP[section_name] + "\n"
-    res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
+    res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))).lstrip() + "\n"
     if section_name == "functions":
         for func_name, instructions in BUILTIN_FUNC_BODIES.items():
             res += func_name + ":" + "\n".join(instructions) + "\n"

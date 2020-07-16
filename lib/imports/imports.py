@@ -236,6 +236,7 @@ Parse a list of headerfiles to json and subset the symbols that are in scope
 '''
 def getExternalSymbols(ast, headerfiles, type_headers):
     importlist = ast.imports
+    print("TYPE HEADERS:",type_headers)
 
     # Add the desired imports to a datastructure
     ext_symbol_table = ExternalTable()

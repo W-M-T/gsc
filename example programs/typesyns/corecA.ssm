@@ -1,5 +1,5 @@
 //===================================================
-// SSM ASSEMBLY GENERATED ON THU JUL 16 16:15:57 2020
+// SSM ASSEMBLY GENERATED ON THU JUL 16 16:21:37 2020
 // © Ward Theunisse & Ischa Stork 2020
 //===================================================
 // INIT SECTION:
@@ -17,14 +17,6 @@ BRA main
 corecB_global_pi: NOP
 corecB_global_pi: NOP
 // FUNCTION SECTION:
-corecA_infix_0_0: LINK 00
-LDL -3
-TRAP 00
-LDL -3
-STR RR
-BRA corecA_infix_0_0_exit
-corecA_infix_0_0_exit: UNLINK
-RET
 corecA_func_main_0: LINK 00
 LDC 107
 TRAP 1
@@ -32,6 +24,14 @@ LDC 1
 STR RR
 BRA corecA_func_main_0_exit
 corecA_func_main_0_exit: UNLINK
+RET
+corecA_infix_0_0: LINK 00
+LDL -3
+TRAP 00
+LDL -3
+STR RR
+BRA corecA_infix_0_0_exit
+corecA_infix_0_0_exit: UNLINK
 RET
 corecA_infix_0_1: LINK 00
 LDL -3
@@ -67,9 +67,28 @@ LDC 102
 TRAP 1
 corecB_func_foo_0_exit: UNLINK
 RET
+head:LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH -1
+STR RR
+unlink
+ret
+tail:LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH 00
+STR RR
+unlink
+ret
 // ENTRYPOINT:
 main: BSR corecA_func_main_0
-
 LDR RR
 TRAP 00
 HALT
