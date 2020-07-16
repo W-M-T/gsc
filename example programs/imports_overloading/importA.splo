@@ -1,19 +1,35 @@
 // DEPENDENCIES:
 // INIT SECTION:
-
-// ENTRYPOINT:
+LDC 7
+LDC importA_global_a
+STA 00
+// BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
+importA_global_a: NOP
 // FUNCTION SECTION:
-importA_func_sum_0: LINK 00
-LDL -3
+head: LINK 00
 LDL -2
-ADD
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH -1
 STR RR
-BRA importA_func_sum_0_exit
-importA_func_sum_0_exit: UNLINK
-RET
-// MAIN:
+unlink
+ret
+tail: LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH 00
+STR RR
+unlink
+ret
+// ENTRYPOINT:
 main: BSR importA_func_main_0
 LDR RR
 TRAP 00
+program_crash: NOP

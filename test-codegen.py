@@ -8,8 +8,8 @@ from lib.builtins.builtin_mod import generateBuiltinOps, mergeCustomOps, generat
 from lib.codegen.codegen import generate_object_file
 from lib.datastructure.symbol_table import ExternalTable
 import os
-
 from lib.imports.imports import SOURCE_EXT
+
 def main():
     from argparse import ArgumentParser
     from lib.parser.lexer import tokenize
@@ -59,28 +59,28 @@ def main():
 
         module_name = "testing"
 
-    # Build symbol table
-    symbol_table = buildSymbolTable(ast)
-    ERROR_HANDLER.checkpoint()
-
     # Build external table
-    headerfiles = getImportFiles(ast, HEADER_EXT, os.path.dirname(args.infile),
+    headerfiles, type_headers = getHeaders(ast, module_name, HEADER_EXT, os.path.dirname(args.infile),
                                  file_mapping_arg=import_mapping,
                                  lib_dir_path=args.lp,
                                  lib_dir_env=os.environ[
                                      IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
     # Get all external symbols
-    external_table, dependencies = getExternalSymbols(ast, headerfiles)
+    external_table, dependencies = getExternalSymbols(ast, headerfiles, type_headers)
     external_table = enrichExternalTable(external_table)
     print(external_table)
+    ERROR_HANDLER.checkpoint()
+
+    # Build symbol table
+    symbol_table, external_table = buildSymbolTable(ast, module_name, just_for_headerfile=False, ext_symbol_table=external_table)
     ERROR_HANDLER.checkpoint()
 
     # Normalize table
     # normalizeAllTypes(symbol_table, external_table)
     # ERROR_HANDLER.checkpoint()
 
-    forbid_illegal_types(symbol_table)
-    ERROR_HANDLER.checkpoint()
+    #forbid_illegal_types(symbol_table)
+    #ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
     resolveNames(symbol_table, external_table)

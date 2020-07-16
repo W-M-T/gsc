@@ -7,12 +7,13 @@ v Sommige errors hebben geen pointToPosition (type identifier blabla is not defi
 
 Codegen
 v Tuples
-- Lijsten
-- Accessors
+V Lijsten
+V Accessors
 v Dubbel check even de expressies.
 v Check of alles goed werkt als een for-component mist.
 - String printer
 v Lijst van dependencies
+- Program crash in tussen de functie definities kunnen zetten.
 
 Alles aan elkaar maken
 - Entrypoint uit de object file
