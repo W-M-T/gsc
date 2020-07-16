@@ -77,7 +77,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
             while len(fields) > 0:
                 field = fields.pop()
                 if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
-                    if field == Accessor.FST:
+                    if Accessor_lookup[field.val] == Accessor.FST:
                         res.append('LDH -1')
                     else:
                         res.append('LDH 00')
@@ -124,8 +124,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
             # TODO: Check this for void functions
-
-            res.append('LDR RR')
+            #res.append('LDR RR')
 
         return res
     elif type(expr) is AST.TUPLE:
@@ -194,8 +193,9 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                         code.append('STL ' + mappings['args'][stmt.val.varref.val.id.val][0])
 
         else:
-            key = module_name + '_global_' + stmt.val.varref.val.id.val
-            if mappings['globals'][stmt.val.varref.val.id.val] == MEMTYPE.BASICTYPE:
+            module = module_name if stmt.val.varref.val.module is None else stmt.val.varref.val.module
+            key = module + '_global_' + stmt.val.varref.val.id.val
+            if mappings['globals'][module][stmt.val.varref.val.id.val] == MEMTYPE.BASICTYPE:
                 code.extend(['LDC ' + key, 'STA 00'])
             else:
                 if len(stmt.val.varref.val.fields) > 0: # We have accessors
@@ -378,8 +378,8 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
     global_labels = []
     function_code = {}
     mappings = {
-        'globals': {},
-        'operators': {module_name: {} },
+        'globals': {module_name: {}},
+        'operators': {module_name: {}},
         'args': {},
         'vars': {}
     }
@@ -401,9 +401,16 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g
         global_labels.append(key)
-        mappings['globals'][g] = MEMTYPE.POINTER if type(symbol_table.global_vars[g].type.val) == AST.TUPLETYPE or type(symbol_table.global_vars[g].type.val) == AST.LISTTYPE else MEMTYPE.BASICTYPE
+        mappings['globals'][module_name][g] = MEMTYPE.POINTER if type(symbol_table.global_vars[g].type.val) in [AST.TUPLETYPE, AST.LISTTYPE] else MEMTYPE.BASICTYPE
         global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name, mappings, ext_table))
         global_code.extend(['LDC ' + key, 'STA 00'])
+
+    for g in ext_table.global_vars:
+        print(g)
+        print(ext_table.global_vars[g])
+        if ext_table.global_vars[g]['module'] not in mappings['globals']:
+            mappings['globals'][ext_table.global_vars[g]['module']] = {}
+        mappings['globals'][ext_table.global_vars[g]['module']][g] = MEMTYPE.POINTER if type(ext_table.global_vars[g]['type'].val) in [AST.LISTTYPE, AST.TUPLETYPE] else MEMTYPE.BASICTYPE
 
     for f in symbol_table.functions:
         o = 0

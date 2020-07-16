@@ -140,6 +140,7 @@ def main():
         
         typecheck_globals(symbol_table, ext_table)
         typecheck_functions(symbol_table, ext_table)
+        ERROR_HANDLER.checkpoint()
 
         gen_code = generate_object_file(symbol_table, ext_table, headerfiles, main_mod_name, dependency_names)
 

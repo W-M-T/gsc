@@ -56,7 +56,7 @@ def buildSection(mod_dicts, section_name):
     if section_name in SECTION_COMMENT_LOOKUP:
         res += OBJECT_COMMENT_PREFIX + SECTION_COMMENT_LOOKUP[section_name] + "\n"
     res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
-    if section_name == "funcs":
+    if section_name == "functions":
         for func_name, instructions in BUILTIN_FUNC_BODIES.items():
             res += func_name + ":" + "\n".join(instructions) + "\n"
     return res
@@ -87,9 +87,7 @@ def linkObjectFiles(mod_dicts, main_mod_name):
     result += buildSection(mod_dicts, 'global_mem')
     result += buildSection(mod_dicts, 'functions')
     result += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + "\n"
-    result += "main: BSR {}_func_main_0\n".format(main_mod_name)
-    result += "LDR RR\n"
-    result += "TRAP 00\n"
+    result += makeEntryPoint(main_mod_name)
     return result
 
 def write_out(data, outfile_name, type_name):

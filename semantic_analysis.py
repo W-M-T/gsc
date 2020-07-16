@@ -411,12 +411,16 @@ Type-token naar module, naam of forall type
 
 def resolveAssignName(assignment, symbol_table, ext_table, in_scope_globals=[], in_scope_locals={}):
     scope = None
+    module = None
     if assignment.varref.id.val in in_scope_locals['locals']:
         scope = NONGLOBALSCOPE.LocalVar
     elif assignment.varref.id.val in in_scope_locals['args']:
         scope = NONGLOBALSCOPE.ArgVar
     elif assignment.varref.id.val in in_scope_globals:
         scope = None
+    elif assignment.varref.id.val in ext_table.global_vars:
+        scope = None
+        module = ext_table.global_vars[assignment.varref.id.val]['module']
     else:
         ERROR_HANDLER.addError(ERR.UndefinedVar, [assignment.varref.id.val, assignment.varref])
         return assignment
@@ -430,7 +434,7 @@ def resolveAssignName(assignment, symbol_table, ext_table, in_scope_globals=[], 
         ))
     else:
         assignment.varref = AST.RES_VARREF(val=AST.RES_GLOBAL(
-            module=None,
+            module=module,
             id=assignment.varref.id,
             fields=assignment.varref.fields
         ))

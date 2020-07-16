@@ -214,11 +214,15 @@ def getSubType(typ, fields, expr):
                 ERROR_HANDLER.addError(ERR.IllegalTupleAccessorUsage, [field])
                 success = False
         elif Accessor_lookup[field.val] == Accessor.HD or Accessor_lookup[field.val] == Accessor.TL:
-            if Accessor_lookup[field.val] == Accessor.HD:
-                if type(typ) is AST.LISTTYPE:
-                    typ = typ.type.val
-                else:
-                    ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [field])
+            if type(typ) is AST.LISTTYPE:
+                if Accessor_lookup[field.val] == Accessor.HD:
+                    if type(typ) is AST.LISTTYPE:
+                        typ = typ.type.val
+                    else:
+                        ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [field])
+            else:
+                print("ERROR")
+                ERROR_HANDLER.addError(ERR.IllegalListAccessorUsage, [field])
         else:
             raise Exception("Unknown accessor encountered: %s " + field.val)
 
@@ -233,7 +237,10 @@ def typecheck_actstmt(stmt, symbol_table, ext_table, func):
             else:
                 typ = func['arg_vars'][stmt.val.varref.val.id.val]['type'].val
         else:
-            typ = symbol_table.global_vars[stmt.val.varref.val.id.val].type.val
+            if stmt.val.varref.val.module is None:
+                typ = symbol_table.global_vars[stmt.val.varref.val.id.val].type.val
+            else:
+                typ = ext_table.global_vars[stmt.val.varref.val.id.val]['type'].val
 
     if type(stmt.val) == AST.ASSIGNMENT:
         fields = list(reversed(stmt.val.varref.val.fields))
