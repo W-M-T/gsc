@@ -1,35 +1,65 @@
 // DEPENDENCIES:
 // INIT SECTION:
-LDC 7
-LDC importA_global_a
-STA 00
+
 // BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
-importA_global_a: NOP
 // FUNCTION SECTION:
-head: LINK 00
-LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH -1
+importA_infix_0_1: LINK 00
+LDC 43
+TRAP 1
+LDC 43
+TRAP 1
+LDC 66
+TRAP 1
+LDC -1
 STR RR
-unlink
-ret
-tail: LINK 00
+BRA importA_infix_0_1_exit
+importA_infix_0_1_exit: UNLINK
+RET
+importA_infix_0_0: LINK 00
+LDC 43
+TRAP 1
+LDC 43
+TRAP 1
+LDC 73
+TRAP 1
+LDL -3
 LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH 00
+ADD
+LDC 3
+ADD
 STR RR
-unlink
-ret
+BRA importA_infix_0_0_exit
+importA_infix_0_0_exit: UNLINK
+RET
+importA_infix_1_1: LINK 00
+LDC 45
+TRAP 1
+LDC 45
+TRAP 1
+LDC 66
+TRAP 1
+LDC 00
+STR RR
+BRA importA_infix_1_1_exit
+importA_infix_1_1_exit: UNLINK
+RET
+importA_infix_1_0: LINK 00
+LDC 45
+TRAP 1
+LDC 45
+TRAP 1
+LDC 73
+TRAP 1
+LDL -3
+LDL -2
+ADD
+LDC 1
+SUB
+STR RR
+BRA importA_infix_1_0_exit
+importA_infix_1_0_exit: UNLINK
+RET
 // ENTRYPOINT:
-main: BSR importA_func_main_0
-LDR RR
-TRAP 00
-program_crash: NOP
+main: nop

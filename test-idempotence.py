@@ -9,7 +9,7 @@ def main():
 
     result_trees = []
     #testprog = StringIO()
-    with open("./example programs/p1_example.spl") as infile:
+    with open("example programs/general/p1_example.spl") as infile:
         tokenstream = tokenize(infile)
 
         parse_res = parseTokenStream(tokenstream, infile)

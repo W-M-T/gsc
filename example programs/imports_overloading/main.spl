@@ -1,8 +1,10 @@
-from importA import a
+from importC import globalVar
 
 main() :: -> Int
 {
-    print(a);
+    print(globalVar);
 
-    return 5;
+    globalVar = 10;
+
+    return globalVar;
 }

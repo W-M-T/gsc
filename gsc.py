@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import validate_modname, get_type_dependencies, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
-from lib.imports.imports import export_headers, getHeaders, getExternalSymbols, HEADER_EXT
-from lib.imports.objectfile_imports import getObjectFiles
+import os
+from argparse import ArgumentParser
 
-from lib.builtins.builtin_mod import enrichExternalTable
-
+from gsl import linkObjectFiles, write_out, make_import_mapping
 from lib.analysis.error_handler import *
 
 from lib.parser.lexer import tokenize, REG_FIL
@@ -14,14 +12,16 @@ from lib.parser.parser import parseTokenStream
 # TODO do not import all of this but just use analyse instead or something
 from semantic_analysis import analyse, buildSymbolTable, forbid_illegal_types, fixate_operator_properties, check_functype_clashes, normalizeAllTypes
 from lib.analysis.typechecker import typecheck_globals, typecheck_functions
-
-
+from lib.builtins.builtin_mod import enrichExternalTable
 from lib.codegen.codegen import generate_object_file
-
-from gsl import linkObjectFiles, write_out, make_import_mapping
-
-from argparse import ArgumentParser
-import os
+from lib.imports.imports import export_headers, getHeaders, getExternalSymbols, HEADER_EXT
+from lib.imports.imports import validate_modname, get_type_dependencies, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, \
+    OBJECT_EXT, TARGET_EXT
+from lib.imports.objectfile_imports import getObjectFiles
+from lib.parser.lexer import tokenize
+from lib.parser.parser import parseTokenStream
+# TODO do not import all of this but just use analyse instead or something
+from semantic_analysis import buildSymbolTable, fixExpression, analyseFunc, resolveNames
 
 
 def main():
@@ -117,8 +117,8 @@ def main():
         symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
 
         fixate_operator_properties(symbol_table, ext_table)
-        check_functype_clashes(symbol_table, ext_table)
-        exit()
+        #check_functype_clashes(symbol_table, ext_table)
+        #exit()
 
         forbid_illegal_types(symbol_table, ext_table)
 
@@ -126,11 +126,22 @@ def main():
         #print(ext_table)
         #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
 
+        # Resolve Expr names
+        resolveNames(symbol_table, ext_table)
+        ERROR_HANDLER.checkpoint()
+
+        # Parse expressions
+        fixExpression(ast, symbol_table, ext_table)
+        ERROR_HANDLER.checkpoint()
+
+        # Function control flow analysis
+        analyseFunc(symbol_table)
+        ERROR_HANDLER.checkpoint()
         
         typecheck_globals(symbol_table, ext_table)
         typecheck_functions(symbol_table, ext_table)
 
-        gen_code = generate_object_file(symbol_table, main_mod_name, dependency_names)
+        gen_code = generate_object_file(symbol_table, ext_table, headerfiles, main_mod_name, dependency_names)
 
         if not args.stdout:
             outfile_name = outfile_base + OBJECT_EXT

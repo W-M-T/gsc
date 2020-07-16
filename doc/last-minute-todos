@@ -4,6 +4,8 @@ v Custom operators in expression parsing
 - Type normalisation voor imports en header files
 v Typechecking aparte errors voor operatoren.
 v Sommige errors hebben geen pointToPosition (type identifier blabla is not defined).
+- externe globals moeten orig_id gebruiken
+- Bij typechecking verkies locale definitie boven geimporteerde
 
 Codegen
 v Tuples
@@ -13,10 +15,12 @@ v Dubbel check even de expressies.
 v Check of alles goed werkt als een for-component mist.
 - String printer
 v Lijst van dependencies
-- Program crash in tussen de functie definities kunnen zetten.
+V Program crash in tussen de functie definities kunnen zetten.
+- externe globals moeten orig_id gebruiken
 
 Alles aan elkaar maken
 - Entrypoint uit de object file
 
-
-externe globals moeten orig_id gebruiken
+Dubbele checks
+- Check even subexpressies aangezien het de enige node is die PARSEDEXPR gebruikt.
+- Dubbelcheck waar return en break uitbreken.

@@ -1,7 +1,31 @@
-sum(a, b) :: Char Char -> Char {
-    return 'c';
+infixl 7 ** (a, b) :: Int Bool -> Int {
+    print('*');
+    print('*');
+    print('I');
+
+    return a;
 }
 
-sum(a, b) :: Int Int -> Int {
+infixl 7 ** (a, b) :: Bool Int -> Bool {
+    print('*');
+    print('*');
+    print('B');
+
+    return a;
+}
+
+infixl 7 <* (a, b) :: Int Bool -> Int {
+    print('<');
+    print('*');
+    print('I');
+
+    return a;
+}
+
+infixl 7 <* (a, b) :: Bool Int -> Bool {
+    print('<');
+    print('*');
+    print('B');
+
     return a;
 }
