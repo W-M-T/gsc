@@ -24,8 +24,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
         elif expr.typ is TOKEN.EMPTY_LIST:
             return ['LDC 00']
         elif expr.typ is TOKEN.STRING:
-            print(expr.val)
-            return []
+            raise Exception('Token STRING not yet supported.')
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:
@@ -311,7 +310,6 @@ def generate_stmts(stmts, label, module_name, mappings, ext_table, index = 0, lo
     return code, index
 
 def generate_func(func, ext_table, module_name, label, mappings):
-    print("generating func:",func['def'].id.val)
     code = []
 
     link_count = '00' #if len(func['arg_vars']) == 0 else str(len(func['arg_vars']))
@@ -335,8 +333,6 @@ def generate_func(func, ext_table, module_name, label, mappings):
 
     code.append(label + '_exit: UNLINK')
     code.append('RET')
-
-    print(code)
 
     return code
 
@@ -406,8 +402,6 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
         global_code.extend(['LDC ' + key, 'STA 00'])
 
     for g in ext_table.global_vars:
-        print(g)
-        print(ext_table.global_vars[g])
         if ext_table.global_vars[g]['module'] not in mappings['globals']:
             mappings['globals'][ext_table.global_vars[g]['module']] = {}
         mappings['globals'][ext_table.global_vars[g]['module']][g] = MEMTYPE.POINTER if type(ext_table.global_vars[g]['type'].val) in [AST.LISTTYPE, AST.TUPLETYPE] else MEMTYPE.BASICTYPE

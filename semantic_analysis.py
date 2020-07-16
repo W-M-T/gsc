@@ -465,8 +465,6 @@ def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals
                 ))
                 expr.contents[i]._start_pos = pos
             else:
-                print(expr.contents[i])
-                print(ext_table.global_vars)
                 scope = None
                 module = None
                 if expr.contents[i].id.val in in_scope_locals['locals']:
