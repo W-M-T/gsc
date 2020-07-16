@@ -1,0 +1,170 @@
+// DEPENDENCIES:
+// INIT SECTION:
+// BOOTSTRAP:
+BRA main
+// GLOBAL SECTION:
+// FUNCTION SECTION:
+crypto_infix_0_0: LINK 00
+LDL -3
+crypto_infix_0_0_1: nop
+LDL -2
+LDC 1
+GT
+BRF crypto_infix_0_0_1_exit
+LDL -3
+LDL 1
+MUL
+STL -3
+LDL -2
+LDC 1
+SUB
+STL -2
+crypto_infix_0_0_1_update: nop
+BRA crypto_infix_0_0_1
+crypto_infix_0_0_1_exit: nop
+LDL -3
+STR RR
+BRA crypto_infix_0_0_exit
+crypto_infix_0_0_exit: UNLINK
+RET
+crypto_func_gcd_0: LINK 00
+crypto_func_gcd_0_1: nop
+LDL -2
+LDC 00
+NE
+BRF crypto_func_gcd_0_1_exit
+LDL -2
+STL -3
+LDL -3
+LDL -2
+MOD
+STL -2
+crypto_func_gcd_0_1_update: nop
+BRA crypto_func_gcd_0_1
+crypto_func_gcd_0_1_exit: nop
+LDL -3
+STR RR
+BRA crypto_func_gcd_0_exit
+crypto_func_gcd_0_exit: UNLINK
+RET
+crypto_func_encrypt_0: LINK 00
+LDL -2
+LDL -3
+LDH -1
+BSR crypto_infix_0_0
+AJS -2
+LDR RR
+LDL -3
+LDH 00
+MOD
+STR RR
+BRA crypto_func_encrypt_0_exit
+crypto_func_encrypt_0_exit: UNLINK
+RET
+crypto_func_mult_inverse_0: LINK 00
+LDC 00
+LDC 00
+LDC 1
+LDC 1
+LDL -2
+LDC 00
+LDC 00
+LDC 00
+LDC 00
+crypto_func_mult_inverse_0_1: nop
+LDL -3
+LDC 00
+GT
+BRF crypto_func_mult_inverse_0_1_exit
+LDL 5
+LDL -3
+DIV
+STL 6
+LDL 5
+LDL 6
+LDL -3
+MUL
+SUB
+STL 7
+LDL -3
+STL 5
+LDL 7
+STL -3
+LDL 3
+LDL 6
+LDL 2
+MUL
+SUB
+STL 8
+LDL 1
+LDL 6
+LDL 4
+MUL
+SUB
+STL 9
+LDL 2
+STL 3
+LDL 8
+STL 2
+LDL 4
+STL 1
+LDL 9
+STL 4
+crypto_func_mult_inverse_0_1_update: nop
+BRA crypto_func_mult_inverse_0_1
+crypto_func_mult_inverse_0_1_exit: nop
+LDL 1
+LDL -2
+ADD
+STR RR
+BRA crypto_func_mult_inverse_0_exit
+crypto_func_mult_inverse_0_exit: UNLINK
+RET
+crypto_func_decrypt_0: LINK 00
+LDL -2
+LDL -3
+LDH -1
+BSR crypto_infix_0_0
+AJS -2
+LDR RR
+LDL -3
+LDH 00
+MOD
+STR RR
+BRA crypto_func_decrypt_0_exit
+crypto_func_decrypt_0_exit: UNLINK
+RET
+crypto_func_init_0: LINK 00
+LDC 00
+LDL -6
+LDC 1
+SUB
+LDL -5
+LDC 1
+SUB
+MUL
+LDL -4
+LDL 2
+BSR crypto_func_mult_inverse_0
+AJS -2
+LDR RR
+LDL -6
+LDL -5
+MUL
+STL 1
+LDL -4
+LDL -3
+STA -1
+LDL 1
+LDL -3
+STA 00
+LDL 3
+LDL -2
+STA -1
+LDL 1
+LDL -2
+STA 00
+crypto_func_init_0_exit: UNLINK
+RET
+// ENTRYPOINT:
+main: nop

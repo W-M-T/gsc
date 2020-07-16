@@ -1,18 +1,10 @@
-f (string) :: [Char] -> Void {
-    print(string);
+infixl 3 = (a, b) :: Char Char -> Char {
+    return b;
 }
 
-f(x) :: Int -> Int {
-    return x;
-}
+main ( ) :: -> Int {
+    Char x = 'a' = '\n' = '\\';
+    print(x);
 
-main() :: -> Int
-{
-    Int x = 3;
-    [Int] a = 2 : [];
-    Int y = a.hd;
-
-    a.hd = 5;
-
-    return a.hd + y;
+    return 0;
 }

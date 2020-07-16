@@ -1,0 +1,88 @@
+{
+  "depends": {},
+  "functions": [
+    [
+      [
+        "INFIX",
+        "**"
+      ],
+      8,
+      "INFIXR",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "gcd"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "mult_inverse"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "init"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))",
+        "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
+      ],
+      "TYPE(val=\"Void\")"
+    ],
+    [
+      [
+        "FUNC",
+        "encrypt"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "FUNC",
+        "decrypt"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ],
+  "globals": [],
+  "typesyns": []
+}

@@ -96,8 +96,7 @@ class ERR(IntEnum):
     FuncTypeLocalClash = 73
     CompilerNoEntrypointPresent = 74
     ImportSameName = 75
-
-
+    IllegalOpDef = 76
 
 ERRMSG = {
     ERR.OverloadFunMultipleDef: 'Overloaded functions "{}" has multiple definitions with the same type:',
@@ -174,7 +173,8 @@ ERRMSG = {
     ERR.FuncTypeBuiltinShadowImport: 'Imported function "{}"({}) has same type "{}" as a builtin function with the same fixity and identifier, which is forbidden: builtins cannot be shadowed',
     ERR.FuncTypeLocalClash: 'There are multiple clashing definitions for function "{}"({}) with the same type "{}":\n{}\n{}',
     ERR.CompilerNoEntrypointPresent: 'No entrypoint function "{}"'.format(ENTRYPOINT_FUNCNAME) + ' found in input module "{}"',
-    ERR.ImportSameName: 'Tried to import a module with the same name as the input file: "{}"'
+    ERR.ImportSameName: 'Tried to import a module with the same name as the input file: "{}"',
+    ERR.IllegalOpDef: 'It is not allowed to define operator with identifier {} \n{}',
 }
 
 class WARN(IntEnum):

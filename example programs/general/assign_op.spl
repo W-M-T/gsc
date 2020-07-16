@@ -6,6 +6,6 @@ infixl 3 = (a, b) :: Char Char -> Char {
 }
 
 main ( ) :: -> Void {
-    var x = 'a' == '\n' == '\\';
+    Char x = 'a' = '\n' = '\\';
     print(x);
 }

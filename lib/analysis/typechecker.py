@@ -208,7 +208,7 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
 
     elif type(expr) is AST.TUPLE:
         if type(exp_type) is not AST.TUPLETYPE:
-            ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type.type_id.val, expr])
+            ERROR_HANDLER.addError(ERR.UnexpectedTuple, [exp_type, expr])
             return True, expr
 
         type1, a = typecheck(expr.a, exp_type.a.val, symbol_table, ext_table, func)

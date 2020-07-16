@@ -11,6 +11,7 @@ from lib.datastructure.scope import NONGLOBALSCOPE
 from lib.builtins.types import BUILTIN_TYPES, VOID_TYPE
 from lib.builtins.functions import ENTRYPOINT_FUNCNAME
 from lib.builtins.builtin_mod import enrichExternalTable, BUILTINS_NAME
+from lib.builtins.operators import ILLEGAL_OP_IDENTIFIERS
 
 from lib.util.util import treemap, selectiveApply, iterative_topological_sort
 
@@ -359,19 +360,22 @@ def buildSymbolTable(ast, modname, just_for_headerfile=True, ext_symbol_table=No
             # No check for external/builtin shadowing. Happens during type normalization
             # Test if this function is already defined
             fun_id = val.id.val
-            if not (uniq_kind, fun_id) in symbol_table.functions:
+            if fun_id in ILLEGAL_OP_IDENTIFIERS:
+                ERROR_HANDLER.addError(ERR.IllegalOpDef, [fun_id, val.id])
+            else:
+                if not (uniq_kind, fun_id) in symbol_table.functions:
 
-                # Completely new name
-                symbol_table.functions[(uniq_kind,fun_id)] = []
+                    # Completely new name
+                    symbol_table.functions[(uniq_kind,fun_id)] = []
 
-                temp_entry = buildFuncEntry(val)
-                #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
+                    temp_entry = buildFuncEntry(val)
+                    #print(temp_entry["arg_vars"]) # TODO we do not as of yet test that all uses of types were defined
 
-                symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
+                    symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
-            else: # Already defined in the table, check for overloading
-                temp_entry = buildFuncEntry(val)
-                symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
+                else: # Already defined in the table, check for overloading
+                    temp_entry = buildFuncEntry(val)
+                    symbol_table.functions[(uniq_kind,fun_id)].append(temp_entry)
 
         elif type(val) is AST.TYPESYN:
             #print("Type")
@@ -425,6 +429,8 @@ def resolveNames(symbol_table, ext_table):
 
                 in_scope_locals['locals'] = in_scope
                 resolveExprNames(v.expr, symbol_table, ext_table, False, in_scope_globals, in_scope_locals)
+                print(in_scope)
+                print(v.expr)
 
             in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
 
@@ -478,8 +484,11 @@ Resolve an expression with the following globals in scope
 Functions are always in scope
 '''
 def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals=[], in_scope_locals={}):
+    print("RESOLVING")
+    print(expr)
     for i in range(0, len(expr.contents)):
         if type(expr.contents[i]) is AST.VARREF:
+            print(expr.contents[i])
             if glob:
                 # TODO: Disallow imported globals
                 if expr.contents[i].id.val not in in_scope_globals:
@@ -529,6 +538,9 @@ def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals
         elif type(expr.contents[i]) is AST.FUNCALL:
             for k in range(0, len(expr.contents[i].args)):
                 expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, ext_table, glob, in_scope_globals, in_scope_locals)
+        elif type(expr.contents[i]) is AST.DEFERREDEXPR:
+            expr.contents[i] = resolveExprNames(expr.contents[i], symbol_table, ext_table, glob,
+                                                        in_scope_globals, in_scope_locals)
 
     return expr
 
@@ -555,6 +567,8 @@ def parseAtom(exp, symbol_table, ext_table, exp_index):
                 func_args.append(sub_expr)
         return AST.FUNCALL(id=funcall.id, kind=1, args=func_args), exp_index + 1
     else:
+        print(exp[exp_index])
+        print(type(exp[exp_index]))
         raise Exception("Unexpected token encountered while parsing atomic value in expression.")
 
 # TODO: Add custom operators
