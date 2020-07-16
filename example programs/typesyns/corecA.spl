@@ -1,4 +1,4 @@
-from corecB import -- as --, pi as fa
+from corecB import -- as ---, pi as fa
 importall corecC
 //from corecC import foo
 
@@ -6,3 +6,13 @@ importall corecC
 type A = B
 type OtherInt = Int
 //type B = Int
+
+infixl 2 -- (a,b) :: Int Int -> Int {
+	print(a);
+	return a;
+}
+
+infixl 2 -- (a,b) :: Int Int -> Char {
+	print(a);
+	return 'h';
+}

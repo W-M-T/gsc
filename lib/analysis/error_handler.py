@@ -89,6 +89,12 @@ class ERR(IntEnum):
     #ImportTypeClash = 67
     RecursiveImportNotFound = 68
     MultipleOpIdPropertiesFound = 69
+    # Function type clashes
+    FuncTypeImportClash = 70
+    FuncTypeBuiltinShadow = 71
+    FuncTypeBuiltinShadowImport = 72
+    FuncTypeLocalClash = 73
+
 
 
 ERRMSG = {
@@ -160,7 +166,11 @@ ERRMSG = {
     ERR.CyclicTypeSynExternal: 'Imported type synonym "{}" has cyclical definiton:\n{}',
     #ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
     ERR.RecursiveImportNotFound: 'Failed to import module header required by dependency: {}\n{}',
-    ERR.MultipleOpIdPropertiesFound: 'The infix operator identifier "{}" has ambiguous associativity / precedence:\nFound declarations of the following combinations:\n{}'
+    ERR.MultipleOpIdPropertiesFound: 'The infix operator identifier "{}" has ambiguous associativity / precedence:\nFound declarations of the following combinations:\n{}',
+    ERR.FuncTypeImportClash: 'There are multiple clashing imports for function "{}"({}) with the same type "{}" from modules "{}" and "{}"',
+    ERR.FuncTypeBuiltinShadow: 'Function definition of "{}"({}) has same type "{}" as a builtin function with the same fixity and identifier, which is forbidden: builtins cannot be shadowed:\n{}',
+    ERR.FuncTypeBuiltinShadowImport: 'Imported function "{}"({}) has same type "{}" as a builtin function with the same fixity and identifier, which is forbidden: builtins cannot be shadowed',
+    ERR.FuncTypeLocalClash: 'There are multiple clashing definitions for function "{}"({}) with the same type "{}":\n{}\n{}'
 }
 
 class WARN(IntEnum):
@@ -175,6 +185,7 @@ class WARN(IntEnum):
     DuplicateIdSameModuleImport = 9
     DuplicateOpSameModuleImport = 10
     DuplicateTypeSameModuleImport = 11
+    ShadowFuncIdType = 12
 
 WARNMSG = {
     WARN.ShadowGlobalOtherModule: 'Shadowing global variable "{}" from module "{}":\n{}',
@@ -187,7 +198,8 @@ WARNMSG = {
     WARN.MultiKindImport: 'Both importall and other imports defined for module "{}":\n{}',
     WARN.DuplicateIdSameModuleImport: 'Multiple imports for the same identifier "{}" from module "{}":\n{}',
     WARN.DuplicateOpSameModuleImport: 'Multiple imports for the same operator identifier "{}" from module "{}":\n{}',
-    WARN.DuplicateTypeSameModuleImport: 'Multiple imports for the same type identifier "{}" from module "{}":\n{}'
+    WARN.DuplicateTypeSameModuleImport: 'Multiple imports for the same type identifier "{}" from module "{}":\n{}',
+    WARN.ShadowFuncIdType: 'Local definition of function "{}"({}) shadows import from module "{}" with the same type "{}":\n{}'
 }
 
 class ErrorHandler():

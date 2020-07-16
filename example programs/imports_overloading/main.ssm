@@ -1,5 +1,5 @@
 //===================================================
-// SSM ASSEMBLY GENERATED ON THU JUL 16 16:01:57 2020
+// SSM ASSEMBLY GENERATED ON THU JUL 16 16:09:02 2020
 // © Ward Theunisse & Ischa Stork 2020
 //===================================================
 // INIT SECTION:
@@ -32,16 +32,6 @@ BRA main_func_main_0_exit
 main_func_main_0_exit: UNLINK
 RET
 
-tail:LINK 00
-LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH 00
-STR RR
-unlink
-ret
 head:LINK 00
 LDL -2
 LDC 00
@@ -49,6 +39,16 @@ EQ
 BRT program_crash
 LDL -2
 LDH -1
+STR RR
+unlink
+ret
+tail:LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH 00
 STR RR
 unlink
 ret
