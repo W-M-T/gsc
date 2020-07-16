@@ -6,5 +6,8 @@ main() :: -> Int
 
     globalVar = 10;
 
+    print(globalVar);
+    print('\n');
+
     return globalVar;
 }
