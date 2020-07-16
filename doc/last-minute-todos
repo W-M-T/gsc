@@ -1,26 +1,30 @@
 Semantische analyse
 v Custom operators in expression parsing
-- Checken van gelijke precedence en associativity bij geimportde symbolen t.o.v. builtins en andere definities
+v Checken van gelijke precedence en associativity bij geimportde symbolen t.o.v. builtins en andere definities
 - Type normalisation voor imports en header files
 v Typechecking aparte errors voor operatoren.
 v Sommige errors hebben geen pointToPosition (type identifier blabla is not defined).
 - externe globals moeten orig_id gebruiken
 - Bij typechecking verkies locale definitie boven geimporteerde
+v Clashen functies / builtins en in imports
+- Aparte errors multiple matches operatoren.
 
 Codegen
 v Tuples
-V Lijsten
-V Accessors
+v Lijsten
+v Accessors
 v Dubbel check even de expressies.
 v Check of alles goed werkt als een for-component mist.
 - String printer
 v Lijst van dependencies
-V Program crash in tussen de functie definities kunnen zetten.
+v Program crash in tussen de functie definities kunnen zetten.
 - externe globals moeten orig_id gebruiken
 
 Alles aan elkaar maken
-- Entrypoint uit de object file
+v Entrypoint uit de object file
 
 Dubbele checks
 - Check even subexpressies aangezien het de enige node is die PARSEDEXPR gebruikt.
 - Dubbelcheck waar return en break uitbreken.
+- Check of de list typecheck restrictie niet te strict is.
+-
