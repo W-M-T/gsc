@@ -124,6 +124,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
             # TODO: Check this for void functions
+
             res.append('LDR RR')
 
         return res
@@ -389,7 +390,6 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
             mappings['operators'][module_name][k] = i
         i += 1
 
-    print(ext_table.functions)
     for f in ext_table.functions:
         if f[0] in [FunUniq.INFIX, FunUniq.PREFIX]:
             for of in ext_table.functions[f]:
@@ -397,8 +397,6 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
                     if of['module'] not in mappings['operators']:
                         mappings['operators'][of['module']] = {}
                     mappings['operators'][of['module']][(f[0], of['orig_id'])] = list(headerfiles[of['module']]['symbols']['functions']).index((f[0], of['orig_id']))
-
-    print(mappings['operators'])
 
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g

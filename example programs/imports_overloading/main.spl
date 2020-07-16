@@ -1,22 +1,10 @@
-from importA import --, ++
-from importB import <* as ++, ** as ++
-
-infixr 7 *^& (a, b) :: Int Int -> Int {
-    return a + b;
-}
-
-infixr 7 *^& (a, b) :: Bool Bool -> Bool {
-    return b;
-}
-
-f(a, b) :: Int Int -> Int {
-    return a + b;
-}
+from importC import globalVar
 
 main() :: -> Int
 {
-    Int a = 4;
-    Int b = 6;
+    print(globalVar);
 
-    return a ++ b;
+    globalVar = 10;
+
+    return globalVar;
 }

@@ -1,0 +1,12 @@
+// DEPENDENCIES:
+// INIT SECTION:
+LDC 7
+LDC importC_global_globalVar
+STA 00
+// BOOTSTRAP:
+BRA main
+// GLOBAL SECTION:
+importC_global_globalVar: NOP
+// FUNCTION SECTION:
+// ENTRYPOINT:
+main: nop

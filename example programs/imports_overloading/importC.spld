@@ -1,0 +1,11 @@
+{
+  "depends": {},
+  "functions": [],
+  "globals": [
+    [
+      "globalVar",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ],
+  "typesyns": []
+}
