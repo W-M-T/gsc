@@ -1,0 +1,37 @@
+{
+  "depends": {
+    "corecB": {
+      "importall": false,
+      "type_imports": [
+        {
+          "effective_id": "--",
+          "orig_id": "--"
+        },
+        {
+          "effective_id": "foo",
+          "orig_id": "foo"
+        },
+        {
+          "effective_id": "fa",
+          "orig_id": "pi"
+        }
+      ]
+    },
+    "corecC": {
+      "importall": true,
+      "type_imports": []
+    }
+  },
+  "functions": [],
+  "globals": [],
+  "typesyns": [
+    [
+      "A",
+      "TYPE(val=\"B\")"
+    ],
+    [
+      "OtherInt",
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ]
+  ]
+}

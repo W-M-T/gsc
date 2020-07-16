@@ -88,6 +88,7 @@ class ERR(IntEnum):
     CyclicTypeSynExternal = 66
     #ImportTypeClash = 67
     RecursiveImportNotFound = 68
+    MultipleOpIdPropertiesFound = 69
 
 
 ERRMSG = {
@@ -159,6 +160,7 @@ ERRMSG = {
     ERR.CyclicTypeSynExternal: 'Imported type synonym "{}" has cyclical definiton:\n{}',
     #ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
     ERR.RecursiveImportNotFound: 'Failed to import module header required by dependency: {}\n{}',
+    ERR.MultipleOpIdPropertiesFound: 'The infix operator identifier "{}" has ambiguous associativity / precedence:\nFound declarations of the following combinations:\n{}'
 }
 
 class WARN(IntEnum):

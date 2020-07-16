@@ -1,4 +1,10 @@
 {
+  "depends": {
+    "corecA": {
+      "importall": true,
+      "type_imports": []
+    }
+  },
   "functions": [
     [
       [

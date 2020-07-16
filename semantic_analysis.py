@@ -198,6 +198,54 @@ def forbid_illegal_types(symbol_table, ext_table):
 
     ERROR_HANDLER.checkpoint()
 
+
+def fixate_operator_properties(symbol_table, ext_table):
+    op_keys = OrderedDict.fromkeys(list(filter(lambda x: x[0] == FunUniq.INFIX, list(symbol_table.functions.keys()) + list(ext_table.functions.keys()))))
+
+    for (uq, op_id) in op_keys:
+        #print(uq, op_id)
+        cur_ops = symbol_table.functions.get((uq, op_id), []) + ext_table.functions.get((uq, op_id), [])
+
+        def getProp(func_entry):
+            if "fixity" in func_entry.keys(): # External symbol
+                return (func_entry["fixity"], func_entry["kind"])
+            else: # Internal symbol
+                return (func_entry["def"].fixity, func_entry["def"].kind)
+        #print(op_id)
+        all_props = OrderedDict.fromkeys(list(map(getProp, cur_ops)))
+        if len(all_props) > 1:
+            prop_strings = map(lambda x: "{} {}".format(x[1].name, x[0]), all_props)
+            ERROR_HANDLER.addError(ERR.MultipleOpIdPropertiesFound, [op_id, "\n".join(prop_strings)])
+    ERROR_HANDLER.checkpoint()
+
+'''
+Requires types to have been normalized
+'''
+def check_functype_clashes(symbol_table, ext_table):
+    func_keys = OrderedDict.fromkeys(list(symbol_table.functions.keys()) + list(ext_table.functions.keys()))
+
+    for (uq, f_id) in func_keys:
+        print(uq, f_id)
+        #error_pairs = []
+        cur_funcs = list(enumerate(symbol_table.functions.get((uq, f_id), []) + ext_table.functions.get((uq, f_id), [])))
+        continue
+        for ix, op in cur_ops:
+            my_type = op['type']
+            '''
+
+            same_types = list(filter(lambda x: AST.equalVals(x[1]['type'], my_type), cur_ops))
+            for sam in same_types:
+                if ix != sam: # Other operator with same type
+                    error_pairs.append
+            #print(print_node())
+            '''
+
+'''
+for (u, op_id)
+FunUniq.INFIX
+symbol_table.functions
+ext_table.functions
+'''
 '''
 Helper function for symbol table building
 Return a dict with function info (insertion order is meaningful)

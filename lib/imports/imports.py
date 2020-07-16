@@ -2,7 +2,7 @@
 
 from lib.imports.header_parser import parse_type
 import json
-from lib.datastructure.AST import FunUniq, AST
+from lib.datastructure.AST import FunUniq, FunKind, AST
 from lib.datastructure.token import TOKEN
 from lib.datastructure.symbol_table import ExternalTable
 from lib.analysis.error_handler import *
@@ -65,7 +65,7 @@ def import_headers(json_string): # Can return exception, so put in try-except
             temp_packet["functions"][(FunUniq[uq], k)] = []
         temp_packet["functions"][(FunUniq[uq], k)].append({
             "fixity":fix,
-            "kind":kind,
+            "kind":FunKind[kind],
             "type":AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
         })
     return temp_packet
@@ -285,7 +285,8 @@ def getExternalSymbols(ast, headerfiles, type_headers):
             unique_op_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, op_imports)))
             unique_type_ids = list(OrderedDict.fromkeys(map(lambda x: x.name.val, type_imports)))
         else:
-            unique_ids = cur_symbols["globals"]
+            fun_ids = list(map(lambda x: x[1], list(cur_symbols["functions"])))
+            unique_ids = list(OrderedDict.fromkeys(list(cur_symbols["globals"]) + fun_ids))
             unique_op_ids = list(map(lambda y: y[0][1], filter(lambda x: x[0][0] == FunUniq.PREFIX or x[0][0] == FunUniq.INFIX, cur_symbols["functions"].items())))
             unique_type_ids = list(cur_symbols["typesyns"])
 
