@@ -9,6 +9,9 @@ from enum import IntEnum
 from lib.imports.objectfile_imports import OBJECT_FORMAT, OBJECT_COMMENT_PREFIX
 from lib.parser.parser import Accessor_lookup
 
+
+
+
 class MEMTYPE(IntEnum):
     BASICTYPE   = 1
     POINTER     = 2
@@ -357,12 +360,8 @@ def build_object_file(module_name, dependencies, global_code, global_labels, fun
 
     # Main
     object_file += OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['main'] + '\n'
-    object_file += 'main: BSR ' + module_name + '_func_main_0\n'
-    object_file += 'LDR RR\n'
-    object_file += 'TRAP 00\n'
-
-    object_file += 'program_crash: NOP'
-
+    object_file += 'main: nop'
+    
     return object_file
 
 def generate_object_file(symbol_table, module_name, dependencies):
@@ -397,37 +396,7 @@ def generate_object_file(symbol_table, module_name, dependencies):
             function_code[key] = generate_func(of, symbol_table, module_name, key, mappings)
             o += 1
 
-    accessors = {
-        'head':
-            [
-                'LINK 00',
-                'LDL -2',
-                'LDC 00',
-                'EQ',
-                'BRT program_crash',
-                'LDL -2',
-                'LDH -1',
-                'STR RR',
-                'unlink',
-                'ret'
-            ],
-        'tail':
-            [
-                'LINK 00',
-                'LDL -2',
-                'LDC 00',
-                'EQ',
-                'BRT program_crash',
-                'LDL -2',
-                'LDH 00',
-                'STR RR',
-                'unlink',
-                'ret',
-            ]
-    }
-
-    for ac, code in accessors.items():
-        function_code[ac] = code
+    
 
     '''
     for f, b in BUILTIN_FUNCTIONS.items():

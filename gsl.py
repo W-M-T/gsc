@@ -10,11 +10,55 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 
+
+BUILTIN_FUNC_BODIES = {
+    'head':
+        [
+            'LINK 00',
+            'LDL -2',
+            'LDC 00',
+            'EQ',
+            'BRT program_crash',
+            'LDL -2',
+            'LDH -1',
+            'STR RR',
+            'unlink',
+            'ret'
+        ],
+    'tail':
+        [
+            'LINK 00',
+            'LDL -2',
+            'LDC 00',
+            'EQ',
+            'BRT program_crash',
+            'LDL -2',
+            'LDH 00',
+            'STR RR',
+            'unlink',
+            'ret',
+        ]
+}
+
+def makeEntryPoint(module_name):
+    temp = "\n".join([
+        'main: BSR {}_func_main_0\n'.format(module_name),
+        'LDR RR',
+        'TRAP 00',
+        'HALT',
+        'program_crash: NOP'
+    ])
+    return temp
+
+
 def buildSection(mod_dicts, section_name):
     res = ""
     if section_name in SECTION_COMMENT_LOOKUP:
         res += OBJECT_COMMENT_PREFIX + SECTION_COMMENT_LOOKUP[section_name] + "\n"
     res += "\n".join(list(map(lambda x: x[section_name], mod_dicts))) + "\n"
+    if section_name == "funcs":
+        for func_name, instructions in BUILTIN_FUNC_BODIES.items():
+            res += func_name + ":" + "\n".join(instructions) + "\n"
     return res
 
 
