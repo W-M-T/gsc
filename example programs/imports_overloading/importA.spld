@@ -1,11 +1,59 @@
 {
   "depends": {},
-  "functions": [],
-  "globals": [
+  "functions": [
     [
-      "a",
+      [
+        "INFIX",
+        "++"
+      ],
+      7,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "INFIX",
+        "++"
+      ],
+      7,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Bool\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
+    ],
+    [
+      [
+        "INFIX",
+        "--"
+      ],
+      7,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+    ],
+    [
+      [
+        "INFIX",
+        "--"
+      ],
+      7,
+      "INFIXL",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Bool\"))",
+        "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
+      ],
+      "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
     ]
   ],
+  "globals": [],
   "typesyns": []
 }

@@ -2,7 +2,7 @@
 
 from lib.imports.header_parser import parse_type
 import json
-from lib.datastructure.AST import FunUniq, AST
+from lib.datastructure.AST import FunUniq, FunKind, AST
 from lib.datastructure.token import TOKEN
 from lib.datastructure.symbol_table import ExternalTable
 from lib.analysis.error_handler import *
@@ -65,7 +65,7 @@ def import_headers(json_string): # Can return exception, so put in try-except
             temp_packet["functions"][(FunUniq[uq], k)] = []
         temp_packet["functions"][(FunUniq[uq], k)].append({
             "fixity":fix,
-            "kind":kind,
+            "kind":FunKind[kind],
             "type":AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
         })
     return temp_packet

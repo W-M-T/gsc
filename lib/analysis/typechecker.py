@@ -53,7 +53,10 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
         return typecheck(expr.val, exp_type, symbol_table, ext_table, func, r, noErrors)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) is AST.RES_GLOBAL:
-            typ = symbol_table.global_vars[expr.val.id.val].type.val
+            if expr.val.module is None:
+                typ = symbol_table.global_vars[expr.val.id.val].type.val
+            else:
+                typ = ext_table.global_vars[expr.val.id.val]['type'].val
             fields = list(reversed(expr.val.fields))
 
             success, typ = getSubType(typ, fields, expr)

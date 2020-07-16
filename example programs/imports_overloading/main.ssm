@@ -1,61 +1,157 @@
 //===================================================
-// SSM ASSEMBLY GENERATED ON WED JUL 15 15:32:32 2020
+// SSM ASSEMBLY GENERATED ON THU JUL 16 14:41:40 2020
 // © Ward Theunisse & Ischa Stork 2020
 //===================================================
 // INIT SECTION:
 
 
 
-// ENTRYPOINT:
+// BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
 
 
 
 // FUNCTION SECTION:
-main_func_main_0: LINK 00
-LDC 97
-LDC 98
-LDC 1
-LDC 2
-LDL 1
-LDL 2
-BSR importB_func_sum_0
-AJS -2
-LDR RR
-TRAP 1
-LDL 3
-LDL 4
-BSR importA_func_sum_0
-AJS -2
-LDR RR
-TRAP 00
-LDC 00
-STR RR
-BRA main_func_main_0_exit
-main_func_main_0_exit: UNLINK
-RET
-importB_func_sum_0: LINK 00
-LDC 99
-STR RR
-BRA importB_func_sum_0_exit
-importB_func_sum_0_exit: UNLINK
-RET
-importB_func_sum_1: LINK 00
-LDL -3
-STR RR
-BRA importB_func_sum_1_exit
-importB_func_sum_1_exit: UNLINK
-RET
-importA_func_sum_0: LINK 00
+main_func_f_0: LINK 00
 LDL -3
 LDL -2
 ADD
 STR RR
-BRA importA_func_sum_0_exit
-importA_func_sum_0_exit: UNLINK
+BRA main_func_f_0_exit
+main_func_f_0_exit: UNLINK
 RET
-// MAIN:
+main_infix_0_0: LINK 00
+LDL -3
+LDL -2
+ADD
+STR RR
+BRA main_infix_0_0_exit
+main_infix_0_0_exit: UNLINK
+RET
+main_func_main_0: LINK 00
+LDC 4
+LDC 6
+LDL 1
+LDL 2
+BSR importA_infix_0_0
+AJS -2
+LDR RR
+STR RR
+BRA main_func_main_0_exit
+main_func_main_0_exit: UNLINK
+RET
+main_infix_0_1: LINK 00
+LDL -2
+STR RR
+BRA main_infix_0_1_exit
+main_infix_0_1_exit: UNLINK
+RET
+importB_infix_0_1: LINK 00
+LDC 42
+TRAP 1
+LDC 42
+TRAP 1
+LDC 66
+TRAP 1
+LDL -3
+STR RR
+BRA importB_infix_0_1_exit
+importB_infix_0_1_exit: UNLINK
+RET
+importB_infix_1_1: LINK 00
+LDC 60
+TRAP 1
+LDC 42
+TRAP 1
+LDC 66
+TRAP 1
+LDL -3
+STR RR
+BRA importB_infix_1_1_exit
+importB_infix_1_1_exit: UNLINK
+RET
+importB_infix_1_0: LINK 00
+LDC 60
+TRAP 1
+LDC 42
+TRAP 1
+LDC 73
+TRAP 1
+LDL -3
+STR RR
+BRA importB_infix_1_0_exit
+importB_infix_1_0_exit: UNLINK
+RET
+importB_infix_0_0: LINK 00
+LDC 42
+TRAP 1
+LDC 42
+TRAP 1
+LDC 73
+TRAP 1
+LDL -3
+STR RR
+BRA importB_infix_0_0_exit
+importB_infix_0_0_exit: UNLINK
+RET
+importA_infix_0_1: LINK 00
+LDC 43
+TRAP 1
+LDC 43
+TRAP 1
+LDC 66
+TRAP 1
+LDC -1
+STR RR
+BRA importA_infix_0_1_exit
+importA_infix_0_1_exit: UNLINK
+RET
+importA_infix_0_0: LINK 00
+LDC 43
+TRAP 1
+LDC 43
+TRAP 1
+LDC 73
+TRAP 1
+LDL -3
+LDL -2
+ADD
+LDC 3
+ADD
+STR RR
+BRA importA_infix_0_0_exit
+importA_infix_0_0_exit: UNLINK
+RET
+importA_infix_1_1: LINK 00
+LDC 45
+TRAP 1
+LDC 45
+TRAP 1
+LDC 66
+TRAP 1
+LDC 00
+STR RR
+BRA importA_infix_1_1_exit
+importA_infix_1_1_exit: UNLINK
+RET
+importA_infix_1_0: LINK 00
+LDC 45
+TRAP 1
+LDC 45
+TRAP 1
+LDC 73
+TRAP 1
+LDL -3
+LDL -2
+ADD
+LDC 1
+SUB
+STR RR
+BRA importA_infix_1_0_exit
+importA_infix_1_0_exit: UNLINK
+RET
+// ENTRYPOINT:
 main: BSR main_func_main_0
 LDR RR
 TRAP 00

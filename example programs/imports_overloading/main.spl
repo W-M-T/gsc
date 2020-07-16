@@ -1,8 +1,22 @@
-from importA import a
+from importA import --, ++
+from importB import <* as ++, ** as ++
+
+infixr 7 *^& (a, b) :: Int Int -> Int {
+    return a + b;
+}
+
+infixr 7 *^& (a, b) :: Bool Bool -> Bool {
+    return b;
+}
+
+f(a, b) :: Int Int -> Int {
+    return a + b;
+}
 
 main() :: -> Int
 {
-    print(a);
+    Int a = 4;
+    Int b = 6;
 
-    return 5;
+    return a ++ b;
 }

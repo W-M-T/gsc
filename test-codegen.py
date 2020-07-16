@@ -76,8 +76,8 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Normalize table
-    # normalizeAllTypes(symbol_table, external_table)
-    # ERROR_HANDLER.checkpoint()
+    #normalizeAllTypes(symbol_table, external_table)
+    #ERROR_HANDLER.checkpoint()
 
     #forbid_illegal_types(symbol_table)
     #ERROR_HANDLER.checkpoint()

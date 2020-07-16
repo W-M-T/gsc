@@ -397,6 +397,7 @@ def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals
     for i in range(0, len(expr.contents)):
         if type(expr.contents[i]) is AST.VARREF:
             if glob:
+                # TODO: Disallow imported globals
                 if expr.contents[i].id.val not in in_scope_globals:
                     ERROR_HANDLER.addError(ERR.UndefinedGlobalVar, [expr.contents[i].id.val, expr.contents[i]])
                     break
@@ -409,14 +410,19 @@ def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals
                 ))
                 expr.contents[i]._start_pos = pos
             else:
-
+                print(expr.contents[i])
+                print(ext_table.global_vars)
                 scope = None
+                module = None
                 if expr.contents[i].id.val in in_scope_locals['locals']:
                     scope = NONGLOBALSCOPE.LocalVar
                 elif expr.contents[i].id.val in in_scope_locals['args']:
                     scope = NONGLOBALSCOPE.ArgVar
                 elif expr.contents[i].id.val in in_scope_globals:
                     scope = None
+                elif expr.contents[i].id.val in ext_table.global_vars:
+                    scope = None
+                    module = ext_table.global_vars[expr.contents[i].id.val]['module']
                 else:
                     ERROR_HANDLER.addError(ERR.UndefinedVar, [expr.contents[i].id.val, expr.contents[i]])
                     break
@@ -430,7 +436,7 @@ def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals
                     ))
                 else:
                     expr.contents[i] = AST.RES_VARREF(val=AST.RES_GLOBAL(
-                        module=None,
+                        module=module,
                         id=expr.contents[i].id,
                         fields=expr.contents[i].fields
                     ))

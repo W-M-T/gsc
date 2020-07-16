@@ -9,14 +9,11 @@ from enum import IntEnum
 from lib.imports.objectfile_imports import OBJECT_FORMAT, OBJECT_COMMENT_PREFIX
 from lib.parser.parser import Accessor_lookup
 
-
-
-
 class MEMTYPE(IntEnum):
     BASICTYPE   = 1
     POINTER     = 2
 
-def generate_expr(expr, module_name, mappings):
+def generate_expr(expr, module_name, mappings, ext_table):
     if type(expr) is Token:
         if expr.typ is TOKEN.INT:
             return ['LDC ' + str(expr.val) if expr.val != 0 else "LDC 00"]
@@ -32,7 +29,7 @@ def generate_expr(expr, module_name, mappings):
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:
-        return generate_expr(expr.val, module_name, mappings)
+        return generate_expr(expr.val, module_name, mappings, ext_table)
     elif type(expr) is AST.RES_VARREF:
         if type(expr.val) == AST.RES_GLOBAL:
             res = []
@@ -40,8 +37,12 @@ def generate_expr(expr, module_name, mappings):
             # TODO: This is only debug code
             if expr.val.module is None:
                 module = module_name
+                var_name = expr.val.id.val
+            else:
+                module = expr.val.module
+                var_name = ext_table.global_vars[expr.val.id.val]['orig_id']
 
-            res.append('LDC ' + module + '_global_' + expr.val.id.val)
+            res.append('LDC ' + module + '_global_' + var_name)
             res.append('LDA 00')
 
             fields = list(reversed(expr.val.fields))
@@ -96,7 +97,7 @@ def generate_expr(expr, module_name, mappings):
         res = []
 
         for a in expr.args:
-            res.extend(generate_expr(a, module_name, mappings))
+            res.extend(generate_expr(a, module_name, mappings, ext_table))
 
         module = expr.module if expr.module is not None else module_name
 
@@ -109,21 +110,28 @@ def generate_expr(expr, module_name, mappings):
                 res.append(BUILTIN_PREFIX_OPS[expr.id.val][1])
         else:
             if expr.uniq == FunUniq.FUNC:
-                code_id = expr.id.val
+                if expr.module is not None:
+                    fid = ext_table.functions[(expr.uniq, expr.id.val)][expr.oid]['orig_id']
+                else:
+                    fid = expr.id.val
             else:
-                code_id = str(mappings['operators'].index((expr.uniq,expr.id.val)))
+                if expr.module is not None:
+                    fid = str(mappings['operators'][module][(expr.uniq, expr.id.val)])
+                else:
+                    fid = str(mappings['operators'][module][(expr.uniq, expr.id.val)])
 
-            res.append('BSR ' + module + '_{}_'.format(expr.uniq.name.lower()) + code_id + '_' + str(expr.oid))
+            res.append('BSR ' + module + '_{}_'.format(expr.uniq.name.lower()) + fid + '_' + str(expr.oid))
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
+            # TODO: Check this for void functions
             res.append('LDR RR')
 
         return res
     elif type(expr) is AST.TUPLE:
         res = []
 
-        res.extend(generate_expr(expr.a, module_name, mappings))
-        res.extend(generate_expr(expr.b, module_name, mappings))
+        res.extend(generate_expr(expr.a, module_name, mappings, ext_table))
+        res.extend(generate_expr(expr.b, module_name, mappings, ext_table))
         res.append("STMH 2")
 
         return res
@@ -132,19 +140,19 @@ def generate_expr(expr, module_name, mappings):
         print(type(expr))
         raise Exception("Unknown expression type encountered")
 
-def generate_ret(stmt, code, module_name, mappings, label):
+def generate_ret(stmt, code, module_name, mappings, ext_table, label):
     if stmt.val.expr is not None:
-        code.extend(generate_expr(stmt.val.expr, module_name, mappings))
+        code.extend(generate_expr(stmt.val.expr, module_name, mappings, ext_table))
         code.append('STR RR')
     code.append('BRA ' + label + '_exit')
 
     return code
 
-def generate_actstmt(stmt, code, module_name, mappings, label):
+def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
     if type(stmt.val) == AST.TYPED_FUNCALL:
-        code.extend(generate_expr(stmt.val, module_name, mappings))
+        code.extend(generate_expr(stmt.val, module_name, mappings, ext_table))
     else:
-        code.extend(generate_expr(stmt.val.expr, module_name, mappings))
+        code.extend(generate_expr(stmt.val.expr, module_name, mappings, ext_table))
         if type(stmt.val.varref.val) is AST.RES_NONGLOBAL:
             if (stmt.val.varref.val.id.val in mappings['vars'] and mappings['vars'][stmt.val.varref.val.id.val][1] == MEMTYPE.BASICTYPE) or (stmt.val.varref.val.id.val in mappings['args'] and mappings['args'][stmt.val.varref.val.id.val][1] == MEMTYPE.BASICTYPE):
                 if stmt.val.varref.val.scope == NONGLOBALSCOPE.LocalVar:
@@ -220,19 +228,19 @@ def generate_actstmt(stmt, code, module_name, mappings, label):
 
     return code
 
-def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = None):
+def generate_stmts(stmts, label, module_name, mappings, ext_table, index = 0, loop_label = None):
     code = []
 
     for stmt in stmts:
         if type(stmt.val) == AST.RETURN:
-            code = generate_ret(stmt, code, module_name, mappings, label)
+            code = generate_ret(stmt, code, module_name, mappings, ext_table, label)
             break
         elif type(stmt.val) == AST.BREAK:
             code.append("BRA " + loop_label + "_exit")
         elif type(stmt.val) == AST.CONTINUE:
             code.append("BRA " + loop_label + "_update")
         elif type(stmt.val) == AST.ACTSTMT:
-            code = generate_actstmt(stmt.val, code, module_name, mappings, label)
+            code = generate_actstmt(stmt.val, code, module_name, mappings, ext_table, label)
         elif type(stmt.val) == AST.IFELSE:
             branch_stmts = []
             indices = []
@@ -244,12 +252,12 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
 
                 # If or elif
                 if b.expr is not None:
-                    code.extend(generate_expr(b.expr, module_name, mappings))
+                    code.extend(generate_expr(b.expr, module_name, ext_table, mappings))
                     code.append("BRT " + label + "_" + str(index))
                 else: # Else
                     code.append("BRA " + label + "_" + str(index))
 
-                branch_stmt, index = generate_stmts(b.stmts, label, module_name, mappings, index, loop_label)
+                branch_stmt, index = generate_stmts(b.stmts, label, module_name, mappings, ext_table, index, loop_label)
 
                 # Add label to exit in case when there is no else statement
                 if i == len(stmt.val.condbranches) and b.expr is not None:
@@ -272,7 +280,7 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
 
         elif type(stmt.val) == AST.LOOP:
             if stmt.val.init is not None:
-                generate_actstmt(stmt.val.init, code, module_name, mappings, label)
+                generate_actstmt(stmt.val.init, code, module_name, mappings, ext_table, label)
             index += 1
             start_index = index
 
@@ -282,12 +290,12 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
 
             # Condition
             if stmt.val.cond is not None:
-                cond = generate_expr(stmt.val.cond, module_name, mappings)
+                cond = generate_expr(stmt.val.cond, module_name, mappings, ext_table)
                 code.extend(cond)
                 code.append("BRF " + label + "_" + str(start_index) + "_exit")
 
             # Statements
-            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, mappings, index, loop_label)
+            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, ext_table, mappings, index, loop_label)
             code.extend(branch_stmt)
 
             # Update
@@ -301,7 +309,7 @@ def generate_stmts(stmts, label, module_name, mappings, index = 0, loop_label = 
 
     return code, index
 
-def generate_func(func, symbol_table, module_name, label, mappings):
+def generate_func(func, ext_table, module_name, label, mappings):
     print("generating func:",func['def'].id.val)
     code = []
 
@@ -319,9 +327,9 @@ def generate_func(func, symbol_table, module_name, label, mappings):
         memtype = MEMTYPE.POINTER if type(vardecl.type.val) == AST.TUPLETYPE or type(vardecl.type.val) == AST.LISTTYPE else MEMTYPE.BASICTYPE
         mappings['vars'][vardecl.id.val] = (str(var_index), memtype)
         var_index += 1
-        code.extend(generate_expr(vardecl.expr, module_name, mappings))
+        code.extend(generate_expr(vardecl.expr, module_name, mappings, ext_table))
 
-    stmts_code, _ = generate_stmts(func['def'].stmts, label, module_name, mappings)
+    stmts_code, _ = generate_stmts(func['def'].stmts, label, module_name, mappings, ext_table)
     code.extend(stmts_code)
 
     code.append(label + '_exit: UNLINK')
@@ -331,7 +339,7 @@ def generate_func(func, symbol_table, module_name, label, mappings):
 
     return code
 
-def build_object_file(module_name, dependencies, global_code, global_labels, function_code):
+def build_object_file(dependencies, global_code, global_labels, function_code):
     # Depedencies
     object_file = OBJECT_COMMENT_PREFIX + OBJECT_FORMAT['depend'] + '\n'
     for d in dependencies:
@@ -364,22 +372,39 @@ def build_object_file(module_name, dependencies, global_code, global_labels, fun
     
     return object_file
 
-def generate_object_file(symbol_table, module_name, dependencies):
+def generate_object_file(symbol_table, ext_table, headerfiles, module_name, dependencies):
     global_code = []
     global_labels = []
     function_code = {}
     mappings = {
         'globals': {},
-        'operators': list(filter(lambda x: x[0] in [FunUniq.INFIX, FunUniq.PREFIX], list(symbol_table.functions.keys()))),
+        'operators': {module_name: {} },
         'args': {},
         'vars': {}
     }
+
+    i = 0
+    for k in list(symbol_table.functions.keys()):
+        if k[0] in [FunUniq.INFIX, FunUniq.PREFIX]:
+            mappings['operators'][module_name][k] = i
+        i += 1
+
+    print(ext_table.functions)
+    for f in ext_table.functions:
+        if f[0] in [FunUniq.INFIX, FunUniq.PREFIX]:
+            for of in ext_table.functions[f]:
+                if of['module'] != 'builtins':
+                    if of['module'] not in mappings['operators']:
+                        mappings['operators'][of['module']] = {}
+                    mappings['operators'][of['module']][(f[0], of['orig_id'])] = list(headerfiles[of['module']]['symbols']['functions']).index((f[0], of['orig_id']))
+
+    print(mappings['operators'])
 
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g
         global_labels.append(key)
         mappings['globals'][g] = MEMTYPE.POINTER if type(symbol_table.global_vars[g].type.val) == AST.TUPLETYPE or type(symbol_table.global_vars[g].type.val) == AST.LISTTYPE else MEMTYPE.BASICTYPE
-        global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name, mappings))
+        global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name, mappings, ext_table))
         global_code.extend(['LDC ' + key, 'STA 00'])
 
     for f in symbol_table.functions:
@@ -387,13 +412,13 @@ def generate_object_file(symbol_table, module_name, dependencies):
         for of in symbol_table.functions[f]:
             key = module_name
             if of['def'].kind is FunKind.PREFIX:
-                key += '_prefix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind), of['def'].id.val))) + "_"
-            elif of['def'].kind  is FunKind.INFIXL or of['def'].kind  is FunKind.INFIXR:
-                key += '_infix_' + str(mappings['operators'].index((FunKindToUniq(of['def'].kind), of['def'].id.val))) + "_"
+                key += '_prefix_' + str(mappings['operators'][module_name][(FunKindToUniq(of['def'].kind), of['def'].id.val)]) + "_"
+            elif of['def'].kind is FunKind.INFIXL or of['def'].kind  is FunKind.INFIXR:
+                key += '_infix_' + str(mappings['operators'][module_name][(FunKindToUniq(of['def'].kind), of['def'].id.val)]) + "_"
             else:
                 key += '_func_' + f[1] + "_"
             key += str(o)
-            function_code[key] = generate_func(of, symbol_table, module_name, key, mappings)
+            function_code[key] = generate_func(of, ext_table, module_name, key, mappings)
             o += 1
 
     
@@ -407,6 +432,6 @@ def generate_object_file(symbol_table, module_name, dependencies):
             i += 1
     '''
 
-    gen_code = build_object_file(module_name, dependencies, global_code, global_labels, function_code)
+    gen_code = build_object_file(dependencies, global_code, global_labels, function_code)
 
     return gen_code

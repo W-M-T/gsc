@@ -1,90 +1,45 @@
 // DEPENDENCIES:
+// DEPEND importA
+// DEPEND importB
 // INIT SECTION:
 
 // BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
 // FUNCTION SECTION:
-main_func_print_0: LINK 00
+main_func_f_0: LINK 00
+LDL -3
 LDL -2
-main_func_print_0_1: nop
-LDL 1
-LDC 00
-EQ
-NOT
-BRF main_func_print_0_1_exit
-LDL 1
-BSR head
-AJS -1
-LDR RR
-TRAP 1
-LDL 1
-BSR tail
-AJS -1
-LDR RR
-STL 1
-main_func_print_0_1_update: nop
-BRA main_func_print_0_1
-main_func_print_0_1_exit: nop
-main_func_print_0_exit: UNLINK
+ADD
+STR RR
+BRA main_func_f_0_exit
+main_func_f_0_exit: UNLINK
 RET
-tail: LINK 00
+main_infix_0_0: LINK 00
+LDL -3
 LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH 00
+ADD
 STR RR
-unlink
-ret
-head: LINK 00
-LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH -1
-STR RR
-unlink
-ret
+BRA main_infix_0_0_exit
+main_infix_0_0_exit: UNLINK
+RET
 main_func_main_0: LINK 00
-LDC 72
-LDC 101
-LDC 108
-LDC 108
-LDC 111
-LDC 32
-LDC 87
-LDC 111
-LDC 114
-LDC 108
-LDC 100
-LDC 33
-LDC 00
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
-STMH 2
+LDC 4
+LDC 6
 LDL 1
-BSR main_func_print_0
-AJS -1
+LDL 2
+BSR importA_infix_0_0
+AJS -2
 LDR RR
-LDC 5
 STR RR
 BRA main_func_main_0_exit
 main_func_main_0_exit: UNLINK
 RET
+main_infix_0_1: LINK 00
+LDL -2
+STR RR
+BRA main_infix_0_1_exit
+main_infix_0_1_exit: UNLINK
+RET
 // ENTRYPOINT:
-main: BSR main_func_main_0
-LDR RR
-TRAP 00
-program_crash: NOP
+main: nop
