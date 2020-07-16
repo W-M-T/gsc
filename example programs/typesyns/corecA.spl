@@ -1,4 +1,4 @@
-from corecB import -- as -, pi as fa
+from corecB import -- as ---, pi as fa
 importall corecC
 //from corecC import foo
 
@@ -12,7 +12,7 @@ infixl 2 -- (a,b) :: Int Int -> Int {
 	return a;
 }
 
-infixl 2 -- (a,b) :: Int Int -> Int {
+infixl 2 -- (a,b) :: Int Int -> Char {
 	print(a);
-	return a;
+	return 'h';
 }

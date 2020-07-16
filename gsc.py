@@ -24,6 +24,52 @@ from lib.parser.parser import parseTokenStream
 from semantic_analysis import buildSymbolTable, fixExpression, analyseFunc, resolveNames
 
 
+def generateObjectFile(ast, args, main_mod_name, import_mapping):
+    headerfiles, typesyn_headerfiles = getHeaders(ast,
+        main_mod_name,
+        HEADER_EXT,
+        os.path.dirname(args.infile),
+        file_mapping_arg=import_mapping,
+        lib_dir_path=args.lp,
+        lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
+
+    ext_table, dependency_names = getExternalSymbols(ast, headerfiles, typesyn_headerfiles)
+    ext_table = enrichExternalTable(ext_table)
+    ERROR_HANDLER.checkpoint()
+
+    symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
+
+    fixate_operator_properties(symbol_table, ext_table)
+    check_functype_clashes(symbol_table, ext_table)
+    #exit()
+
+    forbid_illegal_types(symbol_table, ext_table)
+
+    #print(symbol_table)
+    #print(ext_table)
+    #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+
+    # Resolve Expr names
+    resolveNames(symbol_table, ext_table)
+    ERROR_HANDLER.checkpoint()
+
+    # Parse expressions
+    fixExpression(ast, symbol_table, ext_table)
+    ERROR_HANDLER.checkpoint()
+
+    # Function control flow analysis
+    analyseFunc(symbol_table)
+    ERROR_HANDLER.checkpoint()
+
+    typecheck_globals(symbol_table, ext_table)
+    typecheck_functions(symbol_table, ext_table)
+
+    gen_code = generate_object_file(symbol_table, ext_table, headerfiles, main_mod_name, dependency_names)
+
+    return gen_code
+
+
+
 def main():
     argparser = ArgumentParser(description="SPL Compiler")
     argparser.add_argument("infile", metavar="INPUT", help="Input file", nargs="?", default="./example programs/p1_example.spl")
@@ -58,7 +104,7 @@ def main():
     compiler_target = {
         'header' : args.H,
         'object' : args.C,
-        'binary' : False#not (args.H or args.C)
+        'binary' : not (args.H or args.C)
     }
 
 
@@ -87,7 +133,7 @@ def main():
 
     if compiler_target['header']: # Generate a headerfile
         symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=True)
-        print(ext_table)
+        #print(ext_table)
         #resolveTypeSyns(symbol_table, ext_table)
         mod_dependencies = get_type_dependencies(ast)
         header_json = export_headers(symbol_table, main_mod_name, mod_dependencies, ext_table)
@@ -102,46 +148,7 @@ def main():
         pass
 
     if compiler_target['object']: # Generate an object file
-        headerfiles, typesyn_headerfiles = getHeaders(ast,
-            main_mod_name,
-            HEADER_EXT,
-            os.path.dirname(args.infile),
-            file_mapping_arg=import_mapping,
-            lib_dir_path=args.lp,
-            lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-
-        ext_table, dependency_names = getExternalSymbols(ast, headerfiles, typesyn_headerfiles)
-        ext_table = enrichExternalTable(ext_table)
-        ERROR_HANDLER.checkpoint()
-
-        symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
-
-        fixate_operator_properties(symbol_table, ext_table)
-        #check_functype_clashes(symbol_table, ext_table)
-        #exit()
-
-        forbid_illegal_types(symbol_table, ext_table)
-
-        #print(symbol_table)
-        #print(ext_table)
-        #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
-
-        # Resolve Expr names
-        resolveNames(symbol_table, ext_table)
-        ERROR_HANDLER.checkpoint()
-
-        # Parse expressions
-        fixExpression(ast, symbol_table, ext_table)
-        ERROR_HANDLER.checkpoint()
-
-        # Function control flow analysis
-        analyseFunc(symbol_table)
-        ERROR_HANDLER.checkpoint()
-        
-        typecheck_globals(symbol_table, ext_table)
-        typecheck_functions(symbol_table, ext_table)
-
-        gen_code = generate_object_file(symbol_table, ext_table, headerfiles, main_mod_name, dependency_names)
+        gen_code = generateObjectFile(ast, args, main_mod_name, import_mapping)
 
         if not args.stdout:
             outfile_name = outfile_base + OBJECT_EXT
@@ -154,46 +161,10 @@ def main():
         '''
 
     if compiler_target['binary']: # Generate a binary
-        # insert zelfde code als bij begin van compiler_target['object']
-        # maak er gewoon een functie van
-
-        # dan
+        gen_code = generateObjectFile(ast, args, main_mod_name, import_mapping)
         from io import StringIO
-        compiled_code = '''// DEPENDENCIES:
-// DEPEND testlinkB
-// INIT SECTION:
-LDC 9
-LDC 4
-ADD
-LDC testlinkA_global_b
-STA 00
-LDC 5
-LDC testlinkA_global_a
-STA 00
-// ENTRYPOINT:
-BRA main
-// GLOBAL SECTION:
-testlinkA_global_b: NOP
-testlinkA_global_a: NOP
-// FUNCTION SECTION:
-testlinkA_func_main_0: LINK 00
-LDC testlinkA_global_a
-LDA 00
-LDL 1
-LDL 1
-LDL 2
-ADD
-STR RR
-UNLINK
-RET
-// MAIN:
-main: BSR testlinkA_func_main_0
-LDR RR
-BSR testlinkB_func_main_0
-LDR RR
-ADD
-TRAP 00'''
-        pseudo_file_code = StringIO(compiled_code)
+        pseudo_file_code = StringIO(gen_code)
+
         mod_dicts = getObjectFiles(
             pseudo_file_code,
             args.infile,
@@ -207,7 +178,7 @@ TRAP 00'''
 
         if not args.stdout:
             outfile_name = outfile_base + TARGET_EXT
-            write_out(end, outfile_name, "executable")
+            write_out(result, outfile_name, "executable")
         else:
             print(result)
 

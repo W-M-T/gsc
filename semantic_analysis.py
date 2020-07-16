@@ -269,7 +269,7 @@ def check_functype_clashes(symbol_table, ext_table):
                 if not any(map(lambda x: x == BUILTINS_NAME, [a_mod, b_mod])): # Not builtin
                     ERROR_HANDLER.addWarning(WARN.ShadowFuncIdType, [f_id, uq.name, other, print_node(cur_funcs[a][1]['type']), cur_funcs[you][1]['def'].id])
 
-    ERROR_HANDLER.checkpoint()
+    #ERROR_HANDLER.checkpoint()
 
 '''
 Helper function for symbol table building
