@@ -83,7 +83,7 @@ def main():
     ERROR_HANDLER.checkpoint()
 
     # Resolve Expr names
-    resolveNames(symbol_table)
+    resolveNames(symbol_table, external_table)
     ERROR_HANDLER.checkpoint()
 
     # Parse expressions

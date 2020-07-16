@@ -1,15 +1,7 @@
-print(string) :: [Char] -> Void {
-    [Char] s = string;
-    while(!isEmpty(s)) {
-        print(s.hd);
-        s = s.tl;
-    }
-}
+from importA import a;
 
 main() :: -> Int
 {
-    [Char] a = "Hello world!";
-
     print(a);
 
     return 5;

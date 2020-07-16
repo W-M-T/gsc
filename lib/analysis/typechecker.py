@@ -151,7 +151,6 @@ def typecheck(expr, exp_type, symbol_table, ext_table, func=None, r=0, noErrors=
                                 input_matches += 1
 
                         if input_matches == len(expr.args):
-                            print(of['type'].from_types[i].val)
                             matches.append({
                                 'id': oid,
                                 'module': module,

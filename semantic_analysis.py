@@ -411,14 +411,14 @@ def buildSymbolTable(ast, just_for_headerfile=True, ext_symbol_table=None):
 
 
 ''' Replace all variable occurences that aren't definitions with a kind of reference to the variable definition that it's resolved to '''
-def resolveNames(symbol_table):
+def resolveNames(symbol_table, ext_table):
     # Resolve names used in expressions in global variable definitions:
     # Order matters here as to what is in scope
 
     # Globals
     for glob_var_id, glob_var in symbol_table.global_vars.items():
         in_scope = list(map(lambda x: x[0], filter(lambda x: list(symbol_table.global_vars.keys()).index(glob_var_id) > list(symbol_table.global_vars.keys()).index(x[0]), symbol_table.global_vars.items())))
-        glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, glob=True, in_scope_globals=in_scope)
+        glob_var.expr = resolveExprNames(glob_var.expr, symbol_table, ext_table, glob=True, in_scope_globals=in_scope)
 
     # Functions
     in_scope_globals = list(symbol_table.global_vars.keys())
@@ -431,13 +431,13 @@ def resolveNames(symbol_table):
                     symbol_table.functions[f][i]['local_vars'].items())))
 
                 in_scope_locals['locals'] = in_scope
-                resolveExprNames(v.expr, symbol_table, False, in_scope_globals, in_scope_locals)
+                resolveExprNames(v.expr, symbol_table, ext_table, False, in_scope_globals, in_scope_locals)
 
             in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
 
             # Expressions and assignments
-            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, False, in_scope_globals, in_scope_locals)))
-            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.DEFERREDEXPR, node, lambda y: resolveExprNames(y, symbol_table, ext_table, False, in_scope_globals, in_scope_locals)))
+            treemap(symbol_table.functions[f][i]['def'].stmts, lambda node: selectiveApply(AST.ASSIGNMENT, node, lambda y: resolveAssignName(y, symbol_table, ext_table, in_scope_globals, in_scope_locals)))
 
 '''
 Funcall naar module, (FunUniq, id) (nog geen type)
@@ -445,7 +445,7 @@ Varref naar module, scope (global of local + naam of arg + naam)
 Type-token naar module, naam of forall type
 '''
 
-def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_locals={}):
+def resolveAssignName(assignment, symbol_table, ext_table, in_scope_globals=[], in_scope_locals={}):
     scope = None
     if assignment.varref.id.val in in_scope_locals['locals']:
         scope = NONGLOBALSCOPE.LocalVar
@@ -480,7 +480,7 @@ def resolveAssignName(assignment, symbol_table, in_scope_globals=[], in_scope_lo
 Resolve an expression with the following globals in scope
 Functions are always in scope
 '''
-def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_scope_locals={}):
+def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals=[], in_scope_locals={}):
     for i in range(0, len(expr.contents)):
         if type(expr.contents[i]) is AST.VARREF:
             if glob:
@@ -523,11 +523,11 @@ def resolveExprNames(expr, symbol_table, glob=False, in_scope_globals=[], in_sco
                     ))
                 expr.contents[i]._start_pos = pos
         elif type(expr.contents[i]) is AST.TUPLE:
-            expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, glob, in_scope_globals, in_scope_locals)
-            expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, glob, in_scope_globals, in_scope_locals)
+            expr.contents[i].a = resolveExprNames(expr.contents[i].a, symbol_table, ext_table, glob, in_scope_globals, in_scope_locals)
+            expr.contents[i].b = resolveExprNames(expr.contents[i].b, symbol_table, ext_table, glob, in_scope_globals, in_scope_locals)
         elif type(expr.contents[i]) is AST.FUNCALL:
             for k in range(0, len(expr.contents[i].args)):
-                expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, glob, in_scope_globals, in_scope_locals)
+                expr.contents[i].args[k] = resolveExprNames(expr.contents[i].args[k], symbol_table, ext_table, glob, in_scope_globals, in_scope_locals)
 
     return expr
 

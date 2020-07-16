@@ -1,0 +1,16 @@
+print(string) :: [Char] -> Void {
+    [Char] s = string;
+    while(!isEmpty(s)) {
+        print(s.hd);
+        s = s.tl;
+    }
+}
+
+main() :: -> Int
+{
+    [Char] a = 'H' : 'e' : 'l' : 'l' : 'o' : ' ' : 'W' : 'o' : 'r' : 'l' : 'd' : '!' : [];
+
+    print(a);
+
+    return 5;
+}
