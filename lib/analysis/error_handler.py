@@ -164,7 +164,7 @@ ERRMSG = {
     ERR.MultipleMain: 'Too many definitions for entrypoint "{}"'.format(ENTRYPOINT_FUNCNAME),
     ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}',
     ERR.UndefinedTypeId: 'Type identifier "{}" is not defined:\n{}',
-    ERR.CyclicTypeSyn: 'Type synonym "{}" from module "{}" has cyclical definition:\n{}',
+    ERR.CyclicTypeSyn: 'Type synonym "{}" from module "{}" has cyclical definition',
     ERR.TypeIdNotFound: 'Definition for type identifier "{}" in definition of "{}" not found (in module "{}")',
     #ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
     ERR.RecursiveImportNotFound: 'Failed to import module header required by dependency: {}\n{}',

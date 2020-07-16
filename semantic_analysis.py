@@ -25,6 +25,7 @@ from collections import OrderedDict
 
 
 '''
+TODO BROKEN
 Replace all type synonyms in type with their definition, until the base case.
 '''
 def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normalize=True):
@@ -61,10 +62,32 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
         ext_table.type_syns[type_id]['def_type'] = treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
     #print("DEF_TYPE",def_type)
 
+# Normalizer to get rid of all MOD_TYPE AST nodes
+def normalizeTypeSyn(typedef, type_entry, own_typesyns):
+    #print("Started with",typedef)
 
+    def replace_other(x):
+        #print(x)
+        if type(x.val) is AST.MOD_TYPE:
+            found_mod = x.val.module
+            found_orig = x.val.orig_id
 
+            #print(type_entry,"??",(found_mod, found_orig))
 
+            if (found_mod, found_orig) == type_entry:
+                #print("CIRCULAR")
+                #print(type_entry)
+                #print(print_node(typedef))
+                ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_entry[1], type_entry[0]])
+            else:
+                #print("In typedef",typedef,"rewriting",own_typesyns[found_mod][found_orig])
+                x.val = own_typesyns[found_mod][found_orig]
+        return x
+    treemap(typedef, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+    ERROR_HANDLER.checkpoint() # TODO This could be better
+    #print("rewritten to",typedef)
 
+# Get all used typesyns in definition, to build a graph
 def getTypeDependencies(def_type):
     children = OrderedDict()
     def get_child(x):
@@ -76,6 +99,7 @@ def getTypeDependencies(def_type):
     treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, get_child), replace=False)
     return list(children)
 
+# Resolve the used types to a module and original id
 def resolveTypeDependency(type_entry, modname, own_typesyns, imported_typesyns):
     type_id = type_entry[0]
     typedef = type_entry[1]
@@ -195,13 +219,8 @@ def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normaliz
                 target_info['type_imports'].extend(extra_typesyns)
                 #print(own_defined_typesyns[target_modname])
             target_mod_dict[target_modname] = target_info['type_imports']
-    '''
-    #print(my_typesyn_imports)
-    for k,v in my_typesyn_imports.items():
-        #print("+",k)
-        #print(v)
-        pass
-    '''
+
+
     # Resolve the types in typesyns
     for modname, type_entries in own_defined_typesyns.items():
         #print(modname)
@@ -211,8 +230,9 @@ def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normaliz
             #print(type_entry)
     ERROR_HANDLER.checkpoint()
 
+
     # Get type syn dependencies and do topological sort:
-    type_graph = {}
+    type_graph = OrderedDict()
     for modname, type_entries in own_defined_typesyns.items():
         #print(modname)
         for type_entry in type_entries.items():
@@ -226,22 +246,38 @@ def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normaliz
     components = []
     #print("Type graph",type_graph)
     while len(to_see) > 0:
-        start_node = to_see[0] # For every possible starting node
+        start_node = to_see.pop() # For every possible starting node
         topo = iterative_topological_sort(type_graph, start_node)
         for top in topo:
             if top in to_see:
                 to_see.remove(top)
         components.append(topo)
 
+    # Rewrite one by one
     for topo in components:
-        print("Comp")
+        #print("======Comp")
         err_produced = []
         for type_node in reversed(topo):
-            print(type_node)
+            if len(type_graph[type_node]) > 0: # Not just base type
+                node_modname, node_typename = type_node
+                #print(type_node)
+                #print(own_defined_typesyns[node_modname][node_typename])
+
+                normalizeTypeSyn(own_defined_typesyns[node_modname][node_typename], type_node, own_defined_typesyns)
+
             #normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
     #TODO for exponential types this is still slow because after replacing, the entire subtree is traversed. This should not be necessary
 
+    print("RESULT=================")
+    # Print shit to see if it is fully rewritten
+    for modname, type_entries in own_defined_typesyns.items():
+        #print(modname)
+        for type_entry in type_entries.items():
+            print(type_entry)
 
+    print("DESIRED===============")
+    for type_name, type_def in own_defined_typesyns[main_mod_name].items():
+        print(type_name, "=", print_node(type_def))
     #print(type_graph)
     ERROR_HANDLER.checkpoint()
         
