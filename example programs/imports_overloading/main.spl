@@ -1,10 +1,124 @@
-infixl 3 = (a, b) :: Char Char -> Char {
-    return b;
+/*
+    Three ways to implement the factorial function in SPL.
+    First the recursive version.
+*/
+print(xs) :: [Int] -> Void {
+    while(!isEmpty(xs)) {
+        print(xs.hd);
+        xs.tl = xs;
+    }
 }
 
-main ( ) :: -> Int {
-    Char x = 'a' = '\n' = '\\';
-    print(x);
+facR ( n ) :: Int -> Int {
+    if ( n < 2 ) {
+        return 1;
+    } else {
+        return n * facR ( n - 1 );
+    }
+}
 
-    return 0;
+// The iterative version of the factorial function
+facI ( n ) :: Int -> Int {
+    Int r = 1;
+    while ( n > 1 ) {
+        r = r * n;
+        n = n - 1;
+    }
+    return r;
+}
+
+// A main function to check the results
+// It takes no arguments, so the type looks like this:
+main ( ) :: -> Int {
+    /*Int n = 0;
+    Int facN = 1;
+    Bool ok = True;
+    while ( n < 20 ) {
+        facN = facR ( n ) ;
+        if ( facN != facI ( n ) || facN != facL ( n )) {
+            print ( n : facN : facI ( n ) : facL ( n ) : [] );
+            ok = False;
+        }
+        n = n + 1;
+    }
+    print ( ok );
+    print('\n');*/
+
+    Bool a = False;
+
+    print(a);
+
+    return 2;
+}
+
+// A list based factorial function
+// Defined here to show that functions can be given in any order (unlike C)
+facL ( n ) :: Int -> Int {
+    return product (fromTo ( 1, n ));
+}
+
+// Computes the product of a list of integers
+product ( list ) :: [Int] -> Int {
+    if ( isEmpty ( list ) ) {
+        return 1 ;
+    } else {
+        return list.hd * product ( list.tl );
+    }
+}
+
+// Generates a list of integers from the first to the last argument
+fromTo ( x, to ) :: Int Int -> [Int] {
+    if ( x <= to ) {
+        return x : fromTo ( x + 1, to );
+    } else {
+        return [];
+    }
+}
+
+// Make a reversed copy of any list
+reverse ( list ) :: [Int] -> [Int] {
+    [Int] accu = [] ;
+    while ( ! isEmpty ( list ) ) {
+        accu = list.hd : accu ;
+        list = list.tl ;
+    }
+    return accu ;
+}
+
+// Absolute value in one line
+abs ( n ) :: Int -> Int { if (n < 0) { return -n; } else { return n ; } }
+
+// make a copy of a tuple with swapped elements
+swapCopy ( pair ) :: (Int, Int) -> (Int, Int) {
+    return ( pair.snd, pair.fst) ;
+}
+
+// swap the elements in a tuple
+swap ( tuple ) :: (Int, Int) -> (Int, Int) {
+    Int tmp = tuple.fst;
+    tuple.fst = tuple.snd;
+    tuple.snd = tmp;
+    return tuple;
+}
+
+// list append
+append ( l1, l2 ) :: [Int] [Int] -> [Int] {
+    if ( isEmpty ( l1 ) ) {
+        return l2;
+    } else {
+        l1.tl = append ( l1.tl , l2 ) ;
+        return l1;
+    }
+}
+
+// square the odd numbers in a list and remove the even numbers
+squareOddNumbers ( list ) :: [Int] -> [Int] {
+    while ( ! isEmpty ( list ) && list.hd % 2 == 0) {
+        list = list.tl ;
+    }
+    if ( !isEmpty ( list ) ) {
+        list.hd = list.hd * list.hd;
+        list.tl = squareOddNumbers( list.tl ) ;
+    }
+    return list ;
 }
