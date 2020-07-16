@@ -86,7 +86,8 @@ class ERR(IntEnum):
     UndefinedTypeId = 64
     CyclicTypeSyn = 65
     CyclicTypeSynExternal = 66
-    ImportTypeClash = 67
+    #ImportTypeClash = 67
+    RecursiveImportNotFound = 68
 
 
 ERRMSG = {
@@ -155,8 +156,9 @@ ERRMSG = {
     ERR.WrongMainType: 'Entrypoint ' + ENTRYPOINT_FUNCNAME + ' needs to be of type signature ":: -> Int":\n{}',
     ERR.UndefinedTypeId: 'Type identifier "{}" is not defined:\n{}',
     ERR.CyclicTypeSyn: 'Type synonym "{}" has cyclical definition:\n{}',
-    ERR.CyclicTypeSynExternal: 'Imported type synonym "{}" has cyclical definiton',
-    ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
+    ERR.CyclicTypeSynExternal: 'Imported type synonym "{}" has cyclical definiton:\n{}',
+    #ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
+    ERR.RecursiveImportNotFound: 'Failed to import module header required by dependency: {}\n{}',
 }
 
 class WARN(IntEnum):

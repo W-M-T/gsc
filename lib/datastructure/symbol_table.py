@@ -7,8 +7,7 @@ from collections import OrderedDict
 # TODO handle external symbol table the same as the regular one maybe?
 '''
 typesyns:
-    gewone: type id naar ('def_type','decl')
-    externe: type id naar dict originele id, module, gedefinieerd type = ('def_type', 'module', 'orig_id')
+    externe: type id, module naar dict originele id, gedefinieerd type = ('def_type', 'orig_id', 'decl') (decl mag None zijn)
 
 globals:
     gewone: identifier naar definitienode ("type", "id", "expr")
@@ -28,7 +27,7 @@ functions:
 # Vars with or without type. Should be able to add type to func params
 # Do not forget that even when shadowing arguments or globals, before the definition of this new local, the old one is still in scope (i.e. in earlier vardecls in that function)
 class SymbolTable():
-    def __init__(self, global_vars = {}, functions = {}, type_syns = {}):
+    def __init__(self, global_vars = {}, functions = {}):
         # mapping of identifier to definition node
         self.global_vars = OrderedDict(global_vars)
 
@@ -40,7 +39,7 @@ class SymbolTable():
         # def is None for BUILTINS
         self.functions = OrderedDict(functions)
         # mapping of type_id to definition type
-        self.type_syns = OrderedDict(type_syns)
+        #self.type_syns = OrderedDict(type_syns)
 
     '''
     def getFunc(self, uniq, fid, normaltype):
@@ -63,12 +62,10 @@ class SymbolTable():
         return "\n"+deflist
 
     def repr_short(self):
-        temp_types = list(map(lambda x: "\n{} = {}".format(x[0], print_node(x[1]["def_type"])), self.type_syns.items()))
         #temp_types = list(map(lambda x: "\n{} = {}".format(x[0], x[1]["def_type"]), self.type_syns.items()))
-        return "=== Symbol table:\n== Global vars: {}\n== Functions: {}\n== Type synonyms: {}".format(
+        return "=== Symbol table:\n== Global vars: {}\n== Functions: {}".format(
             list(self.global_vars.keys()),
-            self.repr_funcs(),
-            "".join(temp_types))
+            self.repr_funcs())
 
     def __repr__(self):
         return self.repr_short()
@@ -82,6 +79,7 @@ class SymbolTable():
 class ExternalTable(SymbolTable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.type_syns = OrderedDict()
 
     def repr_funcs(self):
         temp = "\n=Regular:{}\n=Prefix:{}\n=Infix:{}"
@@ -96,7 +94,7 @@ class ExternalTable(SymbolTable):
         return "\n"+deflist
 
     def repr_short(self):
-        temp_types = list(map(lambda x: "\n{}({}@{}) = {}".format(x[0], x[1]['orig_id'], x[1]['module'], print_node(x[1]['def_type'])), self.type_syns.items()))
+        temp_types = list(map(lambda x: "\n{}({}@{}) = {}".format(x[0][0], x[1]['orig_id'], x[0][1], print_node(x[1]['def_type'])), self.type_syns.items()))
         return "=== External table:\n== Global vars: {}\n== Functions: {}\n== Type synonyms: {}".format(
             list(self.global_vars.keys()),
             self.repr_funcs(),

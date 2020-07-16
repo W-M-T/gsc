@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 
-from lib.imports.imports import getImportFiles, validate_modname, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
-from lib.imports.imports import export_headers, getExternalSymbols, HEADER_EXT
+from lib.imports.imports import validate_modname, get_type_dependencies, IMPORT_DIR_ENV_VAR_NAME, SOURCE_EXT, OBJECT_EXT, TARGET_EXT
+from lib.imports.imports import export_headers, getHeaders, getExternalSymbols, HEADER_EXT
 from lib.imports.objectfile_imports import getObjectFiles
+
+from lib.builtins.builtin_mod import enrichExternalTable
 
 from lib.analysis.error_handler import *
 
 from lib.parser.lexer import tokenize, REG_FIL
 from lib.parser.parser import parseTokenStream
-from semantic_analysis import analyse, buildSymbolTable
+
+# TODO do not import all of this but just use analyse instead or something
+from semantic_analysis import analyse, buildSymbolTable, normalizeAllTypes
+from lib.analysis.typechecker import typecheck_globals, typecheck_functions
+
+
 from lib.codegen.codegen import generate_object_file
 
 from gsl import linkObjectFiles, write_out, make_import_mapping
@@ -51,7 +58,7 @@ def main():
     compiler_target = {
         'header' : args.H,
         'object' : args.C,
-        'binary' : not (args.H or args.C)
+        'binary' : False#not (args.H or args.C)
     }
 
 
@@ -74,14 +81,16 @@ def main():
 
     ast = parseTokenStream(tokenstream, infile)
 
-    print("Are there imports?",bool(ast.imports))
+    #print("Are there imports?",bool(ast.imports))
 
     #print(ast)
 
     if compiler_target['header']: # Generate a headerfile
-        symbol_table = buildSymbolTable(ast, just_for_headerfile=True)
-
-        header_json = export_headers(symbol_table)
+        symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=True)
+        print(ext_table)
+        #resolveTypeSyns(symbol_table, ext_table)
+        mod_dependencies = get_type_dependencies(ast)
+        header_json = export_headers(symbol_table, main_mod_name, mod_dependencies, ext_table)
 
         if not args.stdout:
             outfile_name = outfile_base + HEADER_EXT
@@ -93,30 +102,40 @@ def main():
         pass
 
     if compiler_target['object']: # Generate an object file
-        headerfiles = getImportFiles(ast, HEADER_EXT,
+        headerfiles, typesyn_headerfiles = getHeaders(ast,
+            main_mod_name,
+            HEADER_EXT,
             os.path.dirname(args.infile),
             file_mapping_arg=import_mapping,
             lib_dir_path=args.lp,
             lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
 
-        a = getExternalSymbols(ast, headerfiles)
-        print("EXTERNAL SYMBOLS:",a)
-        exit()
-        symbol_table = buildSymbolTable(ast, just_for_headerfile=False)
+        ext_table, dependency_names = getExternalSymbols(ast, headerfiles, typesyn_headerfiles)
+        ext_table = enrichExternalTable(ext_table)
+        ERROR_HANDLER.checkpoint()
+
+        symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
+
+        #print(symbol_table)
+        #print(ext_table)
+        #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+
+        
+        typecheck_globals(symbol_table, ext_table)
+        typecheck_functions(symbol_table, ext_table)
+
+        gen_code = generate_object_file(symbol_table, main_mod_name, dependency_names)
+
+        if not args.stdout:
+            outfile_name = outfile_base + OBJECT_EXT
+            write_out(gen_code, outfile_name, "objectfile")
+        else:
+            print(header_json)
+        #'''
         '''
         symbol_table = analyse(ast, main_mod_name)
+        '''
 
-        assembly = generate_object_file(symbol_table, main_mod_name)
-        '''
-        '''
-        headerfiles = getImportFiles(x, HEADER_EXT, os.path.dirname(args.infile),
-            file_mapping_arg=import_mapping,
-            lib_dir_path=args.lp,
-            lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
-        a = getExternalSymbols(x, headerfiles)
-        print(a)
-        exit()
-        '''
     if compiler_target['binary']: # Generate a binary
         # insert zelfde code als bij begin van compiler_target['object']
         # maak er gewoon een functie van

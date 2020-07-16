@@ -35,14 +35,17 @@ def validate_modname(mod_name): # Errors need to be collected outside
     if mod_name in RESERVED_MODNAMES:
         ERROR_HANDLER.addError(ERR.ReservedModuleName, [mod_name])
 
-def export_headers(symbol_table):
+def export_headers(symbol_table, modname, modname_typesyns, ext_table):
     temp_globals = list(map(lambda x: (x.id.val, x.type.__serial__()), symbol_table.global_vars.values()))
-    temp_typesyns = [(k, v['def_type'].__serial__()) for (k, v) in symbol_table.type_syns.items()]
+    own_typesyns = list(filter(lambda x: x[0][1] == modname, ext_table.type_syns.items()))
+    own_typesyns = OrderedDict(list(map(lambda x: (x[0][0], x[1]), own_typesyns)))
+    temp_typesyns = [(k, v['def_type'].__serial__()) for (k, v) in own_typesyns.items()]
     temp_functions = [((uq.name, k),
         v['def'].fixity.val if v['def'].fixity is not None else None,
         v['def'].kind.name,
         [t.__serial__() for t in v['type'].from_types], v['type'].to_type.__serial__()) for ((uq, k), v_list) in symbol_table.functions.items() for v in v_list]
     temp_packet = {
+        "depends": modname_typesyns,
         "globals": temp_globals,
         "typesyns": temp_typesyns,
         "functions": temp_functions
@@ -53,6 +56,7 @@ def export_headers(symbol_table):
 def import_headers(json_string): # Can return exception, so put in try-except
     load_packet = json.loads(json_string)
     temp_packet = {}
+    temp_packet["depends"] = load_packet["depends"]
     temp_packet["globals"] = OrderedDict([(k,parse_type(v)) for k,v in load_packet["globals"]])
     temp_packet["typesyns"] = OrderedDict([(k,parse_type(v)) for k,v in load_packet["typesyns"]])
     temp_packet["functions"] = OrderedDict()
@@ -65,6 +69,36 @@ def import_headers(json_string): # Can return exception, so put in try-except
             "type":AST.FUNTYPE(from_types=list(map(parse_type,from_ts)), to_type=parse_type(to_t))
         })
     return temp_packet
+
+def get_type_dependencies(ast):
+    importlist = ast.imports
+    unique_names = OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))
+    for modname in unique_names:
+        unique_names[modname] = OrderedDict([
+            ("importall" , False),
+            ("type_imports", [])
+        ])
+        cur_imports = list(filter(lambda x: x.name.val == modname, importlist))
+
+        if any([x.importlist is None for x in cur_imports]):
+            unique_names[modname]["importall"] = True
+
+        # Combine all other import statements for this module
+        all_cur_imports = [item for x in cur_imports if x.importlist is not None for item in x.importlist]
+
+        for imp_statement in all_cur_imports:
+            type_id = imp_statement.name.val
+            effective_id = type_id if imp_statement.alias is None else imp_statement.alias.val
+
+            if imp_statement.alias is not None:
+                if imp_statement.name.typ != imp_statement.alias.typ: # Identifier aliased as different identifier type
+                    ERROR_HANDLER.addError(ERR.ImportIdChangeType, [imp_statement.name.val, imp_statement.name.typ.name, imp_statement.alias.typ.name, imp_statement.name])
+
+            unique_names[modname]["type_imports"].append(OrderedDict([
+                ("orig_id", type_id),
+                ("effective_id", effective_id)
+            ]))
+    return unique_names
 
 '''
 In order of priority:
@@ -126,16 +160,17 @@ def resolveFileName(name, extension, local_dir, file_mapping_arg={}, lib_dir_pat
 '''
 Get the files to import as found in the ast
 '''
-def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+def getImportFiles(ast, modname, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
     importlist = ast.imports
 
-    unique_names = list(OrderedDict.fromkeys(map(lambda x: x.name.val, importlist))) # order preserving uniqueness
-    #print(importlist)
-    #print("CWD",local_dir)
-    #print("--lp",lib_dir_path)
-    #print("env",lib_dir_env)
+    unique_names = OrderedDict.fromkeys(map(lambda x: x.name.val, importlist)) # names directly imported
+    try:
+        del unique_names[modname] # Do not read this module if it is in imports
+    except KeyError:
+        pass
+    unique_names = list(unique_names)
 
-    temp = {}
+    temp = OrderedDict()
     for impname in unique_names:
         validate_modname(impname)
         try:
@@ -147,32 +182,61 @@ def getImportFiles(ast, extension, local_dir, file_mapping_arg={}, lib_dir_path=
     ERROR_HANDLER.checkpoint()
     return temp
 
+def getHeaders(ast, modname, extension, local_dir, file_mapping_arg={}, lib_dir_path=None, lib_dir_env=None):
+    importlist = ast.imports
+
+    headerfiles = getImportFiles(ast,
+        modname,
+        extension,
+        local_dir,
+        file_mapping_arg=file_mapping_arg,
+        lib_dir_path=lib_dir_path,
+        lib_dir_env=lib_dir_env
+        )
+
+    all_seen_names = OrderedDict.fromkeys(map(lambda x: x.name.val, importlist)) # List for recursive header reading (for typesyn dependencies)
+    all_seen_names[modname] = None # Do not recursively read the current module again either
+    all_seen_names = list(all_seen_names)
+    recurse_names =[]
+
+    for head in headerfiles.values():
+        data = head['filehandle'].read()
+
+        symbols = import_headers(data)
+        head['symbols'] = symbols
+
+        for dep in symbols['depends']:
+            if dep not in all_seen_names:
+                all_seen_names.append(dep)
+                recurse_names.append(dep)
+    for head in headerfiles.values():
+        head['filehandle'].close()
+
+    temp_typesyn_headers = OrderedDict()
+    for rec_name in recurse_names:
+        try:
+            handle, path = resolveFileName(rec_name, extension, local_dir, file_mapping_arg=file_mapping_arg, lib_dir_path=lib_dir_path, lib_dir_env=lib_dir_env)
+            temp_typesyn_headers[rec_name] = {"name":rec_name,"filehandle":handle,"path":path}
+            data = handle.read()
+            handle.close()
+
+            symbols = import_headers(data)
+            temp_typesyn_headers[rec_name]['symbols'] = symbols
+
+            for dep in symbols['depends']:
+                if dep not in all_seen_names:
+                    all_seen_names.append(dep)
+                    recurse_names.append(dep)
+        except FileNotFoundError as e:
+            ERROR_HANDLER.addError(ERR.RecursiveImportNotFound, [rec_name, "\t" + "\n\t".join(str(e).split("\n"))])
+    return headerfiles, temp_typesyn_headers
+
 '''
 Parse a list of headerfiles to json and subset the symbols that are in scope
 '''
-def getExternalSymbols(ast, headerfiles):
+def getExternalSymbols(ast, headerfiles, type_headers):
     importlist = ast.imports
-
-    # Read all headerfiles
-    #print("Headerfiles",headerfiles)
-    for head in headerfiles.values():
-        data = head['filehandle'].read()
-        #try:
-        symbols = import_headers(data)
-        '''
-        for key in sorted(list(symbols)):
-            print(symbols[key])
-        '''
-        #print(symbols)
-        #exit()
-        head['symbols'] = symbols
-        #except Exception as e:
-        #    ERROR_HANDLER.addError(ERR.HeaderFormatIncorrect, [head['path'], "\t{}: {}".format(e.__class__.__name__,str(e))])
-
-    # Close all the opened filehandles
-    for head in headerfiles.values():
-        head['filehandle'].close()
-    ERROR_HANDLER.checkpoint()
+    print("TYPE HEADERS:",type_headers)
 
     # Add the desired imports to a datastructure
     ext_symbol_table = ExternalTable()
@@ -402,11 +466,11 @@ def getExternalSymbols(ast, headerfiles):
                 found = cur_symbols['typesyns'][uq_type_id]
 
                 if uq_type_id not in ext_symbol_table.type_syns: # New name
-                    ext_symbol_table.type_syns[uq_type_id] = {
-                        'def_type': found,
-                        'module': modname,
-                        'orig_id': uq_type_id
-                    }
+                    ext_symbol_table.type_syns[(uq_type_id, modname)] = OrderedDict([
+                        ('def_type', found),
+                        ('orig_id', uq_type_id),
+                        ('decl', None)
+                    ])
                 else:
                     ERROR_HANDLER.addError(ERR.ClashImportType, [uq_type_id, importall_statement])
 
@@ -419,11 +483,11 @@ def getExternalSymbols(ast, headerfiles):
                     found = cur_symbols['typesyns'][match_orig]
 
                     if effective_id not in ext_symbol_table.type_syns: # New name
-                        ext_symbol_table.type_syns[effective_id] = {
-                            'def_type': found,
-                            'module': modname,
-                            'orig_id': match_orig
-                        }
+                        ext_symbol_table.type_syns[(effective_id, modname)] = OrderedDict([
+                            ('def_type', found),
+                            ('orig_id', match_orig),
+                            ('decl', None)
+                        ])
                     else:
                         ERROR_HANDLER.addError(ERR.ClashImportType, [effective_id, match.name if match.alias is None else match.alias])
                 else:

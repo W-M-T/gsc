@@ -128,11 +128,11 @@ def generateBuiltinOps():
 def generateBuiltinTypesyns():
     temp = OrderedDict()
     for name, def_str in HIGHER_BUILTIN_TYPES.items():
-        temp[name] = {
-            'def_type': AST.TYPE(val=abstractToConcreteType(def_str)[0]),
-            'module': BUILTINS_NAME,
-            'orig_id': name
-        }
+        temp[(name, BUILTINS_NAME)] = OrderedDict([
+            ('def_type', AST.TYPE(val=abstractToConcreteType(def_str)[0])),
+            ('orig_id', name),
+            ('decl', None)
+        ])
 
     return temp
 
