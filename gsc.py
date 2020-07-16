@@ -32,14 +32,14 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
         lib_dir_path=args.lp,
         lib_dir_env=os.environ[IMPORT_DIR_ENV_VAR_NAME] if IMPORT_DIR_ENV_VAR_NAME in os.environ else None)
 
-    ext_table, dependency_names = getExternalSymbols(ast, headerfiles, typesyn_headerfiles)
+    ext_table, dependency_names = getExternalSymbols(ast, main_mod_name, headerfiles, typesyn_headerfiles)
     ext_table = enrichExternalTable(ext_table)
     ERROR_HANDLER.checkpoint()
 
     symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
 
-    normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
-    exit()
+    #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+    #exit()
     fixate_operator_properties(symbol_table, ext_table)
     check_functype_clashes(symbol_table, ext_table)
     #exit()

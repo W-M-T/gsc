@@ -87,7 +87,12 @@ def getTypeDependencies(type_id, ext_table):
     treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, get_child), replace=False)
     return list(children)
 
-def normalizeAllTypes(symbol_table, ext_table, full_normalize=True):
+def normalizeAllTypes(symbol_table, ext_table, full_normalize=True, typesyn_headerfiles=[]):
+    # Make an overview of the types in scope per module
+    in_scope_typesyns = OrderedDict()
+
+
+
     # Get type syn dependencies and do topological sort:
     type_graph = {}
     
