@@ -14,8 +14,26 @@
       ]
     }
   },
-  "functions": [],
-  "globals": [],
+  "functions": [
+    [
+      [
+        "FUNC",
+        "g"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=\"C\")"
+      ],
+      "TYPE(val=\"C\")"
+    ]
+  ],
+  "globals": [
+    [
+      "myvar",
+      "TYPE(val=\"C\")"
+    ]
+  ],
   "typesyns": [
     [
       "B",

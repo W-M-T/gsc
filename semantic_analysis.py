@@ -28,12 +28,34 @@ from collections import OrderedDict
 TODO BROKEN
 Replace all type synonyms in type with their definition, until the base case.
 '''
-def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normalize=True):
+def normalizeType(main_modname, cur_modname, symbol_table, ext_table, own_defined_typesyns, imported_typesyns, full_normalize=True):
     # Sadly we cannot just merge the typesyns in symbol_table and ext_table, because we need to overwrite them in each table and the pointers do not work out to accomplish that
     def replace_other(x):
         #print(x)
         if type(x.val) is Token:
             found_typesyn = x.val.val
+
+            if found_typesyn in own_defined_typesyns[cur_modname]:
+                #print(own_defined_typesyns[cur_modname][found_typesyn])
+                x.val = own_defined_typesyns[cur_modname][found_typesyn].val
+                #print("Found local",found_typesyn)
+            else:
+                flag_found = False
+                for other_mod, other_typesyns in imported_typesyns[cur_modname].items():
+                    #print(other_typesyns)
+                    matches = list(filter(lambda x: x['effective_id'] == found_typesyn, other_typesyns))
+                    #print("match",matches)
+                    if len(matches) > 0:
+                        flag_found = True
+                        #print("FOUND EXTERNAL")
+                        x.val = own_defined_typesyns[other_mod][matches[0]['orig_id']].val
+                        #x.val = AST.MOD_TYPE(module=other_mod, orig_id = matches[0]['orig_id'])
+                        break
+                if not flag_found:
+                    #print("CURRENTLY IN",cur_modname,found_typesyn)
+                    #ERROR_HANDLER.addError(ERR.TypeIdNotFoundNonspecific, [found_typesyn])
+                    pass
+            '''
             #print(found_typesyn,type_id)
             if type_id == found_typesyn:
                 if type_id in symbol_table.type_syns:
@@ -52,14 +74,56 @@ def normalizeType(type_id, symbol_table, ext_table, err_produced=[], full_normal
                     if x not in err_produced:
                         err_produced.append(x)
                         ERROR_HANDLER.addError(ERR.UndefinedTypeId, [found_typesyn, x])
+            '''
         return x
 
+    if cur_modname == main_modname: # Normalize main module
+        for globkey, glob_def in symbol_table.global_vars.items():
+            symbol_table.global_vars[globkey] = treemap(glob_def, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)#print(glob_def)
+
+        for functlist in symbol_table.functions.values():
+            for func_def in functlist:
+                #print(func_def)
+                #print("FUNTION TYPE")
+                func_def['type'] = treemap(func_def['type'], lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+                for local_var_def in func_def["local_vars"].values():
+                    local_var_def.type = treemap(local_var_def.type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+                
+                # Normalize args
+                for arg_var_def in func_def["arg_vars"].values():
+                    arg_var_def['type'] = treemap(arg_var_def['type'], lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+                    #print("ARG VAR", arg_var_def)
+                
+                #print(func_def['type'])
+        #print(symbol_table.functions)
+        #print(symbol_table.global_vars)
+    else: # Normalize other modules
+        #print("AYOO",cur_modname)
+        for globkey, glob_dict in ext_table.global_vars.items():
+            #print("PRE",globkey, glob_dict["module"], glob_dict)
+            glob_dict['type'] = treemap(glob_dict['type'], lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+            #print("POST",globkey, glob_dict["module"], glob_dict)
+            #print(ext_table.global_vars.items())
+
+        for functlist in symbol_table.functions.values():
+            for func_def in functlist:
+                #print(func_def)
+                #print("FUNTION TYPE")
+                func_def['type'] = treemap(func_def['type'], lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+                for local_var_def in func_def["local_vars"].values():
+                    local_var_def.type = treemap(local_var_def.type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+                # Normalize args
+                for arg_var_def in func_def["arg_vars"].values():
+                    arg_var_def['type'] = treemap(arg_var_def['type'], lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+                
+    '''
     if type_id in symbol_table.type_syns:
         def_type = symbol_table.type_syns[type_id]['def_type']
         symbol_table.type_syns[type_id]['def_type'] = treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
     else:
         def_type = ext_table.type_syns[type_id]['def_type']
         ext_table.type_syns[type_id]['def_type'] = treemap(def_type, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
+    '''
     #print("DEF_TYPE",def_type)
 
 # Normalizer to get rid of all MOD_TYPE AST nodes
@@ -81,7 +145,7 @@ def normalizeTypeSyn(typedef, type_entry, own_typesyns):
                 ERROR_HANDLER.addError(ERR.CyclicTypeSyn, [type_entry[1], type_entry[0]])
             else:
                 #print("In typedef",typedef,"rewriting",own_typesyns[found_mod][found_orig])
-                x.val = own_typesyns[found_mod][found_orig]
+                x.val = own_typesyns[found_mod][found_orig].val
         return x
     treemap(typedef, lambda x: selectiveApply(AST.TYPE, x, replace_other), replace=True)
     ERROR_HANDLER.checkpoint() # TODO This could be better
@@ -268,17 +332,24 @@ def normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normaliz
             #normalizeType(type_id, symbol_table, ext_table, err_produced=err_produced, full_normalize=full_normalize)
     #TODO for exponential types this is still slow because after replacing, the entire subtree is traversed. This should not be necessary
 
+    '''
     print("RESULT=================")
     # Print shit to see if it is fully rewritten
     for modname, type_entries in own_defined_typesyns.items():
         #print(modname)
         for type_entry in type_entries.items():
             print(type_entry)
+    '''
 
-    print("DESIRED===============")
-    for type_name, type_def in own_defined_typesyns[main_mod_name].items():
-        print(type_name, "=", print_node(type_def))
-    #print(type_graph)
+    #print("NORMALIZE ALL===============")
+    for modname, mod_defs in own_defined_typesyns.items():
+        #print("[]",modname)
+        '''
+        for type_name, type_def in mod_defs.items():
+            print(type_name, "=", print_node(type_def))
+        '''
+        normalizeType(main_mod_name, modname, symbol_table, ext_table, own_defined_typesyns, my_typesyn_imports, full_normalize=True)
+    
     ERROR_HANDLER.checkpoint()
         
 

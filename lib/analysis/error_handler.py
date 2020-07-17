@@ -86,7 +86,8 @@ class ERR(IntEnum):
     UndefinedTypeId = 64
     CyclicTypeSyn = 65
     TypeIdNotFound = 66
-    #ImportTypeClash = 67
+    TypeIdNotFoundNonspecific = 67
+
     RecursiveImportNotFound = 68
     MultipleOpIdPropertiesFound = 69
     # Function type clashes
@@ -166,7 +167,7 @@ ERRMSG = {
     ERR.UndefinedTypeId: 'Type identifier "{}" is not defined:\n{}',
     ERR.CyclicTypeSyn: 'Type synonym "{}" from module "{}" has cyclical definition',
     ERR.TypeIdNotFound: 'Definition for type identifier "{}" in definition of "{}" not found (in module "{}")',
-    #ERR.ImportTypeClash: 'Type synonym "{}" clashes with import from module "{}":\n{}',
+    ERR.TypeIdNotFoundNonspecific: 'Definition for type identifier "{}" not found',
     ERR.RecursiveImportNotFound: 'Failed to import module header required by dependency: {}\n{}',
     ERR.MultipleOpIdPropertiesFound: 'The infix operator identifier "{}" has ambiguous associativity / precedence:\nFound declarations of the following combinations:\n{}',
     ERR.FuncTypeImportClash: 'There are multiple clashing imports for function "{}"({}) with the same type "{}" from modules "{}" and "{}"',

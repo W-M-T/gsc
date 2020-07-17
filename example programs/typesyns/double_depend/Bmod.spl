@@ -4,3 +4,9 @@ from Cmod import C
 type B = C
 //type B = Int
 //type C = Char
+
+C myvar = 2;
+
+g (x) :: C -> C {
+	return 2;
+}
