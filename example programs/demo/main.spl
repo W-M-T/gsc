@@ -4,8 +4,10 @@ Int b = 10;
 Int c = b;
 
 main() :: -> Int {
+    String test = "haha";
+
+    print(test);
     print(b);
     print(c);
-
     return g(5 ** 5);
 }

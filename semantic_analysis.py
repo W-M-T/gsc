@@ -848,7 +848,6 @@ def fixExpression(ast, symbol_table, ext_table):
                                 lambda y:  parseExpression(y.contents, symbol_table, ext_table)[0]
                             )
                         )
-    print(decorated_ast)
 
     return decorated_ast
 

@@ -156,7 +156,6 @@ def generate_ret(stmt, code, module_name, mappings, ext_table, label):
 
 def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
     if type(stmt.val) == AST.TYPED_FUNCALL:
-        print(stmt.val)
         stmt.val.returns = False
         code.extend(generate_expr(stmt.val, module_name, mappings, ext_table))
     else:
