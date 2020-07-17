@@ -1,0 +1,70 @@
+infixr 8 ** (a, n) :: Int Int -> Int {
+    Int b = a;
+    while(n > 1) {
+        a = a * b;
+        n = n - 1;
+    }
+
+    return a;
+}
+
+gcd(a, b) :: Int Int -> Int {
+    while(b != 0) {
+        a = b;
+        b = a % b;
+    }
+    return a;
+}
+
+mult_inverse(e, phi) :: Int Int -> Int {
+    Int d = 0;
+    Int x1 = 0;
+    Int x2 = 1;
+    Int y1 = 1;
+
+    Int temp_phi = phi;
+    Int temp1 = 0;
+    Int temp2 = 0;
+    Int x = 0;
+    Int y = 0;
+
+    while(e > 0) {
+        temp1 = temp_phi/e;
+        temp2 = temp_phi - temp1 * e;
+        temp_phi = e;
+
+        e = temp2;
+
+        x = x2 - temp1 * x1;
+        y = d - temp1 * y1;
+
+        x2 = x1;
+        x1 = x;
+        d = y1;
+        y1 = y;
+    }
+
+    return d + phi;
+}
+
+init (p, q, e, pubkey, privkey) :: Int Int Int (Int, Int) (Int, Int) -> Void {
+    Int n = 0;
+    Int phi = (p - 1) * (q - 1);
+    Int d = mult_inverse(e, phi);
+
+    n = p * q;
+    pubkey.fst = e;
+    pubkey.snd = n;
+
+    privkey.fst = d;
+    privkey.snd = n;
+}
+
+encrypt(privkey, cipherchar) :: (Int, Int) Int -> Int {
+    return (cipherchar ** privkey.fst) % privkey.snd;
+}
+
+decrypt(pubkey, cipherchar) :: (Int, Int) Int -> Int {
+    return (cipherchar ** pubkey.fst) % pubkey.snd;
+}
+

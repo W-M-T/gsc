@@ -1,5 +1,5 @@
 //===================================================
-// SSM ASSEMBLY GENERATED ON THU JUL 16 23:43:49 2020
+// SSM ASSEMBLY GENERATED ON FRI JUL 17 11:30:21 2020
 // © Ward Theunisse & Ischa Stork 2020
 //===================================================
 // INIT SECTION:
@@ -9,294 +9,42 @@ BRA main
 // GLOBAL SECTION:
 
 // FUNCTION SECTION:
-main_func_facI_0: LINK 00
-LDC 1
-main_func_facI_0_1: nop
-LDL -2
-LDC 1
-GT
-BRF main_func_facI_0_1_exit
-LDL 1
-LDL -2
-MUL
-STL 1
-LDL -2
-LDC 1
-SUB
-STL -2
-main_func_facI_0_1_update: nop
-BRA main_func_facI_0_1
-main_func_facI_0_1_exit: nop
-LDL 1
-STR RR
-BRA main_func_facI_0_exit
-main_func_facI_0_exit: UNLINK
-RET
-main_func_append_0: LINK 00
-LDL -3
-LDC 00
-EQ
-BRT main_func_append_0_1
-BRA main_func_append_0_2
-main_func_append_0_1: LDL -2
-STR RR
-BRA main_func_append_0_exit
-main_func_append_0_2: LDL -3
-BSR tail
-AJS -1
-LDR RR
-LDL -2
-BSR main_func_append_0
-AJS -2
-LDR RR
-LDL -3
-STA 00
-LDL -3
-STR RR
-BRA main_func_append_0_exit
-main_func_append_0_3: nop
-main_func_append_0_exit: UNLINK
-RET
-main_func_product_0: LINK 00
-LDL -2
-LDC 00
-EQ
-BRT main_func_product_0_1
-BRA main_func_product_0_2
-main_func_product_0_1: LDC 1
-STR RR
-BRA main_func_product_0_exit
-main_func_product_0_2: LDL -2
-BSR head
-AJS -1
-LDR RR
-LDL -2
-BSR tail
-AJS -1
-LDR RR
-BSR main_func_product_0
-AJS -1
-LDR RR
-MUL
-STR RR
-BRA main_func_product_0_exit
-main_func_product_0_3: nop
-main_func_product_0_exit: UNLINK
-RET
-main_func_abs_0: LINK 00
-LDL -2
-LDC 00
-LT
-BRT main_func_abs_0_1
-BRA main_func_abs_0_2
-main_func_abs_0_1: LDL -2
-NEG
-STR RR
-BRA main_func_abs_0_exit
-main_func_abs_0_2: LDL -2
-STR RR
-BRA main_func_abs_0_exit
-main_func_abs_0_3: nop
-main_func_abs_0_exit: UNLINK
-RET
-main_func_facL_0: LINK 00
-LDC 1
-LDL -2
-BSR main_func_fromTo_0
-AJS -2
-LDR RR
-BSR main_func_product_0
-AJS -1
-LDR RR
-STR RR
-BRA main_func_facL_0_exit
-main_func_facL_0_exit: UNLINK
-RET
-main_func_print_0: LINK 00
-main_func_print_0_1: nop
-LDL -2
-LDC 00
-EQ
-NOT
-BRF main_func_print_0_1_exit
-LDL -2
-BSR head
-AJS -1
-LDR RR
-TRAP 00
-LDL -2
-LDL -2
-STA 00
-main_func_print_0_1_update: nop
-BRA main_func_print_0_1
-main_func_print_0_1_exit: nop
-main_func_print_0_exit: UNLINK
-RET
 main_func_main_0: LINK 00
-LDC 00
-LDL 1
-LDC 1
-AND
-TRAP 00
-LDC 2
+LDC 5
+LDC 5
+BSR importA_infix_0_0
+AJS -2
+LDR RR
+BSR importA_func_f_1
+AJS -1
+LDR RR
 STR RR
 BRA main_func_main_0_exit
 main_func_main_0_exit: UNLINK
 RET
-main_func_reverse_0: LINK 00
-LDC 00
-main_func_reverse_0_1: nop
-LDL -2
-LDC 00
-EQ
-NOT
-BRF main_func_reverse_0_1_exit
-LDL -2
-BSR head
-AJS -1
-LDR RR
-LDL 1
-STMH 2
-STL 1
-LDL -2
-BSR tail
-AJS -1
-LDR RR
-STL -2
-main_func_reverse_0_1_update: nop
-BRA main_func_reverse_0_1
-main_func_reverse_0_1_exit: nop
-LDL 1
-STR RR
-BRA main_func_reverse_0_exit
-main_func_reverse_0_exit: UNLINK
-RET
-main_func_swapCopy_0: LINK 00
-LDL -2
-LDH 00
-LDL -2
-LDH -1
-STMH 2
-STR RR
-BRA main_func_swapCopy_0_exit
-main_func_swapCopy_0_exit: UNLINK
-RET
-main_func_facR_0: LINK 00
-LDL -2
-LDC 2
-LT
-BRT main_func_facR_0_1
-BRA main_func_facR_0_2
-main_func_facR_0_1: LDC 1
-STR RR
-BRA main_func_facR_0_exit
-main_func_facR_0_2: LDL -2
-LDL -2
-LDC 1
-SUB
-BSR main_func_facR_0
-AJS -1
-LDR RR
-MUL
-STR RR
-BRA main_func_facR_0_exit
-main_func_facR_0_3: nop
-main_func_facR_0_exit: UNLINK
-RET
-main_func_squareOddNumbers_0: LINK 00
-main_func_squareOddNumbers_0_1: nop
-LDL -2
-LDC 00
-EQ
-NOT
-LDL -2
-BSR head
-AJS -1
-LDR RR
-LDC 2
-MOD
-LDC 00
-EQ
-AND
-BRF main_func_squareOddNumbers_0_1_exit
-LDL -2
-BSR tail
-AJS -1
-LDR RR
-STL -2
-main_func_squareOddNumbers_0_1_update: nop
-BRA main_func_squareOddNumbers_0_1
-main_func_squareOddNumbers_0_1_exit: nop
-LDL -2
-LDC 00
-EQ
-NOT
-BRT main_func_squareOddNumbers_0_2
-BRA main_func_squareOddNumbers_0_3
-main_func_squareOddNumbers_0_2: LDL -2
-BSR head
-AJS -1
-LDR RR
-LDL -2
-BSR head
-AJS -1
-LDR RR
-MUL
-LDL -2
-STA -1
-LDL -2
-BSR tail
-AJS -1
-LDR RR
-BSR main_func_squareOddNumbers_0
-AJS -1
-LDR RR
-LDL -2
-STA 00
-BRA main_func_squareOddNumbers_0_3
-main_func_squareOddNumbers_0_3: nop
-LDL -2
-STR RR
-BRA main_func_squareOddNumbers_0_exit
-main_func_squareOddNumbers_0_exit: UNLINK
-RET
-main_func_swap_0: LINK 00
-LDL -2
-LDH -1
-LDL -2
-LDH 00
-LDL -2
-STA -1
-LDL 1
-LDL -2
-STA 00
-LDL -2
-STR RR
-BRA main_func_swap_0_exit
-main_func_swap_0_exit: UNLINK
-RET
-main_func_fromTo_0: LINK 00
+importA_infix_0_0: LINK 00
 LDL -3
 LDL -2
-LE
-BRT main_func_fromTo_0_1
-BRA main_func_fromTo_0_2
-main_func_fromTo_0_1: LDL -3
-LDL -3
-LDC 1
 ADD
+LDC 2
+ADD
+STR RR
+BRA importA_infix_0_0_exit
+importA_infix_0_0_exit: UNLINK
+RET
+importA_func_f_0: LINK 00
+LDC 5
+STR RR
+BRA importA_func_f_0_exit
+importA_func_f_0_exit: UNLINK
+RET
+importA_func_f_1: LINK 00
 LDL -2
-BSR main_func_fromTo_0
-AJS -2
-LDR RR
-STMH 2
+LDC 2
+MUL
 STR RR
-BRA main_func_fromTo_0_exit
-main_func_fromTo_0_2: LDC 00
-STR RR
-BRA main_func_fromTo_0_exit
-main_func_fromTo_0_3: nop
-main_func_fromTo_0_exit: UNLINK
+BRA importA_func_f_1_exit
+importA_func_f_1_exit: UNLINK
 RET
 print_string_exit:UNLINK
 RET
@@ -310,18 +58,6 @@ LDH -1
 STR RR
 UNLINK
 RET
-tail:LINK 00
-LDL -2
-LDC 00
-EQ
-BRT program_crash
-LDL -2
-LDH 00
-STR RR
-UNLINK
-RET
-print_string:LINK 00
-BRA print_string_loop
 print_string_loop:LDL -2
 LDC 00
 EQ
@@ -338,6 +74,18 @@ AJS -1
 LDR RR
 STL -2
 BRA print_string_loop
+print_string:LINK 00
+BRA print_string_loop
+tail:LINK 00
+LDL -2
+LDC 00
+EQ
+BRT program_crash
+LDL -2
+LDH 00
+STR RR
+UNLINK
+RET
 // ENTRYPOINT:
 main: BSR main_func_main_0
 LDR RR

@@ -121,7 +121,7 @@ def generate_expr(expr, module_name, mappings, ext_table):
                     fid = expr.id.val
             else:
                 if expr.module is not None:
-                    fid = str(mappings['operators'][module][(expr.uniq, expr.id.val)])
+                    fid = str(mappings['operators'][module][(expr.uniq, ext_table.functions[(expr.uniq, expr.id.val)][expr.oid]['orig_id'])])
                 else:
                     fid = str(mappings['operators'][module][(expr.uniq, expr.id.val)])
 

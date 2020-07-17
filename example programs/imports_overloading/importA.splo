@@ -1,65 +1,32 @@
 // DEPENDENCIES:
 // INIT SECTION:
-
 // BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
 // FUNCTION SECTION:
-importA_infix_0_1: LINK 00
-LDC 43
-TRAP 1
-LDC 43
-TRAP 1
-LDC 66
-TRAP 1
-LDC -1
-STR RR
-BRA importA_infix_0_1_exit
-importA_infix_0_1_exit: UNLINK
-RET
 importA_infix_0_0: LINK 00
-LDC 43
-TRAP 1
-LDC 43
-TRAP 1
-LDC 73
-TRAP 1
 LDL -3
 LDL -2
 ADD
-LDC 3
+LDC 2
 ADD
 STR RR
 BRA importA_infix_0_0_exit
 importA_infix_0_0_exit: UNLINK
 RET
-importA_infix_1_1: LINK 00
-LDC 45
-TRAP 1
-LDC 45
-TRAP 1
-LDC 66
-TRAP 1
-LDC 00
+importA_func_f_0: LINK 00
+LDC 5
 STR RR
-BRA importA_infix_1_1_exit
-importA_infix_1_1_exit: UNLINK
+BRA importA_func_f_0_exit
+importA_func_f_0_exit: UNLINK
 RET
-importA_infix_1_0: LINK 00
-LDC 45
-TRAP 1
-LDC 45
-TRAP 1
-LDC 73
-TRAP 1
-LDL -3
+importA_func_f_1: LINK 00
 LDL -2
-ADD
-LDC 1
-SUB
+LDC 2
+MUL
 STR RR
-BRA importA_infix_1_0_exit
-importA_infix_1_0_exit: UNLINK
+BRA importA_func_f_1_exit
+importA_func_f_1_exit: UNLINK
 RET
 // ENTRYPOINT:
 main: nop

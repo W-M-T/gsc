@@ -16,42 +16,27 @@
     ],
     [
       [
-        "INFIX",
-        "++"
+        "FUNC",
+        "f"
       ],
-      7,
-      "INFIXL",
+      null,
+      "FUNC",
       [
-        "TYPE(val=BASICTYPE(type_id=\"Bool\"))",
-        "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
-      ],
-      "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
-    ],
-    [
-      [
-        "INFIX",
-        "--"
-      ],
-      7,
-      "INFIXL",
-      [
-        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
-        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+        "TYPE(val=BASICTYPE(type_id=\"Char\"))"
       ],
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ],
     [
       [
-        "INFIX",
-        "--"
+        "FUNC",
+        "f"
       ],
-      7,
-      "INFIXL",
+      null,
+      "FUNC",
       [
-        "TYPE(val=BASICTYPE(type_id=\"Bool\"))",
-        "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))"
       ],
-      "TYPE(val=BASICTYPE(type_id=\"Bool\"))"
+      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ],
   "globals": [],

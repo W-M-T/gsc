@@ -1,31 +1,11 @@
 infixl 7 ++ (a, b) :: Int Int -> Int {
-    print('+');
-    print('+');
-    print('I');
-
-    return a + b + 3;
+    return a + b + 2;
 }
 
-infixl 7 ++ (a, b) :: Bool Bool -> Bool {
-    print('+');
-    print('+');
-    print('B');
-
-    return True;
+f(c) :: Char -> Int {
+    return 5;
 }
 
-infixl 7 -- (a, b) :: Int Int -> Int {
-    print('-');
-    print('-');
-    print('I');
-
-    return a + b - 1;
-}
-
-infixl 7 -- (a, b) :: Bool Bool -> Bool {
-    print('-');
-    print('-');
-    print('B');
-
-    return False;
+f(d) :: Int -> Int {
+    return d * 2;
 }
