@@ -5,12 +5,35 @@
       "type_imports": []
     },
     "Cmod": {
-      "importall": true,
-      "type_imports": []
+      "importall": false,
+      "type_imports": [
+        {
+          "effective_id": "C",
+          "orig_id": "C"
+        }
+      ]
     }
   },
-  "functions": [],
-  "globals": [],
+  "functions": [
+    [
+      [
+        "FUNC",
+        "g"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=\"C\")"
+      ],
+      "TYPE(val=\"C\")"
+    ]
+  ],
+  "globals": [
+    [
+      "myvar",
+      "TYPE(val=\"C\")"
+    ]
+  ],
   "typesyns": [
     [
       "B",

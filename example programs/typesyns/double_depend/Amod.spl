@@ -1,5 +1,14 @@
-from Bmod import B as B2
+from Bmod import B as B2, myvar
 //importall Cmod
 
 
-type A = B
+type A = [B2]
+type Another = Int
+type B = Int
+
+B2 x = 4;
+
+g(y) :: B -> B2 {
+	Another t = 2;
+	return x;
+}

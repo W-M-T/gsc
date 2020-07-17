@@ -38,7 +38,7 @@ def generateObjectFile(ast, args, main_mod_name, import_mapping):
 
     symbol_table, ext_table = buildSymbolTable(ast, main_mod_name, just_for_headerfile=False, ext_symbol_table=ext_table)
 
-    #normalizeAllTypes(symbol_table, ext_table, full_normalize=True)
+    normalizeAllTypes(ast, symbol_table, ext_table, main_mod_name, full_normalize=True, headerfiles=headerfiles, typesyn_headerfiles=typesyn_headerfiles)
     #exit()
     fixate_operator_properties(symbol_table, ext_table)
     check_functype_clashes(symbol_table, ext_table)
