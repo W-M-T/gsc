@@ -1,12 +1,21 @@
 // DEPENDENCIES:
+// DEPEND main
 // INIT SECTION:
-LDC 7
-LDC importC_global_globalVar
-STA 00
 // BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
-importC_global_globalVar: NOP
 // FUNCTION SECTION:
+importC_func_flop_0: LINK 00
+LDC 00
+LDL -3
+LDL -2
+BSR main_func_flip_0
+AJS -2
+LDR RR
+STMH 2
+STR RR
+BRA importC_func_flop_0_exit
+importC_func_flop_0_exit: UNLINK
+RET
 // ENTRYPOINT:
 main: nop

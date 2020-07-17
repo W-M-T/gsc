@@ -263,8 +263,8 @@ class AST:
 
     # Typed nodes =====================================================================
 
-    # oid = Overloaded id
-    TYPED_FUNCALL = syntaxnode("TYPED_FUNCALL", "id", "uniq", "args", "oid", "module")
+    # oid = Overloaded id, module = module name, returns = True if the function returns a value.
+    TYPED_FUNCALL = syntaxnode("TYPED_FUNCALL", "id", "uniq", "args", "oid", "module", "returns")
 
     # Create node list to support __contains__ and __iter__: TODO make this not hacky
     nodes = [

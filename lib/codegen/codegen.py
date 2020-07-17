@@ -24,7 +24,14 @@ def generate_expr(expr, module_name, mappings, ext_table):
         elif expr.typ is TOKEN.EMPTY_LIST:
             return ['LDC 00']
         elif expr.typ is TOKEN.STRING:
-            raise Exception('Token STRING not yet supported.')
+            code = []
+            for c in expr.val:
+                code.append('LDC ' + str(ord(c)))
+            code.append('LDC 00')
+            for _ in expr.val:
+                code.append('STMH 2')
+
+            return code
         else:
             raise Exception("Unknown type")
     elif type(expr) is AST.PARSEDEXPR:
@@ -33,7 +40,6 @@ def generate_expr(expr, module_name, mappings, ext_table):
         if type(expr.val) == AST.RES_GLOBAL:
             res = []
             module = expr.val.module
-            # TODO: This is only debug code
             if expr.val.module is None:
                 module = module_name
                 var_name = expr.val.id.val
@@ -123,7 +129,8 @@ def generate_expr(expr, module_name, mappings, ext_table):
             if len(expr.args) > 0:
                 res.append('AJS -' + str(len(expr.args)))
             # TODO: Check this for void functions
-            #res.append('LDR RR')
+            if expr.returns:
+                res.append('LDR RR')
 
         return res
     elif type(expr) is AST.TUPLE:
@@ -149,6 +156,8 @@ def generate_ret(stmt, code, module_name, mappings, ext_table, label):
 
 def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
     if type(stmt.val) == AST.TYPED_FUNCALL:
+        print(stmt.val)
+        stmt.val.returns = False
         code.extend(generate_expr(stmt.val, module_name, mappings, ext_table))
     else:
         code.extend(generate_expr(stmt.val.expr, module_name, mappings, ext_table))
@@ -165,6 +174,7 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                         code.append('LDL ' + mappings['vars'][stmt.val.varref.val.id.val][0])
                     else:
                         code.append('LDL ' + mappings['args'][stmt.val.varref.val.id.val][0])
+                    first = fields[0]
                     while len(fields) > 1:
                         field = fields.pop()
                         if Accessor_lookup[field.val] == Accessor.FST or Accessor_lookup[field.val] == Accessor.SND:
@@ -173,7 +183,7 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                             else:
                                 code.append('LDH 00')
                         else:
-                            if field == Accessor_lookup[field.val] == Accessor.HD:
+                            if Accessor_lookup[field.val] == Accessor.HD:
                                 code.append('BSR head')
                                 code.append('AJS -1')
                                 code.append('LDR RR')
@@ -181,7 +191,7 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
                                 code.append('BSR tail')
                                 code.append('AJS -1')
                                 code.append('LDR RR')
-                    if Accessor_lookup[fields[0].val] == Accessor.FST or Accessor_lookup[fields[0].val] == Accessor.HD:
+                    if Accessor_lookup[first.val] == Accessor.FST or Accessor_lookup[first.val] == Accessor.HD:
                         code.append('STA -1')
                     else:
                         code.append('STA 00')
@@ -193,8 +203,15 @@ def generate_actstmt(stmt, code, module_name, mappings, ext_table, label):
 
         else:
             module = module_name if stmt.val.varref.val.module is None else stmt.val.varref.val.module
-            key = module + '_global_' + stmt.val.varref.val.id.val
-            if mappings['globals'][module][stmt.val.varref.val.id.val] == MEMTYPE.BASICTYPE:
+            if module is None:
+                module = module_name
+                var_name = stmt.val.varref.val.id.val
+            else:
+                module = stmt.val.varref.val.module
+                var_name = ext_table.global_vars[stmt.val.varref.val.id.val]['orig_id']
+            key = module + '_global_' + var_name
+
+            if mappings['globals'][module][var_name] == MEMTYPE.BASICTYPE:
                 code.extend(['LDC ' + key, 'STA 00'])
             else:
                 if len(stmt.val.varref.val.fields) > 0: # We have accessors
@@ -252,7 +269,7 @@ def generate_stmts(stmts, label, module_name, mappings, ext_table, index = 0, lo
 
                 # If or elif
                 if b.expr is not None:
-                    code.extend(generate_expr(b.expr, module_name, ext_table, mappings))
+                    code.extend(generate_expr(b.expr, module_name, mappings, ext_table))
                     code.append("BRT " + label + "_" + str(index))
                 else: # Else
                     code.append("BRA " + label + "_" + str(index))
@@ -295,13 +312,13 @@ def generate_stmts(stmts, label, module_name, mappings, ext_table, index = 0, lo
                 code.append("BRF " + label + "_" + str(start_index) + "_exit")
 
             # Statements
-            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, ext_table, mappings, index, loop_label)
+            branch_stmt, index = generate_stmts(stmt.val.stmts, label, module_name, mappings, ext_table, index, loop_label)
             code.extend(branch_stmt)
 
             # Update
             code.append(label + "_" + str(start_index) + "_update: nop")
             if stmt.val.update is not None:
-                generate_actstmt(stmt.val.update, code, module_name, mappings, label)
+                generate_actstmt(stmt.val.update, code, module_name, mappings, ext_table, label)
 
             # Exit
             code.append('BRA ' + label + '_' + str(start_index))
@@ -380,12 +397,14 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
         'vars': {}
     }
 
+    # Add local operator mapping
     i = 0
     for k in list(symbol_table.functions.keys()):
         if k[0] in [FunUniq.INFIX, FunUniq.PREFIX]:
             mappings['operators'][module_name][k] = i
         i += 1
 
+    # Add external operator mapping
     for f in ext_table.functions:
         if f[0] in [FunUniq.INFIX, FunUniq.PREFIX]:
             for of in ext_table.functions[f]:
@@ -394,6 +413,7 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
                         mappings['operators'][of['module']] = {}
                     mappings['operators'][of['module']][(f[0], of['orig_id'])] = list(headerfiles[of['module']]['symbols']['functions']).index((f[0], of['orig_id']))
 
+    # Load global code initialisation and global types
     for g in symbol_table.global_vars:
         key = module_name + '_global_' + g
         global_labels.append(key)
@@ -401,11 +421,13 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
         global_code.extend(generate_expr(symbol_table.global_vars[g].expr, module_name, mappings, ext_table))
         global_code.extend(['LDC ' + key, 'STA 00'])
 
+    # Load external global types
     for g in ext_table.global_vars:
         if ext_table.global_vars[g]['module'] not in mappings['globals']:
             mappings['globals'][ext_table.global_vars[g]['module']] = {}
-        mappings['globals'][ext_table.global_vars[g]['module']][g] = MEMTYPE.POINTER if type(ext_table.global_vars[g]['type'].val) in [AST.LISTTYPE, AST.TUPLETYPE] else MEMTYPE.BASICTYPE
+        mappings['globals'][ext_table.global_vars[g]['module']][ext_table.global_vars[g]['orig_id']] = MEMTYPE.POINTER if type(ext_table.global_vars[g]['type'].val) in [AST.LISTTYPE, AST.TUPLETYPE] else MEMTYPE.BASICTYPE
 
+    # Generate code for all functions
     for f in symbol_table.functions:
         o = 0
         for of in symbol_table.functions[f]:
@@ -419,17 +441,6 @@ def generate_object_file(symbol_table, ext_table, headerfiles, module_name, depe
             key += str(o)
             function_code[key] = generate_func(of, ext_table, module_name, key, mappings)
             o += 1
-
-    
-
-    '''
-    for f, b in BUILTIN_FUNCTIONS.items():
-        i = 0
-        for o in b:
-            key = 'builtins_func_' + f + '_' + str(i)
-            function_code[key] = o[1]
-            i += 1
-    '''
 
     gen_code = build_object_file(dependencies, global_code, global_labels, function_code)
 

@@ -1,11 +1,30 @@
 {
-  "depends": {},
-  "functions": [],
-  "globals": [
+  "depends": {
+    "main": {
+      "importall": false,
+      "type_imports": [
+        {
+          "effective_id": "flip",
+          "orig_id": "flip"
+        }
+      ]
+    }
+  },
+  "functions": [
     [
-      "globalVar",
-      "TYPE(val=BASICTYPE(type_id=\"Int\"))"
+      [
+        "FUNC",
+        "flop"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=LISTTYPE(type=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
+      ],
+      "TYPE(val=LISTTYPE(type=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
     ]
   ],
+  "globals": [],
   "typesyns": []
 }

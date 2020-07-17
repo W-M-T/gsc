@@ -1,13 +1,18 @@
-from importC import globalVar
+f (string) :: [Char] -> Void {
+    print(string);
+}
+
+f(x) :: Int -> Int {
+    return x;
+}
 
 main() :: -> Int
 {
-    print(globalVar);
+    Int x = 3;
+    [Int] a = 2 : [];
+    Int y = a.hd;
 
-    globalVar = 10;
+    a.hd = 5;
 
-    print(globalVar);
-    print('\n');
-
-    return globalVar;
+    return a.hd + y;
 }

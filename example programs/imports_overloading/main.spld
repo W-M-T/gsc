@@ -1,24 +1,29 @@
 {
   "depends": {
-    "importA": {
+    "importC": {
       "importall": false,
       "type_imports": [
         {
-          "effective_id": "b",
-          "orig_id": "a"
-        },
-        {
-          "effective_id": "c",
-          "orig_id": "c"
-        },
-        {
-          "effective_id": "g",
-          "orig_id": "f"
+          "effective_id": "flop",
+          "orig_id": "flop"
         }
       ]
     }
   },
   "functions": [
+    [
+      [
+        "FUNC",
+        "flip"
+      ],
+      null,
+      "FUNC",
+      [
+        "TYPE(val=BASICTYPE(type_id=\"Int\"))",
+        "TYPE(val=LISTTYPE(type=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
+      ],
+      "TYPE(val=LISTTYPE(type=TYPE(val=BASICTYPE(type_id=\"Int\"))))"
+    ],
     [
       [
         "FUNC",
