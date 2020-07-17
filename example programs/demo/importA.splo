@@ -1,19 +1,17 @@
 // DEPENDENCIES:
 // INIT SECTION:
+LDC 2
+LDC 3
+LDC 4
+STMH 2
+STMH 2
+LDC importA_global_a
+STA 00
 // BOOTSTRAP:
 BRA main
 // GLOBAL SECTION:
+importA_global_a: NOP
 // FUNCTION SECTION:
-importA_infix_0_0: LINK 00
-LDL -3
-LDL -2
-ADD
-LDC 2
-ADD
-STR RR
-BRA importA_infix_0_0_exit
-importA_infix_0_0_exit: UNLINK
-RET
 importA_func_f_0: LINK 00
 LDC 5
 STR RR
@@ -27,6 +25,16 @@ MUL
 STR RR
 BRA importA_func_f_1_exit
 importA_func_f_1_exit: UNLINK
+RET
+importA_infix_0_0: LINK 00
+LDL -3
+LDL -2
+ADD
+LDC 2
+ADD
+STR RR
+BRA importA_infix_0_0_exit
+importA_infix_0_0_exit: UNLINK
 RET
 // ENTRYPOINT:
 main: nop

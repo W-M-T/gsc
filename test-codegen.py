@@ -104,7 +104,7 @@ def main():
     gen_code = generate_object_file(symbol_table, module_name, dependencies)
     #print(gen_code)
 
-    with open('example programs/imports_overloading/' + module_name + '.splo', 'w+') as fh:
+    with open('example programs/demo/' + module_name + '.splo', 'w+') as fh:
         fh.write(gen_code)
 
 if __name__ == "__main__":

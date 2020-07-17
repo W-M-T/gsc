@@ -429,8 +429,6 @@ def resolveNames(symbol_table, ext_table):
 
                 in_scope_locals['locals'] = in_scope
                 resolveExprNames(v.expr, symbol_table, ext_table, False, in_scope_globals, in_scope_locals)
-                print(in_scope)
-                print(v.expr)
 
             in_scope_locals['locals'] = list(symbol_table.functions[f][i]['local_vars'].keys())
 
@@ -484,17 +482,12 @@ Resolve an expression with the following globals in scope
 Functions are always in scope
 '''
 def resolveExprNames(expr, symbol_table, ext_table, glob=False, in_scope_globals=[], in_scope_locals={}):
-    print("RESOLVING")
-    print(expr)
     for i in range(0, len(expr.contents)):
         if type(expr.contents[i]) is AST.VARREF:
-            print(expr.contents[i])
             if glob:
-                # TODO: Disallow imported globals
                 if expr.contents[i].id.val not in in_scope_globals:
                     ERROR_HANDLER.addError(ERR.UndefinedGlobalVar, [expr.contents[i].id.val, expr.contents[i]])
                     break
-                # TODO: Not hardcode this, it should depend on the module.
                 pos = expr.contents[i]._start_pos
                 expr.contents[i] = AST.RES_VARREF(val=AST.RES_GLOBAL(
                     module=None,

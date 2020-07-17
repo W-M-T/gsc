@@ -39,6 +39,11 @@
       "TYPE(val=BASICTYPE(type_id=\"Int\"))"
     ]
   ],
-  "globals": [],
+  "globals": [
+    [
+      "a",
+      "TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=TUPLETYPE(a=TYPE(val=BASICTYPE(type_id=\"Int\")), b=TYPE(val=BASICTYPE(type_id=\"Int\"))))))"
+    ]
+  ],
   "typesyns": []
 }

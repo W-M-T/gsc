@@ -1,3 +1,5 @@
+(Int, (Int, Int)) a = (2, (3, 4));
+
 infixl 7 ++ (a, b) :: Int Int -> Int {
     return a + b + 2;
 }

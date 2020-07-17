@@ -1,5 +1,0 @@
-from importA import f as g, ++ as **
-
-main() :: -> Int {
-    return g(5 ** 5);
-}

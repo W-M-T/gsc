@@ -1,0 +1,11 @@
+from importA import f as g, ++ as **, a as b
+
+Int b = 10;
+Int c = b;
+
+main() :: -> Int {
+    print(b);
+    print(c);
+
+    return g(5 ** 5);
+}
